@@ -371,5 +371,63 @@ func _run_smoke_test() -> void:
 	assert(WallManager.wall_states[first_id]["state"] == saved_wall_state["state"])
 	assert(WallManager.wall_states[first_id]["currentGraffiti"]["graffitiId"] == saved_wall_state["currentGraffiti"]["graffitiId"])
 	print("SMOKE: save/load restored wall, player, and progression state")
+
+	# Milestone 11: supply economy (Plan.md section 21). Mission payouts
+	# funded the wallet: $25 starting + $15 (m1) + $15 (m4) + $50 (m5).
+	assert(GameState.cash == 105)
+	var cash_now: int = GameState.cash
+	var paint_now: int = GameState.paint
+	assert(SupplyManager.buy("paint_pack")["ok"])
+	assert(GameState.paint == paint_now + 10)
+	assert(GameState.cash == cash_now - 12)
+	# The fat cap discounts bigger work but never below 1 paint.
+	assert(SupplyManager.paint_cost(WallManager.styles["piece"]) == 6)
+	assert(SupplyManager.buy("fat_cap")["ok"])
+	assert(SupplyManager.paint_cost(WallManager.styles["piece"]) == 5)
+	assert(SupplyManager.paint_cost(WallManager.styles["throwup"]) == 2)
+	assert(SupplyManager.paint_cost(WallManager.styles["tag"]) == 1)
+	assert(not SupplyManager.buy("fat_cap")["ok"])  # one-time upgrade
+	# A rare color joins the palette and gets selected.
+	var palette_size: int = GameState.fill_palette().size()
+	assert(SupplyManager.buy("burner_chrome")["ok"])
+	assert(GameState.fill_palette().size() == palette_size + 1)
+	assert(GameState.current_fill_color_name() == "Burner Chrome")
+	# Painting actually spends the discounted cost.
+	paint_now = GameState.paint
+	result = WallManager.paint_wall(WallManager.wall_nodes["wall_median_01"], "piece")
+	assert(result["ok"])
+	assert(GameState.paint == paint_now - 5)
+	# Broke writers get turned away.
+	var stash: int = GameState.cash
+	assert(GameState.try_spend_cash(stash))
+	assert(not SupplyManager.buy("paint_pack")["ok"])
+	GameState.add_cash(stash)
+	print("SMOKE: shop OK — cash $%d, palette %d colors" % [
+		GameState.cash, GameState.fill_palette().size()])
+
+	# Delivery run: repeatable income that draws heat (Plan.md section
+	# 15 "Supply Run" / section 12 heat sources).
+	assert(SupplyManager.start_delivery())
+	assert(not SupplyManager.start_delivery())  # one package at a time
+	assert(SupplyManager._drop_zone != null)
+	cash_now = GameState.cash
+	var heat_now: float = HeatManager.heat
+	SupplyManager.resolve_delivery()
+	assert(not SupplyManager.delivery_active)
+	assert(GameState.cash == cash_now + 25)
+	assert(HeatManager.heat > heat_now)
+	print("SMOKE: delivery run paid $25, heat %.1f -> %.1f" % [heat_now, HeatManager.heat])
+
+	# Supplies survive the save/load round trip.
+	assert(SaveManager.quick_save())
+	var saved_cash: int = GameState.cash
+	GameState.cash = 0
+	GameState.extra_fill_colors.clear()
+	SupplyManager.owned.clear()
+	assert(SaveManager.quick_load())
+	assert(GameState.cash == saved_cash)
+	assert(GameState.fill_palette().size() == palette_size + 1)
+	assert(SupplyManager.is_owned("fat_cap"))
+	print("SMOKE: supply state survives save/load")
 	print("SMOKE: OK")
 	get_tree().quit()

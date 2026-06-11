@@ -183,6 +183,8 @@ func _apply_effects(effects: Dictionary) -> void:
 		GameState.unlock_colors()
 	if effects.has("paint"):
 		GameState.add_paint(int(effects["paint"]))
+	if effects.has("cash"):
+		GameState.add_cash(int(effects["cash"]))
 	if effects.has("rep"):
 		GameState.add_reputation(int(effects["rep"]))
 	if effects.has("minRep") and GameState.reputation < int(effects["minRep"]):

@@ -1,0 +1,38 @@
+{
+  "shop": [
+    {
+      "itemId": "paint_pack",
+      "name": "Paint Pack",
+      "desc": "+10 paint",
+      "price": 12,
+      "repeatable": true,
+      "paint": 10
+    },
+    {
+      "itemId": "fat_cap",
+      "name": "Fat Cap",
+      "desc": "throw-ups & pieces cost 1 less paint",
+      "price": 25,
+      "repeatable": false,
+      "paintDiscount": 1
+    },
+    {
+      "itemId": "burner_chrome",
+      "name": "Burner Chrome",
+      "desc": "rare fill color",
+      "price": 30,
+      "repeatable": false,
+      "color": {"name": "Burner Chrome", "hex": "#9fd8e8"}
+    }
+  ],
+  "delivery": {
+    "name": "Delivery Run",
+    "cash": 25,
+    "heat": 6.0,
+    "drops": [
+      {"label": "train yard gate", "position": [30, 1.2, 0]},
+      {"label": "north alley dumpster", "position": [0, 1.2, -14]},
+      {"label": "lot behind the corner block", "position": [-14, 1.2, 24]}
+    ]
+  }
+}

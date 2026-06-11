@@ -17,8 +17,11 @@ const HEAT_COLORS := {
 var _rank_label: Label
 var _rep_label: Label
 var _paint_label: Label
+var _cash_label: Label
 var _heat_label: Label
 var _type_label: Label
+var _shop_panel: PanelContainer
+var _shop_label: Label
 var _mission_panel: PanelContainer
 var _mission_title_label: Label
 var _mission_objective_label: Label
@@ -50,6 +53,7 @@ func _ready() -> void:
 	_rank_label = _make_label(stats, 22, ACCENT)
 	_rep_label = _make_label(stats, 18)
 	_paint_label = _make_label(stats, 18)
+	_cash_label = _make_label(stats, 18)
 	_heat_label = _make_label(stats, 18)
 	_type_label = _make_label(stats, 18)
 
@@ -100,6 +104,17 @@ func _ready() -> void:
 	crew_title.text = "CREW   —   [Tab] close"
 	_crew_label = _make_label(crew_box, 17)
 
+	_shop_panel = _make_panel(Color("#e0a030"))
+	_shop_panel.set_anchors_preset(Control.PRESET_CENTER)
+	_shop_panel.visible = false
+	root.add_child(_shop_panel)
+	var shop_box := VBoxContainer.new()
+	shop_box.custom_minimum_size = Vector2(560, 0)
+	_shop_panel.add_child(shop_box)
+	var shop_title := _make_label(shop_box, 24, Color("#e0a030"))
+	shop_title.text = "LUPE'S SUPPLIES   —   [E] close"
+	_shop_label = _make_label(shop_box, 17)
+
 	_map_panel = MapPanel.new()
 	_map_panel.set_anchors_preset(Control.PRESET_CENTER)
 	root.add_child(_map_panel)
@@ -107,6 +122,9 @@ func _ready() -> void:
 	GameState.reputation_changed.connect(_on_rep_changed)
 	GameState.rank_changed.connect(_on_rank_changed)
 	GameState.paint_changed.connect(_on_paint_changed)
+	GameState.cash_changed.connect(_on_cash_changed)
+	SupplyManager.shop_toggled.connect(_on_shop_toggled)
+	SupplyManager.supply_event.connect(_on_supply_event)
 	GameState.graffiti_type_changed.connect(_on_type_changed)
 	GameState.fill_color_changed.connect(func(_name: String) -> void:
 		_on_type_changed(GameState.selected_graffiti_type))
@@ -134,12 +152,19 @@ func bind_player(player: Player) -> void:
 	_map_panel.bind_player(player)
 
 func _unhandled_input(event: InputEvent) -> void:
+	# While the shop is open, the number keys buy instead of switching
+	# cans, so consume everything the shop handles before the player does.
+	if SupplyManager.is_shop_open() and _handle_shop_input(event):
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("crew_menu"):
+		SupplyManager.close_shop()
 		_crew_panel.visible = not _crew_panel.visible
 		if _crew_panel.visible:
 			_map_panel.visible = false
 			_refresh_crew_menu()
 	elif event.is_action_pressed("map"):
+		SupplyManager.close_shop()
 		_map_panel.visible = not _map_panel.visible
 		if _map_panel.visible:
 			_crew_panel.visible = false
@@ -157,8 +182,69 @@ func _refresh_stats() -> void:
 	_rank_label.text = "Rank: %s" % GameState.rank
 	_rep_label.text = "Rep: %d" % GameState.reputation
 	_paint_label.text = "Paint: %d" % GameState.paint
+	_cash_label.text = "Cash: $%d" % GameState.cash
 	_on_heat_changed(HeatManager.heat, 0.0)
 	_on_type_changed(GameState.selected_graffiti_type)
+
+## Keyboard shopping (Milestone 11): 1-3 buy catalog slots, 4 takes a
+## delivery run, E/Esc puts the cans away. Returns true when consumed.
+func _handle_shop_input(event: InputEvent) -> bool:
+	if event.is_action_pressed("interact") or event.is_action_pressed("toggle_mouse"):
+		SupplyManager.close_shop()
+		return true
+	# Slot i is catalog item i; the row after the catalog is the delivery
+	# run — the same order _refresh_shop renders, so display and input
+	# can't drift apart if the catalog grows.
+	var slots := ["graffiti_tag", "graffiti_throwup", "graffiti_piece", "shop_delivery"]
+	for i in slots.size():
+		if event.is_action_pressed(slots[i]):
+			if i < SupplyManager.catalog.size():
+				var result: Dictionary = SupplyManager.buy(
+					String(SupplyManager.catalog[i]["itemId"]))
+				if not result.get("ok", false):
+					Sfx.play("denied")
+					_show_message(String(result.get("reason", "")))
+			elif i == SupplyManager.catalog.size():
+				SupplyManager.start_delivery()
+			_refresh_shop()
+			return true
+	return false
+
+func _refresh_shop() -> void:
+	var lines: PackedStringArray = []
+	lines.append("Cash: $%d" % GameState.cash)
+	for i in SupplyManager.catalog.size():
+		var item: Dictionary = SupplyManager.catalog[i]
+		var status := ""
+		if not item.get("repeatable", false) and SupplyManager.is_owned(String(item["itemId"])):
+			status = "   [OWNED]"
+		lines.append("[%d] %s — $%d (%s)%s" % [
+			i + 1, String(item["name"]), int(item.get("price", 0)),
+			String(item.get("desc", "")), status])
+	if not SupplyManager.delivery.is_empty():
+		var status := "   [PACKAGE OUT — make the drop]" if SupplyManager.delivery_active else ""
+		lines.append("[%d] %s — earn $%d (draws heat)%s" % [
+			SupplyManager.catalog.size() + 1,
+			String(SupplyManager.delivery.get("name", "Delivery Run")),
+			int(SupplyManager.delivery.get("cash", 0)), status])
+	_shop_label.text = "\n".join(lines)
+
+func _on_cash_changed(new_cash: int) -> void:
+	_cash_label.text = "Cash: $%d" % new_cash
+	if _shop_panel.visible:
+		_refresh_shop()
+
+func _on_shop_toggled(open: bool) -> void:
+	_shop_panel.visible = open
+	if open:
+		_crew_panel.visible = false
+		_map_panel.visible = false
+		_refresh_shop()
+
+func _on_supply_event(message: String) -> void:
+	_show_message(message, 4.0)
+	if _shop_panel.visible:
+		_refresh_shop()
 
 func _on_rep_changed(new_rep: int, _gained: int) -> void:
 	_rep_label.text = "Rep: %d" % new_rep
@@ -210,7 +296,7 @@ func _refresh_prompt() -> void:
 		_prompt_label.text = "%s  |  Owner: %s  |  Risk %d  |  Visibility %d\n[E] Paint %s (%d paint)   [1] Tag  [2] Throw-up  [3] Piece" % [
 			_focused.display_name(), owner_id,
 			int(def.get("risk", 1)), int(def.get("visibility", 1)),
-			style.get("label", "?"), int(style.get("paintCost", 1)),
+			style.get("label", "?"), SupplyManager.paint_cost(style),
 		]
 	elif _focused.has_method("prompt_text"):
 		_prompt_label.text = _focused.prompt_text()

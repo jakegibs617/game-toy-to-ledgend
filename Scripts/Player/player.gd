@@ -21,6 +21,7 @@ var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 func _ready() -> void:
 	name = "Player"
+	add_to_group("player")  # managers (e.g. SupplyManager) look us up here
 	var col := CollisionShape3D.new()
 	var capsule := CapsuleShape3D.new()
 	capsule.height = 1.8

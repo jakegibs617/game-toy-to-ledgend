@@ -42,11 +42,20 @@ func setup(actor_data: Dictionary) -> void:
 	add_child(label)
 
 func prompt_text() -> String:
+	if data.get("shop", false):
+		return "[E] %s (%s) — talk / shop" % [
+			String(data.get("name", "?")), String(data.get("roleLabel", ""))]
 	return "[E] Talk to %s (%s)" % [
 		String(data.get("name", "?")), String(data.get("roleLabel", ""))]
 
 func interact() -> void:
-	if not MissionManager.notify_actor(String(data["actorId"])):
-		var idle := String(data.get("dialogue", {}).get("idle", ""))
-		if idle != "":
-			MissionManager.mission_event.emit(idle)
+	if MissionManager.notify_actor(String(data["actorId"])):
+		return
+	# Outside mission beats, a shopkeeper actor opens their catalog
+	# (Milestone 11 supply economy) instead of repeating an idle line.
+	if data.get("shop", false):
+		SupplyManager.toggle_shop(self)
+		return
+	var idle := String(data.get("dialogue", {}).get("idle", ""))
+	if idle != "":
+		MissionManager.mission_event.emit(idle)
