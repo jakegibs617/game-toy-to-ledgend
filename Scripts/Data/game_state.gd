@@ -6,6 +6,7 @@ extends Node
 signal reputation_changed(new_rep: int, gained: int)
 signal rank_changed(new_rank: String)
 signal paint_changed(new_paint: int)
+signal cash_changed(new_cash: int)
 signal graffiti_type_changed(new_type: String)
 signal fill_color_changed(color_name: String)
 
@@ -30,10 +31,12 @@ var alias_chosen := true
 var reputation := 0
 var rank := "Toy"
 var paint := 20
+var cash := 25
 var selected_graffiti_type := "tag"
 var unlocked_types := {"tag": true}
 var colors_unlocked := false
 var fill_color_index := 0
+var extra_fill_colors: Array = []  # rare colors bought from the shop
 
 func _ready() -> void:
 	_setup_input_actions()
@@ -45,10 +48,12 @@ func save_state() -> Dictionary:
 		"reputation": reputation,
 		"rank": rank,
 		"paint": paint,
+		"cash": cash,
 		"selected_graffiti_type": selected_graffiti_type,
 		"unlocked_types": unlocked_types.duplicate(true),
 		"colors_unlocked": colors_unlocked,
 		"fill_color_index": fill_color_index,
+		"extra_fill_colors": extra_fill_colors.duplicate(true),
 	}
 
 func load_state(data: Dictionary) -> void:
@@ -58,14 +63,17 @@ func load_state(data: Dictionary) -> void:
 	reputation = int(data.get("reputation", reputation))
 	rank = String(data.get("rank", _rank_for(reputation)))
 	paint = int(data.get("paint", paint))
+	cash = int(data.get("cash", cash))
 	selected_graffiti_type = String(data.get("selected_graffiti_type", selected_graffiti_type))
 	unlocked_types = data.get("unlocked_types", unlocked_types).duplicate(true)
 	colors_unlocked = bool(data.get("colors_unlocked", colors_unlocked))
-	fill_color_index = clampi(int(data.get("fill_color_index", fill_color_index)), 0, FILL_COLORS.size() - 1)
+	extra_fill_colors = data.get("extra_fill_colors", extra_fill_colors).duplicate(true)
+	fill_color_index = clampi(int(data.get("fill_color_index", fill_color_index)), 0, fill_palette().size() - 1)
 	reputation_changed.emit(reputation, 0)
 	if rank != old_rank:  # otherwise every quick-load announces "RANK UP"
 		rank_changed.emit(rank)
 	paint_changed.emit(paint)
+	cash_changed.emit(cash)
 	graffiti_type_changed.emit(selected_graffiti_type)
 	fill_color_changed.emit(current_fill_color_name())
 
@@ -88,6 +96,17 @@ func add_paint(amount: int) -> void:
 	paint += amount
 	paint_changed.emit(paint)
 
+func try_spend_cash(cost: int) -> bool:
+	if cash < cost:
+		return false
+	cash -= cost
+	cash_changed.emit(cash)
+	return true
+
+func add_cash(amount: int) -> void:
+	cash += amount
+	cash_changed.emit(cash)
+
 func select_graffiti_type(type: String) -> void:
 	if not is_type_unlocked(type):
 		return
@@ -108,14 +127,25 @@ func unlock_colors() -> void:
 func cycle_fill_color() -> void:
 	if not colors_unlocked:
 		return
-	fill_color_index = (fill_color_index + 1) % FILL_COLORS.size()
+	fill_color_index = (fill_color_index + 1) % fill_palette().size()
+	fill_color_changed.emit(current_fill_color_name())
+
+## Base palette plus any rare colors bought from the supply shop.
+func fill_palette() -> Array:
+	return FILL_COLORS + extra_fill_colors
+
+## A rare color from the supply shop (Plan.md section 21) joins the
+## palette and is selected immediately — you just paid for it.
+func add_fill_color(color_name: String, hex: String) -> void:
+	extra_fill_colors.append({"name": color_name, "hex": hex})
+	fill_color_index = fill_palette().size() - 1
 	fill_color_changed.emit(current_fill_color_name())
 
 func current_fill_color() -> String:
-	return String(FILL_COLORS[fill_color_index]["hex"])
+	return String(fill_palette()[fill_color_index]["hex"])
 
 func current_fill_color_name() -> String:
-	return String(FILL_COLORS[fill_color_index]["name"])
+	return String(fill_palette()[fill_color_index]["name"])
 
 ## Position of a rank in the ladder — lets listeners tell a rank-up
 ## from a demotion (possible once patrols can dock reputation).
@@ -143,6 +173,7 @@ func _setup_input_actions() -> void:
 	_add_key_action("graffiti_tag", KEY_1)
 	_add_key_action("graffiti_throwup", KEY_2)
 	_add_key_action("graffiti_piece", KEY_3)
+	_add_key_action("shop_delivery", KEY_4)
 	_add_key_action("cycle_color", KEY_C)
 	_add_key_action("quick_save", KEY_F5)
 	_add_key_action("quick_load", KEY_F9)

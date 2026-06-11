@@ -31,8 +31,9 @@ SMOKE_TEST=1 /Applications/Godot.app/Contents/MacOS/Godot --headless --path .
 | Mouse | Look |
 | Shift | Run |
 | Space | Jump |
-| E | Paint focused wall / talk / pick up |
-| 1 / 2 / 3 | Select Tag / Throw-up / Piece |
+| E | Paint focused wall / talk / shop / pick up |
+| 1 / 2 / 3 | Select Tag / Throw-up / Piece (in Lupe's shop: buy) |
+| 4 | (in Lupe's shop) Take a delivery run |
 | C | Cycle fill color after Lupe unlocks colors |
 | F5 | Quick save |
 | F9 | Quick load |
@@ -109,6 +110,14 @@ prompt appears at the bottom of the screen, then press E.
   closed). You can outrun them — chase speed is below your run speed.
   With Moth recruited, she calls out patrols near your painting spot.
   Guards show as orange dots on the district map.
+- **SupplyManager** (autoload, `Scripts/Supplies/supply_manager.gd`) —
+  supply economy (Plan.md §21). Cash arrives with mission payouts and
+  buys from Lupe's catalog (`Data/supplies.json`): paint packs, a fat
+  cap that cuts the paint cost of throw-ups and pieces by 1, and the
+  rare "Burner Chrome" fill color. Interact with Lupe outside mission
+  beats to open the shop (number keys buy). She also hands out
+  repeatable delivery runs: carry a package to a rotating drop spot
+  for $25 — but the handoff draws heat.
 - **MissionManager** (`Scripts/Missions/mission_manager.gd`,
   Milestone 7) — loads `Data/missions.json` and runs the five-mission
   vertical slice from Plan.md §16: First Mark, Don't Be a Toy, Get
@@ -127,7 +136,7 @@ All wall, style, crew, and NPC content is data-driven from `/Data`
 
 ## Not built yet (by design — Plan.md §47)
 
-All Plan.md §35 milestones are in, plus Heat/City Cleanup and security
-patrols from the §36 "Should-Have" list. Next up from that list: a
-richer supply inventory, dialogue, and the blackbook UI.
+All Plan.md §35 milestones are in, plus Heat/City Cleanup, security
+patrols, and the supply economy from the §36 "Should-Have" list. Next
+up from that list: dialogue and the blackbook UI.
 # game-toy-to-ledgend

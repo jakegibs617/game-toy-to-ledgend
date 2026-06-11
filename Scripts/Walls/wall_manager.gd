@@ -66,7 +66,7 @@ func paint_wall(wall: PaintableWall, type: String) -> Dictionary:
 	var style: Dictionary = styles.get(type, {})
 	if style.is_empty():
 		return {"ok": false, "reason": "Unknown graffiti type."}
-	var cost := int(style.get("paintCost", 1))
+	var cost := SupplyManager.paint_cost(style)
 	if not GameState.try_spend_paint(cost):
 		return {"ok": false, "reason": "Not enough paint."}
 	var def := wall.def

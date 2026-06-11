@@ -1,5 +1,35 @@
 # Changelog
 
+## 2026-06-11 — Supply Economy (Plan.md §21)
+
+Third post-slice "Should-Have" system from Plan.md §36 ("supply
+inventory").
+
+- New `SupplyManager` autoload (`Scripts/Supplies/supply_manager.gd`)
+  with a data-driven catalog in `Data/supplies.json`. `GameState` now
+  tracks cash ($25 to start); mission payouts pay cash (m1 +$15,
+  m4 +$15, m5 +$50 via the new `"cash"` mission effect).
+- Lupe is the shop front (Plan.md §43): interacting with her outside a
+  mission beat opens her catalog — number keys buy, E/Esc closes,
+  walking off closes it too. Catalog: Paint Pack ($12, +10 paint,
+  repeatable), Fat Cap ($25, throw-ups and pieces cost 1 less paint —
+  §21 "caps modify spray behavior", never below 1), and Burner Chrome
+  ($30, a rare fill color that joins the C-cycle palette).
+- Delivery runs (Plan.md §15 "Supply Run"): Lupe hands out a package
+  for a rotating drop spot (train yard gate, north alley, corner-block
+  lot). Making the drop pays $25 and raises heat — handoffs get
+  noticed. One package at a time; the drop shows as a glowing pad.
+- HUD: cash readout in the stats panel, shop panel styled like the
+  crew menu, wall prompts and the shop both show discounted paint
+  costs. Purchase/delivery messages, denied blip when broke.
+- Save/load persists cash, owned upgrades, extra palette colors, and
+  the in-flight delivery (the drop zone respawns on load).
+- Smoke test extended: mission-chain cash totals, paint-pack purchase,
+  fat-cap discounts (piece 6→5, tag stays 1), one-time-purchase and
+  insufficient-cash rejections, rare-color palette growth, discounted
+  cost actually spent on painting, delivery round trip (+$25, +heat),
+  and a supplies save/load round trip.
+
 ## 2026-06-11 — Security Patrols (Plan.md §12, §18, §25)
 
 Second post-slice "Should-Have" system from Plan.md §36.

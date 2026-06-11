@@ -16,6 +16,7 @@
       "roleLabel": "Supplies",
       "color": "#e0a030",
       "position": [12.5, 0, 6.5],
+      "shop": true,
       "dialogue": {
         "idle": "Lupe: \"Paint's in the back. Don't get caught slipping out there.\""
       }
@@ -30,7 +31,7 @@
         {"type": "paint", "text": "Put up your first tag — walk to a wall and press E", "graffitiTypes": ["tag"], "count": 1, "remember": "first_tag_wall"},
         {"type": "reach", "text": "Head back to the safehouse (blue door, west side)", "actorId": "safehouse"}
       ],
-      "onComplete": {"paint": 10, "message": "Home safe. Someone left starter cans by the door. (+10 paint)"}
+      "onComplete": {"paint": 10, "cash": 15, "message": "Home safe. Starter cans by the door and a few crumpled bills. (+10 paint, +$15)"}
     },
     {
       "missionId": "m2_dont_be_a_toy",
@@ -66,7 +67,7 @@
         {"type": "stage", "text": "Recover Moth's blackbook from the north alley", "memberId": "npc_mina_moth", "stage": "item_recovered"},
         {"type": "stage", "text": "Bring the blackbook back to Moth", "memberId": "npc_mina_moth", "stage": "recruited"}
       ],
-      "onComplete": {"rep": 15, "message": "Moth's on lookout now — rivals will think twice. (+15 rep)"}
+      "onComplete": {"rep": 15, "cash": 15, "message": "Moth's on lookout now — rivals will think twice. She split her odd-job money. (+15 rep, +$15)"}
     },
     {
       "missionId": "m5_claim_the_block",
@@ -77,7 +78,7 @@
         {"type": "paint", "text": "Put up a piece with your crew behind you — press 3", "graffitiTypes": ["piece"], "count": 1, "requireCrew": true},
         {"type": "claim_district", "text": "Own the block — push your influence past 50% (check the map on M)", "districtId": "district_mill_yard"}
       ],
-      "onComplete": {"minRep": 400, "message": "You're KNOWN in the Mill Yard. Canal Side is opening up... (prototype complete)"}
+      "onComplete": {"minRep": 400, "cash": 50, "message": "You're KNOWN in the Mill Yard (+$50 in commissions). Canal Side is opening up... (prototype complete)"}
     }
   ]
 }
