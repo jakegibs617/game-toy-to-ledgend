@@ -1,0 +1,23 @@
+{
+  "tag": {
+    "label": "Tag",
+    "baseValue": 10,
+    "paintCost": 1,
+    "fillColor": "#f2f2f2",
+    "outlineColor": "#1a1a1a"
+  },
+  "throwup": {
+    "label": "Throw-up",
+    "baseValue": 25,
+    "paintCost": 3,
+    "fillColor": "#ff4f79",
+    "outlineColor": "#16161d"
+  },
+  "piece": {
+    "label": "Piece",
+    "baseValue": 60,
+    "paintCost": 6,
+    "fillColor": "#ffd23f",
+    "outlineColor": "#202033"
+  }
+}

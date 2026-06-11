@@ -1,0 +1,27 @@
+; Engine configuration file.
+; Toy to Legend - graffiti open-world RPG prototype (see Plan.md)
+
+config_version=5
+
+[application]
+
+config/name="Toy to Legend (Prototype)"
+run/main_scene="res://Scenes/PrototypeDistrict.tscn"
+
+[autoload]
+
+GameState="*res://Scripts/Data/game_state.gd"
+WallManager="*res://Scripts/Walls/wall_manager.gd"
+RivalManager="*res://Scripts/Rivals/rival_manager.gd"
+CrewManager="*res://Scripts/Crew/crew_manager.gd"
+TerritoryManager="*res://Scripts/Territory/territory_manager.gd"
+MissionManager="*res://Scripts/Missions/mission_manager.gd"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+
+[rendering]
+
+renderer/rendering_method="forward_plus"

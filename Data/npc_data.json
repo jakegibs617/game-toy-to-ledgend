@@ -1,0 +1,28 @@
+[
+  {
+    "memberId": "npc_mina_moth",
+    "name": "Mina",
+    "alias": "Moth",
+    "role": "lookout",
+    "roleLabel": "Lookout",
+    "loyalty": 50,
+    "style": 4,
+    "specialAbility": "early_warning",
+    "bonusDescription": "Warns you when rivals move on your walls; rivals back off more often.",
+    "hint": "Hangs out near the corner store.",
+    "missionDescription": "Recover her blackbook from the north alley.",
+    "color": "#b48ee0",
+    "position": [-13, 0, 6],
+    "dialogue": {
+      "meet": "I'm Moth. Ghost Line lifted my blackbook — years of outlines in there. They stashed it in the north alley. Get it back and I'll be your lookout.",
+      "active": "The blackbook's still in the north alley, behind Ghost Line's tags. Watch yourself in there.",
+      "recovered": "You actually got it back. Okay — you paint, I watch. I'm in your crew.",
+      "recruited": "Eyes open. I'll whistle if anyone creeps on your walls."
+    },
+    "item": {
+      "name": "Moth's Blackbook",
+      "position": [0, 0.6, -15],
+      "color": "#3b2f4a"
+    }
+  }
+]

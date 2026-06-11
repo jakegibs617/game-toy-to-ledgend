@@ -1,0 +1,44 @@
+[
+  {
+    "crewId": "buff_kings",
+    "name": "The Buff Kings",
+    "tag": "BFK",
+    "leaderAlias": "VEK",
+    "style": "block_letters",
+    "aggression": 4,
+    "responseType": "throwup",
+    "fillColor": "#e8e3d9",
+    "outlineColor": "#16161d",
+    "crossOutColor": "#e0301e",
+    "territory": ["wall_mill_01", "wall_mill_02", "wall_landmark_01"],
+    "relationshipToPlayer": -10
+  },
+  {
+    "crewId": "ghost_line",
+    "name": "Ghost Line",
+    "tag": "GHL",
+    "leaderAlias": "WISP",
+    "style": "stealth_rooftop",
+    "aggression": 2,
+    "responseType": "tag",
+    "fillColor": "#9fd8cb",
+    "outlineColor": "#10202b",
+    "crossOutColor": "#7fe7dc",
+    "territory": ["wall_alley_n_01", "wall_alley_n_02"],
+    "relationshipToPlayer": 0
+  },
+  {
+    "crewId": "chrome_saints",
+    "name": "Chrome Saints",
+    "tag": "CHRM",
+    "leaderAlias": "HALO",
+    "style": "chrome_trainyard",
+    "aggression": 3,
+    "responseType": "piece",
+    "fillColor": "#c0c5ce",
+    "outlineColor": "#2b2d42",
+    "crossOutColor": "#ff9f1c",
+    "territory": ["wall_loading_01", "wall_lot_01"],
+    "relationshipToPlayer": -5
+  }
+]

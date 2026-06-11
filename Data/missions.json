@@ -1,0 +1,83 @@
+{
+  "actors": [
+    {
+      "actorId": "safehouse",
+      "kind": "zone",
+      "name": "Safehouse",
+      "position": [-10, 1.2, 6.8],
+      "size": [3.5, 2.5, 3.5],
+      "door": {"position": [-10, 1.25, 8.06], "size": [1.6, 2.5, 0.25], "color": "#274156"},
+      "labelText": "SAFEHOUSE"
+    },
+    {
+      "actorId": "lupe",
+      "kind": "npc",
+      "name": "Lupe",
+      "roleLabel": "Supplies",
+      "color": "#e0a030",
+      "position": [12.5, 0, 6.5],
+      "dialogue": {
+        "idle": "Lupe: \"Paint's in the back. Don't get caught slipping out there.\""
+      }
+    }
+  ],
+  "missions": [
+    {
+      "missionId": "m1_first_mark",
+      "title": "First Mark",
+      "objectives": [
+        {"type": "choose_alias", "text": "Choose your writer alias"},
+        {"type": "paint", "text": "Put up your first tag — walk to a wall and press E", "graffitiTypes": ["tag"], "count": 1, "remember": "first_tag_wall"},
+        {"type": "reach", "text": "Head back to the safehouse (blue door, west side)", "actorId": "safehouse"}
+      ],
+      "onComplete": {"paint": 10, "message": "Home safe. Someone left starter cans by the door. (+10 paint)"}
+    },
+    {
+      "missionId": "m2_dont_be_a_toy",
+      "title": "Don't Be a Toy",
+      "onStart": {
+        "crossOut": {"wall": "@first_tag_wall", "crewId": "buff_kings", "text": "TOY"},
+        "unlockTypes": ["throwup"],
+        "message": "Word on the street: somebody went over your tag overnight."
+      },
+      "objectives": [
+        {"type": "reach_wall", "text": "Go check on your first tag", "wall": "@first_tag_wall",
+          "onComplete": {"message": "\"TOY\" — VEK of The Buff Kings called you out. Answer with something bigger."}},
+        {"type": "paint", "text": "Paint a throw-up over it — press 2, then E", "graffitiTypes": ["throwup"], "wall": "@first_tag_wall", "count": 1}
+      ],
+      "onComplete": {"rep": 25, "message": "Reclaimed. Let VEK chew on that. (+25 rep)"}
+    },
+    {
+      "missionId": "m3_get_supplies",
+      "title": "Get Supplies",
+      "objectives": [
+        {"type": "talk", "text": "Visit Lupe by the bodega for supplies", "actorId": "lupe",
+          "onComplete": {"paint": 20, "unlockTypes": ["piece"], "unlockColors": true,
+            "message": "Lupe: \"Cans, caps, and real color. You're ready for pieces now.\" (+20 paint)"}},
+        {"type": "choose_color", "text": "Pick your fill color — press C to cycle"}
+      ],
+      "onComplete": {"message": "Stocked up. Time to put in real work."}
+    },
+    {
+      "missionId": "m4_find_a_lookout",
+      "title": "Find a Lookout",
+      "objectives": [
+        {"type": "stage", "text": "Meet Mina \"Moth\" near the corner store", "memberId": "npc_mina_moth", "stage": "mission_active"},
+        {"type": "stage", "text": "Recover Moth's blackbook from the north alley", "memberId": "npc_mina_moth", "stage": "item_recovered"},
+        {"type": "stage", "text": "Bring the blackbook back to Moth", "memberId": "npc_mina_moth", "stage": "recruited"}
+      ],
+      "onComplete": {"rep": 15, "message": "Moth's on lookout now — rivals will think twice. (+15 rep)"}
+    },
+    {
+      "missionId": "m5_claim_the_block",
+      "title": "Claim the Block",
+      "objectives": [
+        {"type": "paint", "text": "Paint 3 different walls in the Mill Yard", "count": 3, "distinctWalls": true},
+        {"type": "defend", "text": "A crew hit your wall — take it back!", "crewId": "buff_kings"},
+        {"type": "paint", "text": "Put up a piece with your crew behind you — press 3", "graffitiTypes": ["piece"], "count": 1, "requireCrew": true},
+        {"type": "claim_district", "text": "Own the block — push your influence past 50% (check the map on M)", "districtId": "district_mill_yard"}
+      ],
+      "onComplete": {"minRep": 400, "message": "You're KNOWN in the Mill Yard. Canal Side is opening up... (prototype complete)"}
+    }
+  ]
+}

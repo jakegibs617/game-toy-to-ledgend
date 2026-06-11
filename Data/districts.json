@@ -1,0 +1,8 @@
+[
+  {
+    "districtId": "district_mill_yard",
+    "name": "Mill Yard",
+    "claimThreshold": 0.5,
+    "claimRepBonus": 150
+  }
+]
