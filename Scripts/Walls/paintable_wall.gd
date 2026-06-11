@@ -44,12 +44,25 @@ func clear_graffiti() -> void:
 	for child in _graffiti_anchor.get_children():
 		child.queue_free()
 
+## Milestone 8 art pass: each graffiti gets a deterministic tilt, paint
+## drips under the letters, and (for throw-ups/pieces) filled panels —
+## all unshaded so the work pops in the dusk lighting.
 func show_graffiti(graffiti: Dictionary) -> void:
 	clear_graffiti()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(String(graffiti.get("graffitiId", "")) + String(graffiti.get("alias", "")))
+	var holder := Node3D.new()
+	holder.rotation_degrees = Vector3(0, 0, rng.randf_range(-3.5, 3.5))
+	_graffiti_anchor.add_child(holder)
+
+	var fill := Color(String(graffiti.get("fillColor", "#ffffff")))
+	var outline := Color(String(graffiti.get("outlineColor", "#000000")))
 	var label := Label3D.new()
 	label.text = String(graffiti.get("alias", "???"))
-	label.modulate = Color(String(graffiti.get("fillColor", "#ffffff")))
-	label.outline_modulate = Color(String(graffiti.get("outlineColor", "#000000")))
+	label.modulate = fill
+	label.outline_modulate = outline
+	var letter_bottom := 0.25
+	var drip_spread := 0.8
 	match String(graffiti.get("type", "tag")):
 		"tag":
 			label.font_size = 96
@@ -59,36 +72,81 @@ func show_graffiti(graffiti: Dictionary) -> void:
 			label.font_size = 160
 			label.outline_size = 48
 			label.pixel_size = 0.006
+			letter_bottom = 0.5
+			drip_spread = 1.2
+			_add_panel(holder, _panel_size(0.55, 0.42), outline.darkened(0.35), -0.012)
 		"piece":
 			label.font_size = 220
 			label.outline_size = 64
 			label.pixel_size = 0.008
-			_add_backdrop()
-	_graffiti_anchor.add_child(label)
+			letter_bottom = 0.85
+			drip_spread = 1.6
+			_add_panel(holder, _panel_size(0.9, 0.84), fill.darkened(0.55), -0.018)
+			_add_panel(holder, _panel_size(0.85, 0.78), Color("#26233a"), -0.015)
+	holder.add_child(label)
+	_add_drips(holder, rng, fill, letter_bottom, drip_spread)
 
-## Slaps a cross-out (e.g. "TOY") at an angle over the current graffiti.
-## Cleared automatically when show_graffiti repaints the wall.
+## Slaps a cross-out (e.g. "TOY") at an angle over the current graffiti,
+## with a strike bar through the work. Cleared when show_graffiti repaints.
 func show_cross_out(cross: Dictionary) -> void:
+	var holder := Node3D.new()
+	holder.rotation_degrees = Vector3(0, 0, -14)
+	_graffiti_anchor.add_child(holder)
+	var color := Color(String(cross.get("color", "#e0301e")))
+
 	var label := Label3D.new()
 	label.text = String(cross.get("text", "TOY"))
-	label.modulate = Color(String(cross.get("color", "#e0301e")))
+	label.modulate = color
 	label.outline_modulate = Color("#1a1a1a")
 	label.font_size = 150
 	label.outline_size = 28
 	label.pixel_size = 0.006
-	label.position = Vector3(0, 0, 0.02)
-	label.rotation_degrees = Vector3(0, 0, -14)
-	_graffiti_anchor.add_child(label)
+	label.position = Vector3(0, 0, 0.03)
+	holder.add_child(label)
 
-## Dark panel behind a piece so it reads as a larger, filled artwork.
-func _add_backdrop() -> void:
-	var size: Array = def.get("size", [4, 3, 0.3])
+	var wall_width := float(def.get("size", [4, 3, 0.3])[0])
+	var bar := MeshInstance3D.new()
 	var quad := QuadMesh.new()
-	quad.size = Vector2(float(size[0]) * 0.85, float(size[1]) * 0.8)
+	quad.size = Vector2(minf(2.6, wall_width * 0.6), 0.09)
+	bar.mesh = quad
+	bar.position = Vector3(0, -0.04, 0.025)
+	bar.material_override = _flat_material(color)
+	holder.add_child(bar)
+
+## Filled quad behind the letters (throw-up halo / piece background).
+func _add_panel(parent: Node3D, panel_size: Vector2, color: Color, z_offset: float) -> void:
+	var quad := QuadMesh.new()
+	quad.size = panel_size
 	var mesh := MeshInstance3D.new()
 	mesh.mesh = quad
-	mesh.position = Vector3(0, 0, -0.015)
+	mesh.position = Vector3(0, 0, z_offset)
+	mesh.material_override = _flat_material(color)
+	parent.add_child(mesh)
+
+## Thin paint runs hanging below the letters.
+func _add_drips(parent: Node3D, rng: RandomNumberGenerator, color: Color,
+		letter_bottom: float, spread: float) -> void:
+	var wall_width := float(def.get("size", [4, 3, 0.3])[0])
+	spread = minf(spread, wall_width * 0.35)
+	for i in rng.randi_range(2, 4):
+		var length := rng.randf_range(0.15, 0.45)
+		var quad := QuadMesh.new()
+		quad.size = Vector2(0.045, length)
+		var mesh := MeshInstance3D.new()
+		mesh.mesh = quad
+		mesh.material_override = _flat_material(color)
+		mesh.position = Vector3(
+			rng.randf_range(-spread, spread),
+			-(letter_bottom + length / 2.0) + rng.randf_range(0.0, 0.1),
+			0.005)
+		parent.add_child(mesh)
+
+func _panel_size(width_frac: float, height_frac: float) -> Vector2:
+	var size: Array = def.get("size", [4, 3, 0.3])
+	return Vector2(float(size[0]) * width_frac, float(size[1]) * height_frac)
+
+func _flat_material(color: Color) -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color("#26233a")
-	mesh.material_override = mat
-	_graffiti_anchor.add_child(mesh)
+	mat.albedo_color = color
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	return mat

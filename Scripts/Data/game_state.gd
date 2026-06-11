@@ -52,6 +52,7 @@ func save_state() -> Dictionary:
 	}
 
 func load_state(data: Dictionary) -> void:
+	var old_rank := rank
 	alias = String(data.get("alias", alias))
 	alias_chosen = bool(data.get("alias_chosen", alias_chosen))
 	reputation = int(data.get("reputation", reputation))
@@ -62,7 +63,8 @@ func load_state(data: Dictionary) -> void:
 	colors_unlocked = bool(data.get("colors_unlocked", colors_unlocked))
 	fill_color_index = clampi(int(data.get("fill_color_index", fill_color_index)), 0, FILL_COLORS.size() - 1)
 	reputation_changed.emit(reputation, 0)
-	rank_changed.emit(rank)
+	if rank != old_rank:  # otherwise every quick-load announces "RANK UP"
+		rank_changed.emit(rank)
 	paint_changed.emit(paint)
 	graffiti_type_changed.emit(selected_graffiti_type)
 	fill_color_changed.emit(current_fill_color_name())

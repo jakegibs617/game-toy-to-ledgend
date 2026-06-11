@@ -17,6 +17,7 @@ CrewManager="*res://Scripts/Crew/crew_manager.gd"
 TerritoryManager="*res://Scripts/Territory/territory_manager.gd"
 MissionManager="*res://Scripts/Missions/mission_manager.gd"
 SaveManager="*res://Scripts/SaveSystem/save_manager.gd"
+Sfx="*res://Scripts/Audio/sfx.gd"
 
 [display]
 

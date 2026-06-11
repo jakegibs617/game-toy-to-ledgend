@@ -55,12 +55,17 @@ prompt appears at the bottom of the screen, then press E.
   Wall state survives scene reloads within a session.
 - **PaintableWall** (`Scripts/Walls/paintable_wall.gd`) — data-driven wall
   body; placeholder graffiti rendered as Label3D "decals" (alias text styled
-  per graffiti type).
+  per graffiti type) with a per-graffiti tilt, paint drips, fill panels for
+  throw-ups/pieces, and a strike bar on cross-outs (Milestone 8 art pass).
 - **Player** (`Scripts/Player/player.gd`) — third-person controller with
   spring-arm camera and raycast wall focusing.
-- **HUD** (`Scripts/UI/hud.gd`) — rank/rep/paint/type readout, wall
-  interaction prompt, feedback messages, rank-up notice, rival event
-  notifications.
+- **HUD** (`Scripts/UI/hud.gd`) — styled stat/mission/prompt panels,
+  feedback messages, rank-up notice, rival event notifications, a
+  low-paint warning, and a controls hint (Milestone 8 UI pass).
+- **Sfx** (autoload, `Scripts/Audio/sfx.gd`, Milestone 8) — placeholder
+  sound effects synthesized at startup (no audio assets): spray hiss on
+  painting, denied blip, rank-up/block-claim stings, rival buzz, and UI
+  blips for crew/save events.
 - **RivalManager** (autoload, `Scripts/Rivals/rival_manager.gd`,
   Milestone 4) — loads `Data/crews.json` (The Buff Kings, Ghost Line,
   Chrome Saints). Crews claim their home walls at session start. When
@@ -104,6 +109,6 @@ All wall, style, crew, and NPC content is data-driven from `/Data`
 
 ## Not built yet (by design — Plan.md §47)
 
-Heat.
-Next up per Plan.md §35: continue Milestone 8 polish (UI/art/SFX/lighting/bug fixes).
+All Plan.md §35 milestones are in. Beyond the vertical slice, the next
+"Should-Have" systems from Plan.md §36 are Heat, patrols, and dialogue.
 # game-toy-to-ledgend

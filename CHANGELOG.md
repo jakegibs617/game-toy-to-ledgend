@@ -1,6 +1,36 @@
 # Changelog
 
-## 2026-06-11 — Milestone 8: Save/Load Slice
+## 2026-06-11 — Milestone 8: Polish Pass (Plan.md §35) — vertical slice complete
+
+- Sound effects: new `Sfx` autoload (`Scripts/Audio/sfx.gd`) synthesizes
+  placeholder PCM sounds at startup (Plan.md §28/§49, no audio assets):
+  spray hiss when the player paints, denied blip on failed paints,
+  rising stings for rank-ups and block claims, a descending buzz for
+  rival events, and UI blips for crew/save events. Disabled under the
+  headless driver (it never mixes, so playbacks would be reported as
+  leaks at exit).
+- Lighting pass: dusk scene to match the night-time opening (Plan.md
+  §40) — low warm sun + cool moon fill, dusk procedural sky, filmic
+  tonemap, glow, distance fog, and four emissive street lamps with warm
+  omni lights along the street.
+- Wall art pass: each graffiti gets a deterministic tilt and paint
+  drips below the letters; throw-ups get a halo panel, pieces get a
+  bordered background panel; cross-outs now include a strike bar
+  through the work. All graffiti materials are unshaded so the art
+  pops at dusk.
+- UI pass: stats, mission, and wall-prompt readouts now sit in styled
+  accent-bordered panels; prompt/mission panels hide when empty; gold
+  rank text; paint counter turns red with a LOW warning under 5; a dim
+  controls-hint line sits bottom-right; crew menu shares the panel
+  style.
+- Bug fix: quick-loading no longer fires a spurious "RANK UP"
+  banner/sting — `GameState.load_state` only emits `rank_changed` when
+  the rank actually differs.
+- Verified: headless smoke test passing (3 consecutive clean runs, no
+  leaked instances, no script errors) and a windowed 120-frame boot
+  with the new lighting renders without errors.
+
+## 2026-06-11 — Save/Load Slice
 
 - Added `SaveManager` autoload (`Scripts/SaveSystem/save_manager.gd`).
   F5 quick-saves to `user://toy_to_legend_save.json`; F9 quick-loads.

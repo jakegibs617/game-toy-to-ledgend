@@ -26,21 +26,85 @@ func _ready() -> void:
 	if OS.get_environment("SMOKE_TEST") == "1":
 		_run_smoke_test.call_deferred()
 
+## Milestone 8 lighting pass: dusk, because the story opens at night
+## (Plan.md section 40) — low warm sun, cool fill, fog, glow, and
+## street lamps so graffiti pops against the darkening block.
 func _build_environment() -> void:
 	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-55, -35, 0)
+	sun.rotation_degrees = Vector3(-14, -50, 0)
+	sun.light_color = Color("#ff9a5c")
+	sun.light_energy = 0.45
 	sun.shadow_enabled = true
 	add_child(sun)
 
+	var moon := DirectionalLight3D.new()
+	moon.rotation_degrees = Vector3(-50, 130, 0)
+	moon.light_color = Color("#7c8fd9")
+	moon.light_energy = 0.25
+	add_child(moon)
+
+	var sky_mat := ProceduralSkyMaterial.new()
+	sky_mat.sky_top_color = Color("#0d1330")
+	sky_mat.sky_horizon_color = Color("#d96c3f")
+	sky_mat.ground_bottom_color = Color("#0a0a12")
+	sky_mat.ground_horizon_color = Color("#b85a3c")
 	var env := Environment.new()
 	var sky := Sky.new()
-	sky.sky_material = ProceduralSkyMaterial.new()
+	sky.sky_material = sky_mat
 	env.sky = sky
 	env.background_mode = Environment.BG_SKY
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	env.ambient_light_energy = 0.7
+	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.glow_enabled = true
+	env.glow_intensity = 0.6
+	env.fog_enabled = true
+	env.fog_light_color = Color("#141a2a")
+	env.fog_density = 0.008
+	env.fog_sky_affect = 0.2
 	var world_env := WorldEnvironment.new()
 	world_env.environment = env
 	add_child(world_env)
+
+	for lamp_pos in [
+			Vector3(-16, 0, -6.5), Vector3(-2, 0, 6.5),
+			Vector3(10, 0, -6.5), Vector3(20, 0, 6.5)]:
+		_add_street_lamp(lamp_pos)
+
+func _add_street_lamp(pos: Vector3) -> void:
+	var lamp := Node3D.new()
+	lamp.position = pos
+	add_child(lamp)
+
+	var pole := MeshInstance3D.new()
+	var pole_mesh := BoxMesh.new()
+	pole_mesh.size = Vector3(0.15, 4.2, 0.15)
+	pole.mesh = pole_mesh
+	pole.position = Vector3(0, 2.1, 0)
+	var pole_mat := StandardMaterial3D.new()
+	pole_mat.albedo_color = Color("#2c2c30")
+	pole.material_override = pole_mat
+	lamp.add_child(pole)
+
+	var head := MeshInstance3D.new()
+	var head_mesh := BoxMesh.new()
+	head_mesh.size = Vector3(0.45, 0.18, 0.45)
+	head.mesh = head_mesh
+	head.position = Vector3(0, 4.25, 0)
+	var head_mat := StandardMaterial3D.new()
+	head_mat.albedo_color = Color("#ffd9a0")
+	head_mat.emission_enabled = true
+	head_mat.emission = Color("#ffc46b")
+	head_mat.emission_energy_multiplier = 2.0
+	head.material_override = head_mat
+	lamp.add_child(head)
+
+	var light := OmniLight3D.new()
+	light.position = Vector3(0, 4.0, 0)
+	light.light_color = Color("#ffc46b")
+	light.light_energy = 2.4
+	light.omni_range = 14.0
+	lamp.add_child(light)
 
 func _build_buildings() -> void:
 	# Two building rows with a street between (z -8..8) and north/south alleys.
