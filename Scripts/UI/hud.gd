@@ -4,12 +4,17 @@ extends CanvasLayer
 ## (top-left), interaction prompt and feedback messages (bottom), the
 ## Tab crew menu (Milestone 5), and the M district map (Milestone 6).
 
+const ACCENT := Color("#ffd23f")
+const LOW_PAINT := Color("#ff6b6b")
+
 var _rank_label: Label
 var _rep_label: Label
 var _paint_label: Label
 var _type_label: Label
+var _mission_panel: PanelContainer
 var _mission_title_label: Label
 var _mission_objective_label: Label
+var _prompt_panel: PanelContainer
 var _prompt_label: Label
 var _message_label: Label
 var _message_timer: Timer
@@ -24,25 +29,49 @@ func _ready() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
 
+	var left := VBoxContainer.new()
+	left.position = Vector2(16, 16)
+	left.add_theme_constant_override("separation", 8)
+	root.add_child(left)
+
+	var stats_panel := _make_panel(Color("#46d9c7"))
+	left.add_child(stats_panel)
 	var stats := VBoxContainer.new()
-	stats.position = Vector2(16, 16)
-	root.add_child(stats)
-	_rank_label = _make_label(stats, 22)
+	stats_panel.add_child(stats)
+	_rank_label = _make_label(stats, 22, ACCENT)
 	_rep_label = _make_label(stats, 18)
 	_paint_label = _make_label(stats, 18)
 	_type_label = _make_label(stats, 18)
-	_mission_title_label = _make_label(stats, 18)
-	_mission_objective_label = _make_label(stats, 16)
+
+	_mission_panel = _make_panel(ACCENT)
+	left.add_child(_mission_panel)
+	var mission_box := VBoxContainer.new()
+	_mission_panel.add_child(mission_box)
+	_mission_title_label = _make_label(mission_box, 18, ACCENT)
+	_mission_objective_label = _make_label(mission_box, 16)
 
 	var bottom := VBoxContainer.new()
 	bottom.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	bottom.offset_top = -130.0
+	bottom.offset_top = -150.0
 	bottom.offset_bottom = -30.0
+	bottom.add_theme_constant_override("separation", 8)
 	root.add_child(bottom)
 	_message_label = _make_label(bottom, 22)
 	_message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_prompt_label = _make_label(bottom, 18)
+	var prompt_center := CenterContainer.new()
+	prompt_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bottom.add_child(prompt_center)
+	_prompt_panel = _make_panel(Color("#3aa0c8"))
+	_prompt_panel.visible = false
+	prompt_center.add_child(_prompt_panel)
+	_prompt_label = _make_label(_prompt_panel, 17)
 	_prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+
+	var hint := _make_label(root, 13, Color(1, 1, 1, 0.55))
+	hint.text = "WASD move · Shift run · Space jump · E interact · 1/2/3 can · C color · Tab crew · M map · F5 save · F9 load"
+	hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, 10)
+	hint.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	hint.grow_vertical = Control.GROW_DIRECTION_BEGIN
 
 	_message_timer = Timer.new()
 	_message_timer.one_shot = true
@@ -50,7 +79,7 @@ func _ready() -> void:
 	_message_timer.timeout.connect(func() -> void: _message_label.text = "")
 	add_child(_message_timer)
 
-	_crew_panel = PanelContainer.new()
+	_crew_panel = _make_panel(Color("#ff4f79"))
 	_crew_panel.set_anchors_preset(Control.PRESET_CENTER)
 	_crew_panel.visible = false
 	root.add_child(_crew_panel)
@@ -123,7 +152,8 @@ func _on_rank_changed(new_rank: String) -> void:
 	_show_message("RANK UP — you are now \"%s\"" % new_rank)
 
 func _on_paint_changed(new_paint: int) -> void:
-	_paint_label.text = "Paint: %d" % new_paint
+	_paint_label.text = "Paint: %d%s" % [new_paint, "  — LOW" if new_paint < 5 else ""]
+	_paint_label.label_settings.font_color = LOW_PAINT if new_paint < 5 else Color.WHITE
 
 func _on_type_changed(type: String) -> void:
 	var label: String = WallManager.styles.get(type, {}).get("label", type)
@@ -141,13 +171,16 @@ func _on_painted(result: Dictionary) -> void:
 	if result.get("ok", false):
 		_show_message("Painted!  +%d rep" % int(result["rep"]))
 	else:
+		Sfx.play("denied")
 		_show_message(String(result.get("reason", "Can't paint here.")))
 	_refresh_prompt()
 
 func _refresh_prompt() -> void:
 	if _focused == null:
 		_prompt_label.text = ""
+		_prompt_panel.visible = false
 		return
+	_prompt_panel.visible = true
 	if _focused is PaintableWall:
 		var def: Dictionary = _focused.def
 		var state: Dictionary = WallManager.wall_states.get(def["wallId"], {})
@@ -199,10 +232,12 @@ func _on_save_event(message: String) -> void:
 func _refresh_mission() -> void:
 	var mission := MissionManager.current_mission()
 	var objective := MissionManager.current_objective()
+	_mission_panel.visible = true
 	if MissionManager.chain_done:
 		_mission_title_label.text = "Mission: Prototype Complete"
 		_mission_objective_label.text = "Mill Yard knows your name."
 	elif mission.is_empty() or objective.is_empty():
+		_mission_panel.visible = false
 		_mission_title_label.text = ""
 		_mission_objective_label.text = ""
 	else:
@@ -222,12 +257,28 @@ func _show_message(text: String, duration := 2.5) -> void:
 	_message_label.text = text
 	_message_timer.start(duration)
 
-func _make_label(parent: Control, font_size: int) -> Label:
+func _make_label(parent: Control, font_size: int, color := Color.WHITE) -> Label:
 	var label := Label.new()
 	var settings := LabelSettings.new()
 	settings.font_size = font_size
+	settings.font_color = color
 	settings.outline_size = 6
 	settings.outline_color = Color(0, 0, 0, 0.85)
 	label.label_settings = settings
 	parent.add_child(label)
 	return label
+
+func _make_panel(accent: Color) -> PanelContainer:
+	var panel := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.05, 0.05, 0.09, 0.82)
+	style.set_corner_radius_all(6)
+	style.border_color = accent
+	style.border_width_left = 3
+	style.content_margin_left = 12.0
+	style.content_margin_right = 12.0
+	style.content_margin_top = 6.0
+	style.content_margin_bottom = 6.0
+	panel.add_theme_stylebox_override("panel", style)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return panel
