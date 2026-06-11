@@ -99,7 +99,14 @@ func choose(index: int) -> bool:
 			end_dialogue()
 			SupplyManager.start_delivery()
 		_:
-			_enter_node(String(choice.get("next", _node_id)))
+			# A choice with neither action nor next is a data mistake —
+			# end cleanly instead of silently looping the same node.
+			if choice.has("next"):
+				_enter_node(String(choice["next"]))
+			else:
+				push_error("DialogueManager: choice \"%s\" in %s/%s has no next or action"
+					% [String(choice["text"]), _tree_id, _node_id])
+				end_dialogue()
 	return true
 
 func save_state() -> Dictionary:

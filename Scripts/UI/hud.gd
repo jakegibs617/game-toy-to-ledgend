@@ -6,6 +6,9 @@ extends CanvasLayer
 
 const ACCENT := Color("#ffd23f")
 const LOW_PAINT := Color("#ff6b6b")
+## Number-key actions reused by every modal (shop slots, dialogue
+## choices) in display order — one list so the modals can't drift.
+const MODAL_SLOT_ACTIONS := ["graffiti_tag", "graffiti_throwup", "graffiti_piece", "shop_delivery"]
 const HEAT_COLORS := {
 	"Cold": Color.WHITE,
 	"Low": Color("#ffd23f"),
@@ -216,9 +219,8 @@ func _handle_dialogue_input(event: InputEvent) -> bool:
 	if event.is_action_pressed("interact") or event.is_action_pressed("toggle_mouse"):
 		DialogueManager.end_dialogue()
 		return true
-	var slots := ["graffiti_tag", "graffiti_throwup", "graffiti_piece", "shop_delivery"]
-	for i in slots.size():
-		if event.is_action_pressed(slots[i]):
+	for i in MODAL_SLOT_ACTIONS.size():
+		if event.is_action_pressed(MODAL_SLOT_ACTIONS[i]):
 			if not DialogueManager.choose(i):
 				Sfx.play("denied")
 			return true
@@ -252,9 +254,8 @@ func _handle_shop_input(event: InputEvent) -> bool:
 	# Slot i is catalog item i; the row after the catalog is the delivery
 	# run — the same order _refresh_shop renders, so display and input
 	# can't drift apart if the catalog grows.
-	var slots := ["graffiti_tag", "graffiti_throwup", "graffiti_piece", "shop_delivery"]
-	for i in slots.size():
-		if event.is_action_pressed(slots[i]):
+	for i in MODAL_SLOT_ACTIONS.size():
+		if event.is_action_pressed(MODAL_SLOT_ACTIONS[i]):
 			if i < SupplyManager.catalog.size():
 				var result: Dictionary = SupplyManager.buy(
 					String(SupplyManager.catalog[i]["itemId"]))
