@@ -37,7 +37,7 @@ SMOKE_TEST=1 /Applications/Godot.app/Contents/MacOS/Godot --headless --path .
 | C | Cycle fill color after Lupe unlocks colors |
 | F5 | Quick save |
 | F9 | Quick load |
-| Tab | Crew menu |
+| Tab | Blackbook (1-4 flip pages: Writer / Styles / Crew / The City) |
 | M | District map |
 | Esc | Toggle mouse capture |
 
@@ -118,6 +118,13 @@ prompt appears at the bottom of the screen, then press E.
   beats to open the shop (number keys buy). She also hands out
   repeatable delivery runs: carry a package to a rotating drop spot
   for $25 — but the handoff draws heat.
+- **BlackbookPanel** (`Scripts/UI/blackbook_panel.gd`, Milestone 13) —
+  the blackbook (Plan.md §23) on Tab: four pages flipped with the
+  number keys. Writer (alias, rank, wallet, heat, district influence,
+  mission notes), Styles (unlocked graffiti types with live paint
+  costs, fill palette), Crew (recruitment status — replaces the old
+  standalone crew menu), and The City (rival crews with attitude and
+  walls held, plus your presence on the block).
 - **DialogueManager** (autoload, `Scripts/Dialogue/dialogue_manager.gd`) —
   RPG-style choice dialogue (Plan.md §26), data-driven from
   `Data/dialogue.json`. Number keys pick choices; choices can branch,
@@ -145,7 +152,9 @@ All wall, style, crew, and NPC content is data-driven from `/Data`
 
 ## Not built yet (by design — Plan.md §47)
 
-All Plan.md §35 milestones are in, plus Heat/City Cleanup, security
-patrols, the supply economy, and dialogue from the §36 "Should-Have"
-list. Next up from that list: the blackbook UI.
+All Plan.md §35 milestones are in, and the §36 "Should-Have" list is
+complete: Heat/City Cleanup, security patrols, supply economy,
+dialogue, and the blackbook UI. What remains is §36 "Could-Have"
+territory (freehand painting, battles, train painting, rooftop
+climbing) — deliberately out of prototype scope per Plan.md §47.
 # game-toy-to-ledgend

@@ -482,5 +482,23 @@ func _run_smoke_test() -> void:
 	assert(SaveManager.quick_load())
 	assert(DialogueManager.flags.get("prime_lesson", false))
 	print("SMOKE: dialogue flags survive save/load")
+
+	# Milestone 13: blackbook (Plan.md section 23). Page text builds
+	# purely from the managers, so read it without touching the HUD.
+	var blackbook = preload("res://Scripts/UI/blackbook_panel.gd").new()
+	var writer_page: String = blackbook.page_text(0)
+	assert(writer_page.contains(GameState.alias))
+	assert(writer_page.contains(GameState.rank))
+	assert(writer_page.contains("Mill Yard"))
+	var styles_page: String = blackbook.page_text(1)
+	assert(styles_page.contains("Tag") and styles_page.contains("Piece"))
+	assert(styles_page.contains("Burner Chrome"))  # bought rare color listed
+	var crew_page: String = blackbook.page_text(2)
+	assert(crew_page.contains("Moth") and crew_page.contains("Recruited"))
+	var city_page: String = blackbook.page_text(3)
+	assert(city_page.contains("The Buff Kings") and city_page.contains("VEK"))
+	assert(city_page.contains("Your name is on"))
+	blackbook.free()
+	print("SMOKE: blackbook pages — writer/styles/crew/city all read")
 	print("SMOKE: OK")
 	get_tree().quit()

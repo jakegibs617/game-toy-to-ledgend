@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026-06-11 — Blackbook UI (Plan.md §23)
+
+Fifth and final post-slice "Should-Have" system from Plan.md §36 — the
+list is complete.
+
+- New `BlackbookPanel` (`Scripts/UI/blackbook_panel.gd`): Tab now opens
+  the writer's blackbook instead of the bare crew menu. Number keys
+  flip four pages:
+  - **Writer** — alias, rank/rep, cash/paint, heat, per-district
+    influence summaries, and mission notes (current objective, or the
+    epilogue once the chain is done).
+  - **Styles** — every graffiti type with live (cap-discounted) paint
+    cost and base rep, locked types marked, and the fill palette with
+    the current color highlighted (locked until Lupe's mission).
+  - **Crew** — the former crew menu content (alias, role, recruitment
+    status) unchanged.
+  - **The City** — known rival crews (leader, aggression, attitude,
+    walls currently held) and your presence: walls carrying your name
+    and how many the city has buffed.
+- Page text builds purely from the autoload managers, so the headless
+  smoke test reads all four pages without a HUD; live refreshes on
+  crew events and quick-load.
+- Smoke test extended: writer page shows alias/rank/territory, styles
+  page lists types and the bought rare color, crew page shows Moth
+  recruited, city page shows the Buff Kings, VEK, and wall presence.
+
 ## 2026-06-11 — Dialogue System (Plan.md §26)
 
 Fourth post-slice "Should-Have" system from Plan.md §36.

@@ -7,8 +7,12 @@ extends CanvasLayer
 const ACCENT := Color("#ffd23f")
 const LOW_PAINT := Color("#ff6b6b")
 ## Number-key actions reused by every modal (shop slots, dialogue
-## choices) in display order — one list so the modals can't drift.
+## choices, blackbook pages) in display order — one list so the modals
+## can't drift.
 const MODAL_SLOT_ACTIONS := ["graffiti_tag", "graffiti_throwup", "graffiti_piece", "shop_delivery"]
+## Preloaded like MissionManager's zone scripts: the global class cache
+## isn't rebuilt on fresh headless runs, so class_name lookups can fail.
+const BlackbookPanelScript := preload("res://Scripts/UI/blackbook_panel.gd")
 const HEAT_COLORS := {
 	"Cold": Color.WHITE,
 	"Low": Color("#ffd23f"),
@@ -35,8 +39,7 @@ var _prompt_panel: PanelContainer
 var _prompt_label: Label
 var _message_label: Label
 var _message_timer: Timer
-var _crew_panel: PanelContainer
-var _crew_label: Label
+var _blackbook  # BlackbookPanelScript instance (untyped: see preload note)
 var _map_panel: MapPanel
 var _focused: Node3D = null
 var _rank_index := 0
@@ -88,7 +91,7 @@ func _ready() -> void:
 	_prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
 	var hint := _make_label(root, 13, Color(1, 1, 1, 0.55))
-	hint.text = "WASD move · Shift run · Space jump · E interact · 1/2/3 can · C color · Tab crew · M map · F5 save · F9 load"
+	hint.text = "WASD move · Shift run · Space jump · E interact · 1/2/3 can · C color · Tab blackbook · M map · F5 save · F9 load"
 	hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, 10)
 	hint.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	hint.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -99,16 +102,10 @@ func _ready() -> void:
 	_message_timer.timeout.connect(func() -> void: _message_label.text = "")
 	add_child(_message_timer)
 
-	_crew_panel = _make_panel(Color("#ff4f79"))
-	_crew_panel.set_anchors_preset(Control.PRESET_CENTER)
-	_crew_panel.visible = false
-	root.add_child(_crew_panel)
-	var crew_box := VBoxContainer.new()
-	crew_box.custom_minimum_size = Vector2(560, 0)
-	_crew_panel.add_child(crew_box)
-	var crew_title := _make_label(crew_box, 24)
-	crew_title.text = "CREW   —   [Tab] close"
-	_crew_label = _make_label(crew_box, 17)
+	_blackbook = BlackbookPanelScript.new()
+	_blackbook.set_anchors_preset(Control.PRESET_CENTER)
+	_blackbook.visible = false
+	root.add_child(_blackbook)
 
 	_shop_panel = _make_panel(Color("#e0a030"))
 	_shop_panel.set_anchors_preset(Control.PRESET_CENTER)
@@ -162,7 +159,9 @@ func _ready() -> void:
 	MissionManager.chain_completed.connect(_on_chain_completed)
 	MissionManager.mission_event.connect(_on_mission_event)
 	SaveManager.save_event.connect(_on_save_event)
-	CrewManager.crew_changed.connect(func() -> void: _refresh_crew_menu())
+	CrewManager.crew_changed.connect(func() -> void:
+		if _blackbook.visible:
+			_blackbook.refresh())
 	_rank_index = GameState.rank_index(GameState.rank)
 	_refresh_stats()
 	_refresh_mission()
@@ -182,19 +181,22 @@ func _unhandled_input(event: InputEvent) -> void:
 	if SupplyManager.is_shop_open() and _handle_shop_input(event):
 		get_viewport().set_input_as_handled()
 		return
+	if _blackbook.visible and _handle_blackbook_input(event):
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("crew_menu"):
 		SupplyManager.close_shop()
 		DialogueManager.end_dialogue()
-		_crew_panel.visible = not _crew_panel.visible
-		if _crew_panel.visible:
+		_blackbook.visible = not _blackbook.visible
+		if _blackbook.visible:
 			_map_panel.visible = false
-			_refresh_crew_menu()
+			_blackbook.refresh()
 	elif event.is_action_pressed("map"):
 		SupplyManager.close_shop()
 		DialogueManager.end_dialogue()
 		_map_panel.visible = not _map_panel.visible
 		if _map_panel.visible:
-			_crew_panel.visible = false
+			_blackbook.visible = false
 	elif event.is_action_pressed("quick_save"):
 		SaveManager.quick_save()
 	elif event.is_action_pressed("quick_load"):
@@ -202,7 +204,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_refresh_stats()
 			_refresh_mission()
 			_refresh_prompt()
-			_refresh_crew_menu()
+			if _blackbook.visible:
+				_blackbook.refresh()
 			_map_panel.queue_redraw()
 
 func _refresh_stats() -> void:
@@ -231,7 +234,7 @@ func _on_dialogue_changed() -> void:
 	if node.is_empty():
 		_dialogue_panel.visible = false
 		return
-	_crew_panel.visible = false
+	_blackbook.visible = false
 	_map_panel.visible = false
 	_dialogue_panel.visible = true
 	_dialogue_speaker_label.text = "%s   —   [E] walk away" % String(node.get("speaker", "?"))
@@ -295,7 +298,7 @@ func _on_cash_changed(new_cash: int) -> void:
 func _on_shop_toggled(open: bool) -> void:
 	_shop_panel.visible = open
 	if open:
-		_crew_panel.visible = false
+		_blackbook.visible = false
 		_map_panel.visible = false
 		_refresh_shop()
 
@@ -393,8 +396,8 @@ func _on_district_claimed(_district_id: String, district: Dictionary) -> void:
 
 func _on_crew_event(message: String) -> void:
 	_show_message(message, 4.0)
-	if _crew_panel.visible:
-		_refresh_crew_menu()
+	if _blackbook.visible:
+		_blackbook.refresh()
 
 func _on_mission_started(_mission: Dictionary) -> void:
 	_refresh_mission()
@@ -430,14 +433,17 @@ func _refresh_mission() -> void:
 		_mission_title_label.text = "Mission: %s" % String(mission.get("title", ""))
 		_mission_objective_label.text = String(objective.get("text", ""))
 
-func _refresh_crew_menu() -> void:
-	var lines: PackedStringArray = []
-	for m in CrewManager.members.values():
-		lines.append("%s (%s) — %s\n      %s" % [
-			String(m["alias"]), String(m["name"]),
-			String(m.get("roleLabel", m["role"])),
-			CrewManager.status_text(m)])
-	_crew_label.text = "\n".join(lines) if not lines.is_empty() else "No writers met yet."
+## Blackbook reading mode (Milestone 13): number keys flip pages,
+## Esc closes; Tab falls through to the toggle branch below.
+func _handle_blackbook_input(event: InputEvent) -> bool:
+	if event.is_action_pressed("toggle_mouse"):
+		_blackbook.visible = false
+		return true
+	for i in MODAL_SLOT_ACTIONS.size():
+		if event.is_action_pressed(MODAL_SLOT_ACTIONS[i]):
+			_blackbook.set_page(i)
+			return true
+	return false
 
 func _show_message(text: String, duration := 2.5) -> void:
 	_message_label.text = text
