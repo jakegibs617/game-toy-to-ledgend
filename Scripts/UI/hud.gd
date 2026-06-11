@@ -22,6 +22,9 @@ var _heat_label: Label
 var _type_label: Label
 var _shop_panel: PanelContainer
 var _shop_label: Label
+var _dialogue_panel: PanelContainer
+var _dialogue_speaker_label: Label
+var _dialogue_label: Label
 var _mission_panel: PanelContainer
 var _mission_title_label: Label
 var _mission_objective_label: Label
@@ -115,6 +118,17 @@ func _ready() -> void:
 	shop_title.text = "LUPE'S SUPPLIES   —   [E] close"
 	_shop_label = _make_label(shop_box, 17)
 
+	_dialogue_panel = _make_panel(Color("#8a9a5b"))
+	_dialogue_panel.set_anchors_preset(Control.PRESET_CENTER)
+	_dialogue_panel.visible = false
+	root.add_child(_dialogue_panel)
+	var dialogue_box := VBoxContainer.new()
+	dialogue_box.custom_minimum_size = Vector2(620, 0)
+	_dialogue_panel.add_child(dialogue_box)
+	_dialogue_speaker_label = _make_label(dialogue_box, 24, Color("#8a9a5b"))
+	_dialogue_label = _make_label(dialogue_box, 17)
+	_dialogue_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
 	_map_panel = MapPanel.new()
 	_map_panel.set_anchors_preset(Control.PRESET_CENTER)
 	root.add_child(_map_panel)
@@ -125,6 +139,10 @@ func _ready() -> void:
 	GameState.cash_changed.connect(_on_cash_changed)
 	SupplyManager.shop_toggled.connect(_on_shop_toggled)
 	SupplyManager.supply_event.connect(_on_supply_event)
+	DialogueManager.dialogue_changed.connect(_on_dialogue_changed)
+	DialogueManager.dialogue_ended.connect(func() -> void: _dialogue_panel.visible = false)
+	DialogueManager.dialogue_event.connect(func(message: String) -> void:
+		_show_message(message, 4.0))
 	GameState.graffiti_type_changed.connect(_on_type_changed)
 	GameState.fill_color_changed.connect(func(_name: String) -> void:
 		_on_type_changed(GameState.selected_graffiti_type))
@@ -152,19 +170,25 @@ func bind_player(player: Player) -> void:
 	_map_panel.bind_player(player)
 
 func _unhandled_input(event: InputEvent) -> void:
-	# While the shop is open, the number keys buy instead of switching
-	# cans, so consume everything the shop handles before the player does.
+	# While a conversation or the shop is open, the number keys answer
+	# or buy instead of switching cans, so consume everything those
+	# modals handle before the player controller sees the event.
+	if DialogueManager.is_active() and _handle_dialogue_input(event):
+		get_viewport().set_input_as_handled()
+		return
 	if SupplyManager.is_shop_open() and _handle_shop_input(event):
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("crew_menu"):
 		SupplyManager.close_shop()
+		DialogueManager.end_dialogue()
 		_crew_panel.visible = not _crew_panel.visible
 		if _crew_panel.visible:
 			_map_panel.visible = false
 			_refresh_crew_menu()
 	elif event.is_action_pressed("map"):
 		SupplyManager.close_shop()
+		DialogueManager.end_dialogue()
 		_map_panel.visible = not _map_panel.visible
 		if _map_panel.visible:
 			_crew_panel.visible = false
@@ -185,6 +209,39 @@ func _refresh_stats() -> void:
 	_cash_label.text = "Cash: $%d" % GameState.cash
 	_on_heat_changed(HeatManager.heat, 0.0)
 	_on_type_changed(GameState.selected_graffiti_type)
+
+## Keyboard conversation (Milestone 12): number keys pick choices,
+## E/Esc walks away. Returns true when the event was consumed.
+func _handle_dialogue_input(event: InputEvent) -> bool:
+	if event.is_action_pressed("interact") or event.is_action_pressed("toggle_mouse"):
+		DialogueManager.end_dialogue()
+		return true
+	var slots := ["graffiti_tag", "graffiti_throwup", "graffiti_piece", "shop_delivery"]
+	for i in slots.size():
+		if event.is_action_pressed(slots[i]):
+			if not DialogueManager.choose(i):
+				Sfx.play("denied")
+			return true
+	return false
+
+func _on_dialogue_changed() -> void:
+	var node: Dictionary = DialogueManager.current_node()
+	if node.is_empty():
+		_dialogue_panel.visible = false
+		return
+	_crew_panel.visible = false
+	_map_panel.visible = false
+	_dialogue_panel.visible = true
+	_dialogue_speaker_label.text = "%s   —   [E] walk away" % String(node.get("speaker", "?"))
+	var lines: PackedStringArray = [String(node.get("text", "")), ""]
+	var choices: Array = DialogueManager.visible_choices()
+	for i in choices.size():
+		var choice: Dictionary = choices[i]
+		if choice["locked"]:
+			lines.append("[%d] %s  %s" % [i + 1, String(choice["text"]), String(choice["lockedText"])])
+		else:
+			lines.append("[%d] %s" % [i + 1, String(choice["text"])])
+	_dialogue_label.text = "\n".join(lines)
 
 ## Keyboard shopping (Milestone 11): 1-3 buy catalog slots, 4 takes a
 ## delivery run, E/Esc puts the cans away. Returns true when consumed.

@@ -1,5 +1,33 @@
 # Changelog
 
+## 2026-06-11 — Dialogue System (Plan.md §26)
+
+Fourth post-slice "Should-Have" system from Plan.md §36.
+
+- New `DialogueManager` autoload (`Scripts/Dialogue/dialogue_manager.gd`)
+  running data-driven choice trees from `Data/dialogue.json`. Nodes
+  carry speaker/text plus numbered choices that branch (`next`), run an
+  action (`end` / `open_shop` / `start_delivery`), or gate behind
+  requirement checks (Plan.md §26 "Dialogue Checks": `minRank`,
+  `recruited`). Nodes can pay one-time effects via `once` flags.
+- Speakers: Lupe's E-interaction now opens a conversation hub (catalog,
+  delivery work, street gossip about the rival crews and cleanup);
+  Darnell "Prime" (Plan.md §43, the old-head mentor) stands near the
+  safehouse with lineage lore and a lesson that needs rank Known+ and
+  pays +40 rep exactly once; Moth gets post-recruitment small talk
+  (her blackbook story) while her recruitment stages stay with
+  CrewManager.
+- HUD: dialogue panel with speaker, wrapped text, and numbered choices
+  (locked ones show their unlock hint); number keys choose, E/Esc
+  walks away, walking out of range ends the chat. Dialogue, shop, crew,
+  and map panels close each other.
+- Save/load persists dialogue flags; an active conversation ends on
+  load.
+- Smoke test extended: Prime's rank gate locks/refuses at Toy and opens
+  at Block King, the lesson pays exactly once, Lupe's tree routes into
+  the shop and delivery systems, Moth chats once recruited, and flags
+  survive the save/load round trip.
+
 ## 2026-06-11 — Supply Economy (Plan.md §21)
 
 Third post-slice "Should-Have" system from Plan.md §36 ("supply

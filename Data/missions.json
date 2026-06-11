@@ -17,9 +17,19 @@
       "color": "#e0a030",
       "position": [12.5, 0, 6.5],
       "shop": true,
+      "dialogueId": "lupe",
       "dialogue": {
         "idle": "Lupe: \"Paint's in the back. Don't get caught slipping out there.\""
       }
+    },
+    {
+      "actorId": "prime",
+      "kind": "npc",
+      "name": "Prime",
+      "roleLabel": "Old Head",
+      "color": "#8a9a5b",
+      "position": [-7, 0, 6.5],
+      "dialogueId": "prime"
     }
   ],
   "missions": [

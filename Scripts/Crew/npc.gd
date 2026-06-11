@@ -46,4 +46,10 @@ func prompt_text() -> String:
 		String(data.get("roleLabel", data.get("role", "")))]
 
 func interact() -> void:
+	# Once recruited, members with a dialogue tree chat through it
+	# (Milestone 12); recruitment stages stay with CrewManager.
+	var dialogue_id := String(data.get("dialogueId", ""))
+	if String(data.get("stage", "")) == "recruited" and dialogue_id != "" \
+			and DialogueManager.start(dialogue_id, self):
+		return
 	CrewManager.interact(String(data["memberId"]))

@@ -429,5 +429,58 @@ func _run_smoke_test() -> void:
 	assert(GameState.fill_palette().size() == palette_size + 1)
 	assert(SupplyManager.is_owned("fat_cap"))
 	print("SMOKE: supply state survives save/load")
+
+	# Milestone 12: dialogue (Plan.md section 26). Prime's lesson gates
+	# behind a rank check and pays exactly once.
+	assert(DialogueManager.start("prime"))
+	assert(DialogueManager.is_active())
+	assert(DialogueManager.current_node()["speaker"] == "Prime")
+	var dialogue_choices: Array = DialogueManager.visible_choices()
+	assert(dialogue_choices.size() == 3)
+	assert(not dialogue_choices[1]["locked"])  # Block King >= Known
+	var real_rank: String = GameState.rank
+	GameState.rank = "Toy"
+	assert(DialogueManager.visible_choices()[1]["locked"])
+	assert(not DialogueManager.choose(1))  # locked choices refuse
+	GameState.rank = real_rank
+	var rep_before_lesson: int = GameState.reputation
+	assert(DialogueManager.choose(1))
+	assert(GameState.reputation == rep_before_lesson + 40)
+	assert(DialogueManager.flags.get("prime_lesson", false))
+	assert(DialogueManager.choose(0))  # "Thank you" ends the chat
+	assert(not DialogueManager.is_active())
+	# Re-taking the lesson pays nothing — it's a lesson, not a faucet.
+	rep_before_lesson = GameState.reputation
+	assert(DialogueManager.start("prime"))
+	assert(DialogueManager.choose(1))
+	assert(GameState.reputation == rep_before_lesson)
+	DialogueManager.end_dialogue()
+	print("SMOKE: Prime dialogue — rank gate + one-time lesson OK")
+
+	# Lupe's tree routes into the shop and delivery systems.
+	assert(DialogueManager.start("lupe", player))
+	assert(DialogueManager.choose(0))  # "Show me the catalog."
+	assert(not DialogueManager.is_active())
+	assert(SupplyManager.is_shop_open())
+	SupplyManager.close_shop()
+	assert(DialogueManager.start("lupe", player))
+	assert(DialogueManager.choose(1))  # "Got work for me?"
+	assert(not DialogueManager.is_active())
+	assert(SupplyManager.delivery_active)
+	SupplyManager.resolve_delivery()
+	# Moth chats through her tree once recruited.
+	assert(DialogueManager.start("moth"))
+	assert(DialogueManager.current_node()["speaker"] == "Moth")
+	assert(DialogueManager.choose(1))  # the blackbook story
+	assert(DialogueManager.current_node()["text"].contains("outlines"))
+	DialogueManager.end_dialogue()
+	print("SMOKE: Lupe dialogue routes to shop/delivery; Moth chats")
+
+	# Dialogue flags survive the save/load round trip.
+	assert(SaveManager.quick_save())
+	DialogueManager.flags.clear()
+	assert(SaveManager.quick_load())
+	assert(DialogueManager.flags.get("prime_lesson", false))
+	print("SMOKE: dialogue flags survive save/load")
 	print("SMOKE: OK")
 	get_tree().quit()

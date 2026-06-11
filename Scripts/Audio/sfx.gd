@@ -40,6 +40,7 @@ func _ready() -> void:
 	TerritoryManager.district_claimed.connect(func(_id: String, _d: Dictionary) -> void: play("claim"))
 	CrewManager.crew_event.connect(func(_msg: String) -> void: play("ui"))
 	SupplyManager.supply_event.connect(func(_msg: String) -> void: play("ui"))
+	DialogueManager.dialogue_event.connect(func(_msg: String) -> void: play("ui"))
 	SaveManager.save_event.connect(func(_msg: String) -> void: play("ui"))
 
 ## Active playbacks keep stream references alive inside the audio

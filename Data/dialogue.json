@@ -1,0 +1,89 @@
+{
+  "lupe": {
+    "start": "hub",
+    "nodes": {
+      "hub": {
+        "speaker": "Lupe",
+        "text": "Cans, caps, and good gossip. What do you need?",
+        "choices": [
+          {"text": "Show me the catalog.", "action": "open_shop"},
+          {"text": "Got work for me?", "action": "start_delivery"},
+          {"text": "What's the word out there?", "next": "lore"},
+          {"text": "Later, Lupe.", "action": "end"}
+        ]
+      },
+      "lore": {
+        "speaker": "Lupe",
+        "text": "Buff Kings are pressed — word is some new writer's been taking VEK's walls. Chrome Saints move through the train yard after dark, and the city's cleanup crew got fresh budget this month. Don't sleep on your best spots.",
+        "choices": [
+          {"text": "Good looks. What else?", "next": "hub"},
+          {"text": "Later.", "action": "end"}
+        ]
+      }
+    }
+  },
+  "prime": {
+    "start": "hub",
+    "nodes": {
+      "hub": {
+        "speaker": "Prime",
+        "text": "New blood with a can. I've watched writers come and go on this block for thirty years.",
+        "choices": [
+          {"text": "Who are you?", "next": "who"},
+          {"text": "Teach me something.", "next": "lesson",
+            "requires": {"minRank": "Known"},
+            "lockedText": "(Come back when you're Known on this block)"},
+          {"text": "Respect, old head.", "action": "end"}
+        ]
+      },
+      "who": {
+        "speaker": "Prime",
+        "text": "Darnell. They wrote PRIME. Every fill you ever bit traces back to somebody — mine traced to the ones before me. That's how style works: it's a lineage, not a costume.",
+        "choices": [
+          {"text": "Show me what's real.", "next": "hub"},
+          {"text": "Respect.", "action": "end"}
+        ]
+      },
+      "lesson": {
+        "speaker": "Prime",
+        "text": "Letters first, style second. Your throwie's E leans lazy — tighten the spine, let the bar swing. Style is a debt you pay forward to the ones who came before.",
+        "once": "prime_lesson",
+        "effects": {"rep": 40, "message": "Prime schooled you on letter structure. (+40 rep)"},
+        "choices": [
+          {"text": "Thank you, Prime.", "action": "end"},
+          {"text": "Anything else?", "next": "hub"}
+        ]
+      }
+    }
+  },
+  "moth": {
+    "start": "hub",
+    "nodes": {
+      "hub": {
+        "speaker": "Moth",
+        "text": "Eyes open. Quiet night so far.",
+        "choices": [
+          {"text": "What do you watch for?", "next": "watch"},
+          {"text": "Why'd Ghost Line take your book?", "next": "book"},
+          {"text": "Stay sharp.", "action": "end"}
+        ]
+      },
+      "watch": {
+        "speaker": "Moth",
+        "text": "Cameras sweep, guards loop, civilians stare too long. I count the gaps. You paint in the gaps.",
+        "choices": [
+          {"text": "Good system.", "next": "hub"},
+          {"text": "Stay sharp.", "action": "end"}
+        ]
+      },
+      "book": {
+        "speaker": "Moth",
+        "text": "They said I 'owed' them for painting their alley — took three years of outlines as payment. Now I watch their walls for you instead. Funny how that goes.",
+        "choices": [
+          {"text": "We'll take it all back.", "next": "hub"},
+          {"text": "Stay sharp.", "action": "end"}
+        ]
+      }
+    }
+  }
+}

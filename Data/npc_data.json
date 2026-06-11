@@ -13,6 +13,7 @@
     "missionDescription": "Recover her blackbook from the north alley.",
     "color": "#b48ee0",
     "position": [-13, 0, 6],
+    "dialogueId": "moth",
     "dialogue": {
       "meet": "I'm Moth. Ghost Line lifted my blackbook — years of outlines in there. They stashed it in the north alley. Get it back and I'll be your lookout.",
       "active": "The blackbook's still in the north alley, behind Ghost Line's tags. Watch yourself in there.",
