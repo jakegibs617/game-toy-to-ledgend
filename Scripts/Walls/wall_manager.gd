@@ -6,9 +6,13 @@ extends Node
 
 signal wall_painted(wall_id: String, graffiti: Dictionary)
 signal wall_crossed_out(wall_id: String)
+signal wall_buffed(wall_id: String)
 
 const WALLS_PATH := "res://Data/walls.json"
 const STYLES_PATH := "res://Data/graffiti_styles.json"
+## Plan.md section 15 "Cleanup Retaliation": repainting a wall the city
+## buffed pays extra — taking the spot back is part of the fantasy.
+const BUFF_RETALIATION_BONUS := 1.25
 
 var wall_defs: Array = []
 var styles: Dictionary = {}
@@ -38,6 +42,8 @@ func spawn_wall(def: Dictionary, parent: Node3D) -> PaintableWall:
 			"currentGraffiti": null,
 			"history": [],
 		}
+	elif String(wall_states[wall_id].get("state", "")) == "buffed":
+		wall.show_buff()
 	elif wall_states[wall_id]["currentGraffiti"] != null:
 		# Re-entering a scene: restore the remembered graffiti visually.
 		wall.show_graffiti(wall_states[wall_id]["currentGraffiti"])
@@ -64,7 +70,10 @@ func paint_wall(wall: PaintableWall, type: String) -> Dictionary:
 	if not GameState.try_spend_paint(cost):
 		return {"ok": false, "reason": "Not enough paint."}
 	var def := wall.def
+	var state: Dictionary = wall_states[def["wallId"]]
 	var rep := _reputation_for(style, def)
+	if String(state.get("state", "")) == "buffed":
+		rep = int(round(rep * BUFF_RETALIATION_BONUS))
 	var graffiti := {
 		"graffitiId": "graffiti_%03d" % _next_graffiti_id,
 		"creatorId": "player",
@@ -79,7 +88,6 @@ func paint_wall(wall: PaintableWall, type: String) -> Dictionary:
 		"isBuffed": false,
 	}
 	_next_graffiti_id += 1
-	var state: Dictionary = wall_states[def["wallId"]]
 	if state["currentGraffiti"] != null:
 		state["history"].append(state["currentGraffiti"])
 	state["currentGraffiti"] = graffiti
@@ -138,6 +146,24 @@ func cross_out_wall(wall_id: String, crew: Dictionary, text := "TOY") -> void:
 		wall_nodes[wall_id].show_cross_out(state["crossOut"])
 	wall_crossed_out.emit(wall_id)
 
+## City cleanup paints over whatever is on the wall (Plan.md sections
+## 18 and 33). The work moves into history — walls remember — and the
+## wall shows mismatched gray roller patches until someone repaints.
+func buff_wall(wall_id: String) -> bool:
+	var state: Dictionary = wall_states.get(wall_id, {})
+	if state.is_empty() or state.get("currentGraffiti") == null:
+		return false
+	state["currentGraffiti"]["isBuffed"] = true
+	state["history"].append(state["currentGraffiti"])
+	state["currentGraffiti"] = null
+	state["ownerCrewId"] = "city"
+	state["state"] = "buffed"
+	state.erase("crossOut")
+	if wall_nodes.has(wall_id):
+		wall_nodes[wall_id].show_buff()
+	wall_buffed.emit(wall_id)
+	return true
+
 func save_state() -> Dictionary:
 	return {
 		"wall_states": wall_states.duplicate(true),
@@ -156,17 +182,21 @@ func _refresh_wall_visuals() -> void:
 		var wall: PaintableWall = wall_nodes[wall_id]
 		var state: Dictionary = wall_states.get(wall_id, {})
 		wall.clear_graffiti()
+		if String(state.get("state", "")) == "buffed":
+			wall.show_buff()
 		if state.get("currentGraffiti") != null:
 			wall.show_graffiti(state["currentGraffiti"])
 		if state.has("crossOut"):
 			wall.show_cross_out(state["crossOut"])
 
-## Plan.md section 11: base value scaled by visibility and risk multipliers.
+## Plan.md section 11: base value scaled by visibility and risk
+## multipliers, plus the current heat level — risky painting while the
+## city is watching pays more (Plan.md section 12).
 func _reputation_for(style: Dictionary, def: Dictionary) -> int:
 	var base := float(style.get("baseValue", 10))
 	var visibility_mult := 1.0 + 0.2 * float(def.get("visibility", 1))
 	var risk_mult := 1.0 + 0.3 * float(def.get("risk", 1))
-	return int(round(base * visibility_mult * risk_mult))
+	return int(round(base * visibility_mult * risk_mult * HeatManager.rep_multiplier()))
 
 func _load_json(path: String) -> Variant:
 	var file := FileAccess.open(path, FileAccess.READ)

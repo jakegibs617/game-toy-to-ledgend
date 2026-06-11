@@ -24,6 +24,7 @@ func quick_save() -> bool:
 		"walls": WallManager.save_state(),
 		"crew": CrewManager.save_state(),
 		"territory": TerritoryManager.save_state(),
+		"heat": HeatManager.save_state(),
 		"missions": MissionManager.save_state(),
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
@@ -51,6 +52,7 @@ func quick_load() -> bool:
 	WallManager.load_state(data.get("walls", {}))
 	CrewManager.load_state(data.get("crew", {}))
 	TerritoryManager.load_state(data.get("territory", {}))
+	HeatManager.load_state(data.get("heat", {}))
 	MissionManager.load_state(data.get("missions", {}))
 	_apply_player_state(data.get("player", {}))
 	save_event.emit("Loaded prototype state.")

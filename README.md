@@ -91,6 +91,15 @@ prompt appears at the bottom of the screen, then press E.
   visibility, color = owner: green you, crew fill colors, gray open,
   red X = crossed out), crew NPC locations, the player marker, and an
   influence summary footer.
+- **HeatManager** (autoload, `Scripts/Heat/heat_manager.gd`) — heat
+  system + City Cleanup faction (Plan.md §12, §18, §33). Painting
+  builds heat (style `heatValue` × wall risk); heat raises rep payouts
+  for risky work (×1 to ×1.5) but speeds up cleanup sweeps that buff
+  painted walls back to gray (per-wall `cleanupChance`, one wall max
+  per sweep). Buffed walls show roller patches, count as "City"
+  pressure in territory influence, and repainting one pays a 1.25×
+  cleanup-retaliation bonus. Heat decays while laying low. The HUD
+  heat readout escalates Cold → Low → Watched → Hot → Blazing.
 - **MissionManager** (`Scripts/Missions/mission_manager.gd`,
   Milestone 7) — loads `Data/missions.json` and runs the five-mission
   vertical slice from Plan.md §16: First Mark, Don't Be a Toy, Get
@@ -109,6 +118,7 @@ All wall, style, crew, and NPC content is data-driven from `/Data`
 
 ## Not built yet (by design — Plan.md §47)
 
-All Plan.md §35 milestones are in. Beyond the vertical slice, the next
-"Should-Have" systems from Plan.md §36 are Heat, patrols, and dialogue.
+All Plan.md §35 milestones are in, plus Heat/City Cleanup from the §36
+"Should-Have" list. Next up from that list: patrols, a richer supply
+inventory, dialogue, and the blackbook UI.
 # game-toy-to-ledgend

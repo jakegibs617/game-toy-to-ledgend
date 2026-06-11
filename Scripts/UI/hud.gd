@@ -6,10 +6,18 @@ extends CanvasLayer
 
 const ACCENT := Color("#ffd23f")
 const LOW_PAINT := Color("#ff6b6b")
+const HEAT_COLORS := {
+	"Cold": Color.WHITE,
+	"Low": Color("#ffd23f"),
+	"Watched": Color("#ff9f43"),
+	"Hot": Color("#ff6b6b"),
+	"Blazing": Color("#e0301e"),
+}
 
 var _rank_label: Label
 var _rep_label: Label
 var _paint_label: Label
+var _heat_label: Label
 var _type_label: Label
 var _mission_panel: PanelContainer
 var _mission_title_label: Label
@@ -41,6 +49,7 @@ func _ready() -> void:
 	_rank_label = _make_label(stats, 22, ACCENT)
 	_rep_label = _make_label(stats, 18)
 	_paint_label = _make_label(stats, 18)
+	_heat_label = _make_label(stats, 18)
 	_type_label = _make_label(stats, 18)
 
 	_mission_panel = _make_panel(ACCENT)
@@ -101,6 +110,9 @@ func _ready() -> void:
 	GameState.fill_color_changed.connect(func(_name: String) -> void:
 		_on_type_changed(GameState.selected_graffiti_type))
 	RivalManager.rival_event.connect(_on_rival_event)
+	HeatManager.heat_changed.connect(_on_heat_changed)
+	HeatManager.heat_level_changed.connect(_on_heat_level_changed)
+	HeatManager.cleanup_event.connect(_on_cleanup_event)
 	CrewManager.crew_event.connect(_on_crew_event)
 	TerritoryManager.district_claimed.connect(_on_district_claimed)
 	MissionManager.mission_started.connect(_on_mission_started)
@@ -142,6 +154,7 @@ func _refresh_stats() -> void:
 	_rank_label.text = "Rank: %s" % GameState.rank
 	_rep_label.text = "Rep: %d" % GameState.reputation
 	_paint_label.text = "Paint: %d" % GameState.paint
+	_on_heat_changed(HeatManager.heat, 0.0)
 	_on_type_changed(GameState.selected_graffiti_type)
 
 func _on_rep_changed(new_rep: int, _gained: int) -> void:
@@ -193,6 +206,22 @@ func _refresh_prompt() -> void:
 		]
 	elif _focused.has_method("prompt_text"):
 		_prompt_label.text = _focused.prompt_text()
+
+func _on_heat_changed(new_heat: float, _gained: float) -> void:
+	var level := HeatManager.level_name()
+	_heat_label.text = "Heat: %s (%d)" % [level, roundi(new_heat)]
+	_heat_label.label_settings.font_color = HEAT_COLORS.get(level, Color.WHITE)
+
+func _on_heat_level_changed(level: String, rising: bool) -> void:
+	if rising:
+		_show_message("HEAT RISING — the block is %s now. Risky spots pay more." % level.to_upper(), 4.0)
+	else:
+		_show_message("Cooling off — heat is down to %s." % level, 3.0)
+
+## City cleanup just erased somebody's work (Plan.md section 33).
+func _on_cleanup_event(message: String, _wall_id: String) -> void:
+	_show_message(message, 5.0)
+	_refresh_prompt()
 
 ## Rival notifications linger longer — they matter (Plan.md section 13).
 func _on_rival_event(message: String, _wall_id: String) -> void:

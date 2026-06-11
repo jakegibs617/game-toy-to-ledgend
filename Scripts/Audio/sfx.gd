@@ -21,6 +21,7 @@ func _ready() -> void:
 		"rank_up": {"stream": _arpeggio([523.25, 659.25, 880.0], 0.11), "db": -8.0},
 		"claim": {"stream": _arpeggio([392.0, 523.25, 659.25, 784.0], 0.13), "db": -6.0},
 		"rival": {"stream": _rival_buzz(), "db": -9.0},
+		"buff": {"stream": _roller_swipe(), "db": -10.0},
 	}
 	for i in POOL_SIZE:
 		var player := AudioStreamPlayer.new()
@@ -30,6 +31,7 @@ func _ready() -> void:
 	WallManager.wall_painted.connect(_on_wall_painted)
 	GameState.rank_changed.connect(func(_rank: String) -> void: play("rank_up"))
 	RivalManager.rival_event.connect(func(_msg: String, _wall: String) -> void: play("rival"))
+	HeatManager.cleanup_event.connect(func(_msg: String, _wall: String) -> void: play("buff"))
 	TerritoryManager.district_claimed.connect(func(_id: String, _d: Dictionary) -> void: play("claim"))
 	CrewManager.crew_event.connect(func(_msg: String) -> void: play("ui"))
 	SaveManager.save_event.connect(func(_msg: String) -> void: play("ui"))
@@ -103,6 +105,22 @@ func _arpeggio(freqs: Array, note_length: float) -> AudioStreamWAV:
 		for i in note_count:
 			var t := float(i) / note_count
 			samples[n * note_count + i] = sin(TAU * freq * i / MIX_RATE) * (1.0 - t) * 0.7
+	return _to_wav(samples)
+
+## Dull paint-roller swipe (heavily smoothed noise with a slow hump
+## envelope) — city cleanup just buffed a wall.
+func _roller_swipe() -> AudioStreamWAV:
+	var length := 0.5
+	var count := int(length * MIX_RATE)
+	var samples := PackedFloat32Array()
+	samples.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4242
+	var filtered := 0.0
+	for i in count:
+		var t := float(i) / count
+		filtered = filtered * 0.93 + rng.randf_range(-1.0, 1.0) * 0.07
+		samples[i] = filtered * sin(PI * t) * 2.2
 	return _to_wav(samples)
 
 ## Descending square-wave buzz — a rival just disrespected you.
