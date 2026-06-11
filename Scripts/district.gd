@@ -251,6 +251,42 @@ func _run_smoke_test() -> void:
 	assert(MissionManager.chain_done)
 	print("SMOKE: mission chain complete")
 
+	# Heat system (Plan.md section 12): all that painting built heat,
+	# which raises the rep payout for further risky work.
+	assert(HeatManager.heat > 0.0)
+	assert(HeatManager.rep_multiplier() > 1.0)
+	print("SMOKE: heat=%.1f (%s)" % [HeatManager.heat, HeatManager.level_name()])
+	var cleanup_walls: Array = []
+	HeatManager.cleanup_event.connect(func(_msg: String, wid: String) -> void:
+		cleanup_walls.append(wid))
+	var buff_id := "wall_lot_01"
+	result = WallManager.paint_wall(WallManager.wall_nodes[buff_id], "tag")
+	assert(result["ok"])
+	var buff_state: Dictionary = WallManager.wall_states[buff_id]
+	var history_before: int = buff_state["history"].size()
+	assert(HeatManager.force_cleanup(buff_id))
+	assert(buff_state["state"] == "buffed")
+	assert(buff_state["ownerCrewId"] == "city")
+	assert(buff_state["currentGraffiti"] == null)
+	assert(buff_state["history"].size() == history_before + 1)
+	assert(buff_state["history"][-1]["isBuffed"])
+	assert(cleanup_walls == [buff_id])
+	assert(TerritoryManager.influence(district_id).has("city"))
+	# Cleanup retaliation (Plan.md section 15): repainting a buffed wall
+	# pays a bonus over the plain value.
+	var plain_rep: int = WallManager._reputation_for(
+		WallManager.styles["tag"], WallManager.wall_def(buff_id))
+	result = WallManager.paint_wall(WallManager.wall_nodes[buff_id], "tag")
+	assert(result["ok"])
+	assert(int(result["rep"]) == int(round(plain_rep * WallManager.BUFF_RETALIATION_BONUS)))
+	assert(buff_state["state"] == "player_tag" and buff_state["ownerCrewId"] == "player")
+	# Laying low: heat decays on the simulation tick.
+	var heat_before_tick: float = HeatManager.heat
+	HeatManager._on_tick()
+	assert(HeatManager.heat < heat_before_tick)
+	print("SMOKE: buff + retaliation bonus OK, heat decays %.1f -> %.1f" % [
+		heat_before_tick, HeatManager.heat])
+
 	# Milestone 8: save to disk, mutate important runtime state, then
 	# load and prove the saved wall/progression/player state comes back.
 	var player := get_node("Player") as Player
@@ -259,10 +295,12 @@ func _run_smoke_test() -> void:
 	var saved_rank := GameState.rank
 	var saved_wall_state: Dictionary = WallManager.wall_states[first_id].duplicate(true)
 	var saved_position := player.global_position
+	var saved_heat: float = HeatManager.heat
 	assert(SaveManager.quick_save())
 	GameState.reputation = 1
 	GameState.paint = 1
 	GameState.rank = "Toy"
+	HeatManager.heat = 0.0
 	player.global_position = Vector3(22, 0.5, 22)
 	WallManager.apply_rival_graffiti(first_id, RivalManager.crews["ghost_line"], "tag")
 	assert(WallManager.wall_states[first_id]["ownerCrewId"] == "ghost_line")
@@ -270,6 +308,7 @@ func _run_smoke_test() -> void:
 	assert(GameState.reputation == saved_rep)
 	assert(GameState.paint == saved_paint)
 	assert(GameState.rank == saved_rank)
+	assert(is_equal_approx(HeatManager.heat, saved_heat))
 	assert(player.global_position == saved_position)
 	assert(WallManager.wall_states[first_id]["ownerCrewId"] == saved_wall_state["ownerCrewId"])
 	assert(WallManager.wall_states[first_id]["state"] == saved_wall_state["state"])

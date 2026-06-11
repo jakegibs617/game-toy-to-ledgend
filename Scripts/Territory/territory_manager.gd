@@ -24,6 +24,7 @@ func _ready() -> void:
 	WallManager.wall_painted.connect(
 		func(wall_id: String, _graffiti: Dictionary) -> void: _on_wall_changed(wall_id))
 	WallManager.wall_crossed_out.connect(_on_wall_changed)
+	WallManager.wall_buffed.connect(_on_wall_changed)
 
 func is_claimed(district_id: String) -> bool:
 	return bool(districts.get(district_id, {}).get("claimed", false))
@@ -66,6 +67,8 @@ func influence(district_id: String) -> Dictionary:
 func owner_label(owner: String) -> String:
 	if owner == "player":
 		return "You"
+	if owner == "city":
+		return "City"  # cleanup pressure (Plan.md section 24)
 	return String(RivalManager.crews.get(owner, {}).get("tag", owner))
 
 ## One footer line for the map: shares by owner, then claim status.

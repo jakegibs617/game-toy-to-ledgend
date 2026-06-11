@@ -113,6 +113,29 @@ func show_cross_out(cross: Dictionary) -> void:
 	bar.material_override = _flat_material(color)
 	holder.add_child(bar)
 
+## City cleanup buffed this wall: mismatched roller patches in
+## off-tones of the wall color where the work used to be (Plan.md
+## section 27 "buff marks"). Cleared when show_graffiti repaints.
+func show_buff() -> void:
+	clear_graffiti()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(String(def.get("wallId", "")) + "_buff")
+	var size: Array = def.get("size", [4, 3, 0.3])
+	var base := Color(String(def.get("color", "#9a8f84")))
+	for i in 3:
+		var patch := base.lightened(rng.randf_range(0.08, 0.2)) if i % 2 == 0 \
+			else base.darkened(rng.randf_range(0.1, 0.22))
+		var holder := Node3D.new()
+		holder.rotation_degrees = Vector3(0, 0, rng.randf_range(-2.5, 2.5))
+		holder.position = Vector3(
+			rng.randf_range(-0.15, 0.15) * float(size[0]),
+			rng.randf_range(-0.12, 0.12) * float(size[1]),
+			0.002 * i)
+		_graffiti_anchor.add_child(holder)
+		_add_panel(holder, Vector2(
+			float(size[0]) * rng.randf_range(0.45, 0.68),
+			float(size[1]) * rng.randf_range(0.35, 0.55)), patch, 0.0)
+
 ## Filled quad behind the letters (throw-up halo / piece background).
 func _add_panel(parent: Node3D, panel_size: Vector2, color: Color, z_offset: float) -> void:
 	var quad := QuadMesh.new()

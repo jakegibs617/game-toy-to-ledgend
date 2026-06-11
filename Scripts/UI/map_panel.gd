@@ -13,6 +13,7 @@ const BG_COLOR := Color(0.07, 0.07, 0.1, 0.95)
 const PLAYER_COLOR := Color("#7be05a")
 const BLANK_COLOR := Color("#6a6a72")
 const CROSS_OUT_COLOR := Color("#e0301e")
+const BUFFED_COLOR := Color("#c4bcab")
 
 var _player: Node3D
 var _canvas: Control
@@ -76,6 +77,8 @@ func _owner_color(state: Dictionary) -> Color:
 	var owner := String(state.get("ownerCrewId", "none"))
 	if owner == "player":
 		return PLAYER_COLOR
+	if owner == "city":
+		return BUFFED_COLOR
 	if owner == "none" or String(state.get("state", "blank")) == "blank":
 		return BLANK_COLOR
 	return Color(String(RivalManager.crews.get(owner, {}).get("fillColor", "#aaaaaa")))

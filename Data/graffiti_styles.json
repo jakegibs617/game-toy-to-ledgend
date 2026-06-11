@@ -3,6 +3,7 @@
     "label": "Tag",
     "baseValue": 10,
     "paintCost": 1,
+    "heatValue": 4,
     "fillColor": "#f2f2f2",
     "outlineColor": "#1a1a1a"
   },
@@ -10,6 +11,7 @@
     "label": "Throw-up",
     "baseValue": 25,
     "paintCost": 3,
+    "heatValue": 7,
     "fillColor": "#ff4f79",
     "outlineColor": "#16161d"
   },
@@ -17,6 +19,7 @@
     "label": "Piece",
     "baseValue": 60,
     "paintCost": 6,
+    "heatValue": 12,
     "fillColor": "#ffd23f",
     "outlineColor": "#202033"
   }

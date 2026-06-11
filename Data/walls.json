@@ -10,6 +10,7 @@
     "risk": 1,
     "surfaceType": "brick",
     "color": "#8a6f62",
+    "cleanupChance": 0.1,
     "rivalResponseChance": 0.2
   },
   {
@@ -23,6 +24,7 @@
     "risk": 1,
     "surfaceType": "brick",
     "color": "#8a6f62",
+    "cleanupChance": 0.1,
     "rivalResponseChance": 0.2
   },
   {
@@ -36,6 +38,7 @@
     "risk": 2,
     "surfaceType": "concrete",
     "color": "#a39a8e",
+    "cleanupChance": 0.15,
     "rivalResponseChance": 0.2
   },
   {
@@ -49,6 +52,7 @@
     "risk": 4,
     "surfaceType": "concrete",
     "color": "#c2b8a8",
+    "cleanupChance": 0.3,
     "rivalResponseChance": 0.35
   },
   {
@@ -61,7 +65,8 @@
     "visibility": 2,
     "risk": 1,
     "surfaceType": "brick",
-    "color": "#7d6a5f"
+    "color": "#7d6a5f",
+    "cleanupChance": 0.1
   },
   {
     "wallId": "wall_bodega_01",
@@ -73,7 +78,8 @@
     "visibility": 4,
     "risk": 2,
     "surfaceType": "stucco",
-    "color": "#b3a48f"
+    "color": "#b3a48f",
+    "cleanupChance": 0.2
   },
   {
     "wallId": "wall_alley_n_01",
@@ -86,6 +92,7 @@
     "risk": 1,
     "surfaceType": "brick",
     "color": "#6f5f56",
+    "cleanupChance": 0.05,
     "rivalResponseChance": 0.15
   },
   {
@@ -99,6 +106,7 @@
     "risk": 1,
     "surfaceType": "brick",
     "color": "#6f5f56",
+    "cleanupChance": 0.05,
     "rivalResponseChance": 0.15
   },
   {
@@ -111,7 +119,8 @@
     "visibility": 4,
     "risk": 2,
     "surfaceType": "concrete",
-    "color": "#9aa0a3"
+    "color": "#9aa0a3",
+    "cleanupChance": 0.35
   },
   {
     "wallId": "wall_lot_01",
@@ -124,6 +133,7 @@
     "risk": 1,
     "surfaceType": "concrete",
     "color": "#8f8a82",
+    "cleanupChance": 0.05,
     "rivalResponseChance": 0.1
   }
 ]

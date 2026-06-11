@@ -1,5 +1,40 @@
 # Changelog
 
+## 2026-06-11 — Heat System + City Cleanup (Plan.md §12, §18, §33)
+
+First post-slice "Should-Have" system from Plan.md §36.
+
+- New `HeatManager` autoload (`Scripts/Heat/heat_manager.gd`). Painting
+  builds heat — each style has a `heatValue` in
+  `Data/graffiti_styles.json` (tag 4 / throw-up 7 / piece 12), scaled
+  by wall risk, so landmark and high-risk work draws the most
+  attention. Heat decays 2/tick when the player lays low (same
+  12-second "in-game hour" tick as RivalManager).
+- Risk pays (Plan.md §12): reputation is now multiplied by
+  `1 + heat/200` (up to 1.5×), folded into the §11 formula in
+  `WallManager._reputation_for`.
+- City Cleanup faction (Plan.md §18/§33): every 6 ticks (a compressed
+  "in-game day") cleanup rolls each painted wall against its new
+  per-wall `cleanupChance` in `Data/walls.json` — inflated by heat for
+  player-owned walls — and buffs at most one wall per sweep. Buffed
+  walls show mismatched gray roller patches, move their graffiti into
+  wall history (`isBuffed: true`), and count as "City" pressure in
+  district influence and on the map (warm-gray on the map, "City" in
+  the legend).
+- Cleanup retaliation (Plan.md §15): repainting a buffed wall pays a
+  1.25× rep bonus.
+- HUD: heat readout in the stats panel (color escalates Cold → Low →
+  Watched → Hot → Blazing), heat-level change banners, and cleanup
+  notifications. New roller-swipe SFX when a wall gets buffed.
+- Save/load now persists heat and the cleanup countdown; buffed wall
+  states already round-trip through WallManager.
+- Smoke test extended: heat accrues from the mission-chain painting,
+  rep multiplier > 1, deterministic `force_cleanup` buffs a wall
+  (state/owner/history/territory asserts), repaint pays the exact
+  retaliation bonus, heat decays on tick, and heat survives the save/
+  load round trip. 3 consecutive clean headless runs plus a windowed
+  120-frame boot with no errors.
+
 ## 2026-06-11 — Milestone 8: Polish Pass (Plan.md §35) — vertical slice complete
 
 - Sound effects: new `Sfx` autoload (`Scripts/Audio/sfx.gd`) synthesizes
