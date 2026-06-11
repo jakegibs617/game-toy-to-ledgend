@@ -12,6 +12,7 @@ var _players: Array[AudioStreamPlayer] = []
 # The headless dummy audio driver never mixes, so playbacks started
 # there linger and get reported as leaked instances at exit.
 var _enabled := DisplayServer.get_name() != "headless"
+var _rank_index := 0
 
 func _ready() -> void:
 	_sounds = {
@@ -22,6 +23,7 @@ func _ready() -> void:
 		"claim": {"stream": _arpeggio([392.0, 523.25, 659.25, 784.0], 0.13), "db": -6.0},
 		"rival": {"stream": _rival_buzz(), "db": -9.0},
 		"buff": {"stream": _roller_swipe(), "db": -10.0},
+		"whistle": {"stream": _arpeggio([1567.98, 1244.51, 1567.98], 0.09), "db": -9.0},
 	}
 	for i in POOL_SIZE:
 		var player := AudioStreamPlayer.new()
@@ -29,7 +31,10 @@ func _ready() -> void:
 		_players.append(player)
 
 	WallManager.wall_painted.connect(_on_wall_painted)
-	GameState.rank_changed.connect(func(_rank: String) -> void: play("rank_up"))
+	_rank_index = GameState.rank_index(GameState.rank)
+	GameState.rank_changed.connect(_on_rank_changed)
+	PatrolManager.player_spotted.connect(func(_g: PatrolGuard) -> void: play("whistle"))
+	PatrolManager.player_caught.connect(func(_g: PatrolGuard) -> void: play("denied"))
 	RivalManager.rival_event.connect(func(_msg: String, _wall: String) -> void: play("rival"))
 	HeatManager.cleanup_event.connect(func(_msg: String, _wall: String) -> void: play("buff"))
 	TerritoryManager.district_claimed.connect(func(_id: String, _d: Dictionary) -> void: play("claim"))
@@ -54,6 +59,12 @@ func play(sound_name: String) -> void:
 			player.volume_db = float(sound["db"])
 			player.play()
 			return
+
+## Rising sting only for actual rank-ups — a patrol catch can demote.
+func _on_rank_changed(rank: String) -> void:
+	var idx := GameState.rank_index(rank)
+	play("rank_up" if idx > _rank_index else "denied")
+	_rank_index = idx
 
 func _on_wall_painted(_wall_id: String, graffiti: Dictionary) -> void:
 	# Rival repaints happen off-screen on the simulation tick; the

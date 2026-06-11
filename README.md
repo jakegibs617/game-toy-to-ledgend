@@ -100,6 +100,15 @@ prompt appears at the bottom of the screen, then press E.
   pressure in territory influence, and repainting one pays a 1.25×
   cleanup-retaliation bonus. Heat decays while laying low. The HUD
   heat readout escalates Cold → Low → Watched → Hot → Blazing.
+- **PatrolManager** (autoload, `Scripts/Patrols/patrol_manager.gd`) —
+  security patrols (Plan.md §12, §18, §25). Guards walk fixed routes
+  from `Data/patrols.json` (street sweep, north alley, bodega side) and
+  the patrol count follows the heat level — more heat, more guards. A
+  guard that sees you painting spikes heat and gives chase; getting
+  caught costs 25 rep and 3 paint but settles heat (the incident is
+  closed). You can outrun them — chase speed is below your run speed.
+  With Moth recruited, she calls out patrols near your painting spot.
+  Guards show as orange dots on the district map.
 - **MissionManager** (`Scripts/Missions/mission_manager.gd`,
   Milestone 7) — loads `Data/missions.json` and runs the five-mission
   vertical slice from Plan.md §16: First Mark, Don't Be a Toy, Get
@@ -118,7 +127,7 @@ All wall, style, crew, and NPC content is data-driven from `/Data`
 
 ## Not built yet (by design — Plan.md §47)
 
-All Plan.md §35 milestones are in, plus Heat/City Cleanup from the §36
-"Should-Have" list. Next up from that list: patrols, a richer supply
-inventory, dialogue, and the blackbook UI.
+All Plan.md §35 milestones are in, plus Heat/City Cleanup and security
+patrols from the §36 "Should-Have" list. Next up from that list: a
+richer supply inventory, dialogue, and the blackbook UI.
 # game-toy-to-ledgend

@@ -14,6 +14,7 @@ const PLAYER_COLOR := Color("#7be05a")
 const BLANK_COLOR := Color("#6a6a72")
 const CROSS_OUT_COLOR := Color("#e0301e")
 const BUFFED_COLOR := Color("#c4bcab")
+const GUARD_COLOR := Color("#ff9f43")
 
 var _player: Node3D
 var _canvas: Control
@@ -68,6 +69,10 @@ func _draw_map() -> void:
 		if m.has("position"):
 			var p: Array = m["position"]
 			_canvas.draw_circle(_to_map(Vector2(p[0], p[2])), 3.0, Color(String(m.get("color", "#ffffff"))))
+	for guard in PatrolManager.guards():
+		if is_instance_valid(guard):
+			_canvas.draw_circle(_to_map(
+				Vector2(guard.global_position.x, guard.global_position.z)), 4.0, GUARD_COLOR)
 	if _player != null:
 		_canvas.draw_circle(
 			_to_map(Vector2(_player.global_position.x, _player.global_position.z)),

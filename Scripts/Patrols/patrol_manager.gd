@@ -1,0 +1,141 @@
+extends Node
+## Security patrols (Plan.md sections 12, 18, 25). Spawns guards onto
+## fixed routes from Data/patrols.json; higher heat fields more patrols.
+## A guard that sees the player painting spikes heat and gives chase
+## (section 25: security interrupts painting and increases heat).
+## Getting caught costs reputation and paint but settles heat — the
+## incident is closed. A recruited lookout calls out patrols near the
+## player's painting spot (section 14). Autoloaded as PatrolManager.
+
+signal patrol_event(message: String)
+signal player_spotted(guard: PatrolGuard)
+signal player_caught(guard: PatrolGuard)
+
+const PATROLS_PATH := "res://Data/patrols.json"
+const WARN_COOLDOWN_MS := 10000
+
+var config: Dictionary = {}
+var _routes: Array = []
+var _guards: Array[PatrolGuard] = []
+var _parent: Node3D = null
+var _player: Player = null
+var _last_warn_ms := -WARN_COOLDOWN_MS
+
+func _ready() -> void:
+	var parsed: Variant = _load_json(PATROLS_PATH)
+	if parsed is Dictionary:
+		config = parsed
+		_routes = config.get("routes", [])
+	WallManager.wall_painted.connect(_on_wall_painted)
+	HeatManager.heat_changed.connect(func(_heat: float, _gained: float) -> void:
+		_sync_guard_count())
+
+## Called by the district scene once the player exists.
+func spawn_patrols(parent: Node3D, player: Player) -> void:
+	_parent = parent
+	_player = player
+	_guards.clear()
+	_sync_guard_count(true)
+
+func guard_count() -> int:
+	return _guards.size()
+
+func guards() -> Array[PatrolGuard]:
+	return _guards
+
+## Plan.md section 12: higher heat causes more patrols.
+func guards_for_level(level: String) -> int:
+	var per_level: Dictionary = config.get("guardsPerLevel", {})
+	return mini(int(per_level.get(level, 1)), _routes.size())
+
+## A guard reached the player: dock rep, confiscate paint, and settle
+## heat — they moved you along, the incident is closed. Public so tests
+## and scripted beats can trigger a catch deterministically.
+func resolve_catch(guard: PatrolGuard) -> void:
+	guard.end_chase()
+	var rep_loss := mini(int(config.get("caughtRepPenalty", 25)), GameState.reputation)
+	if rep_loss > 0:
+		GameState.add_reputation(-rep_loss)
+	var paint_loss := mini(int(config.get("caughtPaintPenalty", 3)), GameState.paint)
+	if paint_loss > 0:
+		GameState.add_paint(-paint_loss)
+	player_caught.emit(guard)
+	patrol_event.emit("CAUGHT — security moved you along. -%d rep, -%d paint." % [rep_loss, paint_loss])
+	HeatManager.settle(float(config.get("caughtHeatCeiling", 25.0)))
+
+func guard_gave_up(_guard: PatrolGuard) -> void:
+	patrol_event.emit("You lost them. Security gave up the chase.")
+
+func _on_wall_painted(_wall_id: String, graffiti: Dictionary) -> void:
+	if _player == null or String(graffiti.get("creatorId", "")) != "player":
+		return
+	for guard in _guards:
+		if guard.can_see(_player):
+			_spotted(guard)
+			return
+	_maybe_lookout_warning()
+
+func _spotted(guard: PatrolGuard) -> void:
+	HeatManager.add_heat(float(config.get("spottedHeat", 12.0)))
+	guard.start_chase(_player)
+	player_spotted.emit(guard)
+	patrol_event.emit("SPOTTED — security saw you painting. Run!")
+
+## Nobody saw the paint land, but a recruited lookout calls out close
+## patrols (Plan.md section 14: warns player of cops).
+func _maybe_lookout_warning() -> void:
+	var lookout := CrewManager.first_with_role("lookout")
+	if lookout.is_empty():
+		return
+	var warn_range := float(config.get("warnRange", 12.0))
+	for guard in _guards:
+		if guard.global_position.distance_to(_player.global_position) <= warn_range:
+			var now := Time.get_ticks_msec()
+			if now - _last_warn_ms >= WARN_COOLDOWN_MS:
+				_last_warn_ms = now
+				patrol_event.emit('%s: "Five-oh close by — keep it moving."' % String(lookout["alias"]))
+			return
+
+## Keeps the live guard count matched to the heat level, spawning onto
+## routes round-robin and despawning idle guards first when cooling.
+func _sync_guard_count(quiet := false) -> void:
+	if _parent == null or not is_instance_valid(_parent) or _routes.is_empty():
+		return
+	var target := guards_for_level(HeatManager.level_name())
+	var grew := _guards.size() < target
+	while _guards.size() < target:
+		var guard := PatrolGuard.new()
+		guard.setup(_routes[_guards.size() % _routes.size()], config)
+		_parent.add_child(guard)
+		_guards.append(guard)
+	var shrank := false
+	while _guards.size() > target:
+		var idx := _removable_guard_index()
+		if idx < 0:
+			break  # everyone is mid-chase; thin out on a later sync
+		var guard := _guards[idx]
+		_guards.remove_at(idx)
+		guard.queue_free()
+		shrank = true
+	if quiet:
+		return
+	if grew:
+		patrol_event.emit("More security on the block — watch the streets.")
+	elif shrank:
+		patrol_event.emit("A patrol clocked out. The block breathes easier.")
+
+func _removable_guard_index() -> int:
+	for i in range(_guards.size() - 1, -1, -1):
+		if not _guards[i].is_chasing():
+			return i
+	return -1
+
+func _load_json(path: String) -> Variant:
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		push_error("PatrolManager: cannot open %s" % path)
+		return null
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	if parsed == null:
+		push_error("PatrolManager: invalid JSON in %s" % path)
+	return parsed
