@@ -108,10 +108,13 @@ func start_delivery() -> bool:
 	if delivery_active:
 		supply_event.emit("Lupe: \"One package at a time. Finish the run you've got.\"")
 		return false
-	delivery_active = true
 	_active_drop = _next_drop
-	_next_drop = (_next_drop + 1) % drops.size()
 	_spawn_drop_zone()
+	if _drop_zone == null:  # no scene to host the drop — don't strand the run
+		_active_drop = -1
+		return false
+	delivery_active = true
+	_next_drop = (_next_drop + 1) % drops.size()
 	supply_event.emit("Delivery run: drop Lupe's package at the %s." % String(drops[_active_drop]["label"]))
 	return true
 

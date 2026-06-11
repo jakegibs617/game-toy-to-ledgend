@@ -192,7 +192,10 @@ func _handle_shop_input(event: InputEvent) -> bool:
 	if event.is_action_pressed("interact") or event.is_action_pressed("toggle_mouse"):
 		SupplyManager.close_shop()
 		return true
-	var slots := ["graffiti_tag", "graffiti_throwup", "graffiti_piece"]
+	# Slot i is catalog item i; the row after the catalog is the delivery
+	# run — the same order _refresh_shop renders, so display and input
+	# can't drift apart if the catalog grows.
+	var slots := ["graffiti_tag", "graffiti_throwup", "graffiti_piece", "shop_delivery"]
 	for i in slots.size():
 		if event.is_action_pressed(slots[i]):
 			if i < SupplyManager.catalog.size():
@@ -201,12 +204,10 @@ func _handle_shop_input(event: InputEvent) -> bool:
 				if not result.get("ok", false):
 					Sfx.play("denied")
 					_show_message(String(result.get("reason", "")))
-				_refresh_shop()
+			elif i == SupplyManager.catalog.size():
+				SupplyManager.start_delivery()
+			_refresh_shop()
 			return true
-	if event.is_action_pressed("shop_delivery"):
-		SupplyManager.start_delivery()
-		_refresh_shop()
-		return true
 	return false
 
 func _refresh_shop() -> void:
@@ -222,7 +223,8 @@ func _refresh_shop() -> void:
 			String(item.get("desc", "")), status])
 	if not SupplyManager.delivery.is_empty():
 		var status := "   [PACKAGE OUT — make the drop]" if SupplyManager.delivery_active else ""
-		lines.append("[4] %s — earn $%d (draws heat)%s" % [
+		lines.append("[%d] %s — earn $%d (draws heat)%s" % [
+			SupplyManager.catalog.size() + 1,
 			String(SupplyManager.delivery.get("name", "Delivery Run")),
 			int(SupplyManager.delivery.get("cash", 0)), status])
 	_shop_label.text = "\n".join(lines)
