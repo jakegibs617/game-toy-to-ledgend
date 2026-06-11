@@ -79,7 +79,7 @@ prompt appears at the bottom of the screen, then press E.
   the corner store; recover her blackbook from the north alley and she
   joins as your Lookout (Plan.md §14): rivals back off more often
   (response chance ×0.6) and she warns you when a crew is about to hit
-  one of your walls. Tab opens the crew menu.
+  one of your walls. The blackbook's Crew page (Tab) tracks her status.
 - **TerritoryManager** (autoload, `Scripts/Territory/territory_manager.gd`,
   Milestone 6) — loads `Data/districts.json` and scores district
   influence (Plan.md §24): every wall contributes its visibility as

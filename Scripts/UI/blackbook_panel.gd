@@ -9,11 +9,19 @@ extends PanelContainer
 ## autoload managers only, so the smoke test can read pages without a
 ## scene.
 
-const PAGES := ["Writer", "Styles", "Crew", "The City"]
-
 var page := 0
 var _title_label: Label
 var _content_label: Label
+
+## Single source of truth for page order: title + text builder pairs.
+## Built per call because Callables need the instance.
+func _page_defs() -> Array:
+	return [
+		{"title": "Writer", "build": _writer_text},
+		{"title": "Styles", "build": _styles_text},
+		{"title": "Crew", "build": _crew_text},
+		{"title": "The City", "build": _city_text},
+	]
 
 func _ready() -> void:
 	var style := StyleBoxFlat.new()
@@ -36,26 +44,26 @@ func _ready() -> void:
 	refresh()
 
 func set_page(index: int) -> void:
-	if index < 0 or index >= PAGES.size():
+	if index < 0 or index >= _page_defs().size():
 		return
 	page = index
 	refresh()
 
 func refresh() -> void:
+	var defs := _page_defs()
 	var tabs: PackedStringArray = []
-	for i in PAGES.size():
-		tabs.append("[%d] %s" % [i + 1, PAGES[i]] if i != page else "[%d] >%s<" % [i + 1, PAGES[i]])
+	for i in defs.size():
+		var title: String = defs[i]["title"]
+		tabs.append("[%d] %s" % [i + 1, title] if i != page else "[%d] >%s<" % [i + 1, title])
 	_title_label.text = "BLACKBOOK   %s   —   [Tab] close" % "   ".join(tabs)
 	_content_label.text = page_text(page)
 
 ## Pure text for a page — reads only the autoload managers.
 func page_text(index: int) -> String:
-	match index:
-		0: return _writer_text()
-		1: return _styles_text()
-		2: return _crew_text()
-		3: return _city_text()
-	return ""
+	var defs := _page_defs()
+	if index < 0 or index >= defs.size():
+		return ""
+	return defs[index]["build"].call()
 
 func _writer_text() -> String:
 	var lines: PackedStringArray = []
@@ -112,24 +120,26 @@ func _crew_text() -> String:
 	return "\n".join(lines) if not lines.is_empty() else "No writers met yet."
 
 func _city_text() -> String:
+	var held := _walls_by_owner()
 	var lines: PackedStringArray = []
 	for crew in RivalManager.crews.values():
 		lines.append("%s (%s) — led by %s" % [String(crew.get("name", "?")),
 			String(crew.get("tag", "?")), String(crew.get("leaderAlias", "?"))])
 		lines.append("      aggression %d · attitude %d · holds %d walls" % [
 			int(crew.get("aggression", 0)), int(crew.get("relationshipToPlayer", 0)),
-			_walls_owned_by(String(crew["crewId"]))])
+			int(held.get(String(crew["crewId"]), 0))])
 	lines.append("")
 	lines.append("Your name is on %d of %d walls; the city buffed %d." % [
-		_walls_owned_by("player"), WallManager.wall_defs.size(), _walls_owned_by("city")])
+		int(held.get("player", 0)), WallManager.wall_defs.size(), int(held.get("city", 0))])
 	return "\n".join(lines)
 
-func _walls_owned_by(owner: String) -> int:
-	var count := 0
+## owner -> wall count, in one pass over the wall states.
+func _walls_by_owner() -> Dictionary:
+	var counts := {}
 	for wall_id in WallManager.wall_states:
-		if String(WallManager.wall_states[wall_id].get("ownerCrewId", "")) == owner:
-			count += 1
-	return count
+		var owner := String(WallManager.wall_states[wall_id].get("ownerCrewId", ""))
+		counts[owner] = int(counts.get(owner, 0)) + 1
+	return counts
 
 func _make_label(parent: Control, font_size: int, color := Color.WHITE) -> Label:
 	var label := Label.new()
