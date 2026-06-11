@@ -17,6 +17,7 @@ func _ready() -> void:
 	var player := Player.new()
 	player.position = PLAYER_SPAWN
 	add_child(player)
+	SaveManager.register_player(player)
 	var hud := Hud.new()
 	add_child(hud)
 	hud.bind_player(player)
@@ -185,5 +186,30 @@ func _run_smoke_test() -> void:
 		assert(result["ok"])
 	assert(MissionManager.chain_done)
 	print("SMOKE: mission chain complete")
+
+	# Milestone 8: save to disk, mutate important runtime state, then
+	# load and prove the saved wall/progression/player state comes back.
+	var player := get_node("Player") as Player
+	var saved_rep := GameState.reputation
+	var saved_paint := GameState.paint
+	var saved_rank := GameState.rank
+	var saved_wall_state: Dictionary = WallManager.wall_states[first_id].duplicate(true)
+	var saved_position := player.global_position
+	assert(SaveManager.quick_save())
+	GameState.reputation = 1
+	GameState.paint = 1
+	GameState.rank = "Toy"
+	player.global_position = Vector3(22, 0.5, 22)
+	WallManager.apply_rival_graffiti(first_id, RivalManager.crews["ghost_line"], "tag")
+	assert(WallManager.wall_states[first_id]["ownerCrewId"] == "ghost_line")
+	assert(SaveManager.quick_load())
+	assert(GameState.reputation == saved_rep)
+	assert(GameState.paint == saved_paint)
+	assert(GameState.rank == saved_rank)
+	assert(player.global_position == saved_position)
+	assert(WallManager.wall_states[first_id]["ownerCrewId"] == saved_wall_state["ownerCrewId"])
+	assert(WallManager.wall_states[first_id]["state"] == saved_wall_state["state"])
+	assert(WallManager.wall_states[first_id]["currentGraffiti"]["graffitiId"] == saved_wall_state["currentGraffiti"]["graffitiId"])
+	print("SMOKE: save/load restored wall, player, and progression state")
 	print("SMOKE: OK")
 	get_tree().quit()

@@ -74,6 +74,34 @@ func current_objective() -> Dictionary:
 		return {}
 	return objectives[objective_index]
 
+func save_state() -> Dictionary:
+	return {
+		"mission_index": mission_index,
+		"objective_index": objective_index,
+		"remembered": remembered.duplicate(true),
+		"chain_done": chain_done,
+		"began": _began,
+		"painted_objectives": _painted_objective_state(),
+	}
+
+func load_state(data: Dictionary) -> void:
+	mission_index = int(data.get("mission_index", mission_index))
+	objective_index = int(data.get("objective_index", objective_index))
+	remembered = data.get("remembered", {}).duplicate(true)
+	chain_done = bool(data.get("chain_done", chain_done))
+	_began = bool(data.get("began", _began))
+	_restore_painted_objectives(data.get("painted_objectives", {}))
+	var mission := current_mission()
+	var objective := current_objective()
+	if not mission.is_empty():
+		mission_started.emit(mission)
+	if not objective.is_empty():
+		objective_changed.emit(mission, objective)
+		if String(objective.get("type", "")) == "reach_wall":
+			_spawn_reach_zone(objective)
+	if chain_done:
+		chain_completed.emit()
+
 ## Zones and mission NPCs report the player here. Returns true if it
 ## advanced the active objective, so actors can fall back to idle lines.
 func notify_actor(actor_id: String) -> bool:
@@ -232,6 +260,30 @@ func _on_color_chosen(_color_name: String) -> void:
 
 func _active_type() -> String:
 	return String(current_objective().get("type", ""))
+
+func _painted_objective_state() -> Dictionary:
+	var state := {}
+	for i in range(missions.size()):
+		var objectives: Array = missions[i].get("objectives", [])
+		for j in range(objectives.size()):
+			var obj: Dictionary = objectives[j]
+			if obj.has("_painted"):
+				state["%d:%d" % [i, j]] = obj["_painted"].duplicate(true)
+	return state
+
+func _restore_painted_objectives(state: Dictionary) -> void:
+	for key in state:
+		var parts := String(key).split(":")
+		if parts.size() != 2:
+			continue
+		var mi := int(parts[0])
+		var oi := int(parts[1])
+		if mi < 0 or mi >= missions.size():
+			continue
+		var objectives: Array = missions[mi].get("objectives", [])
+		if oi < 0 or oi >= objectives.size():
+			continue
+		objectives[oi]["_painted"] = state[key].duplicate(true)
 
 func _objective_actor_id(obj: Dictionary) -> String:
 	if obj.has("actorId"):

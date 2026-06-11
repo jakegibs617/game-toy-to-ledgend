@@ -40,9 +40,12 @@ func setup(wall_def: Dictionary) -> void:
 func display_name() -> String:
 	return String(def.get("name", def.get("wallId", "Wall")))
 
-func show_graffiti(graffiti: Dictionary) -> void:
+func clear_graffiti() -> void:
 	for child in _graffiti_anchor.get_children():
 		child.queue_free()
+
+func show_graffiti(graffiti: Dictionary) -> void:
+	clear_graffiti()
 	var label := Label3D.new()
 	label.text = String(graffiti.get("alias", "???"))
 	label.modulate = Color(String(graffiti.get("fillColor", "#ffffff")))

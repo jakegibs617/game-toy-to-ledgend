@@ -138,6 +138,29 @@ func cross_out_wall(wall_id: String, crew: Dictionary, text := "TOY") -> void:
 		wall_nodes[wall_id].show_cross_out(state["crossOut"])
 	wall_crossed_out.emit(wall_id)
 
+func save_state() -> Dictionary:
+	return {
+		"wall_states": wall_states.duplicate(true),
+		"next_graffiti_id": _next_graffiti_id,
+	}
+
+func load_state(data: Dictionary) -> void:
+	if data.has("wall_states"):
+		wall_states = data["wall_states"].duplicate(true)
+	if data.has("next_graffiti_id"):
+		_next_graffiti_id = int(data["next_graffiti_id"])
+	_refresh_wall_visuals()
+
+func _refresh_wall_visuals() -> void:
+	for wall_id in wall_nodes:
+		var wall: PaintableWall = wall_nodes[wall_id]
+		var state: Dictionary = wall_states.get(wall_id, {})
+		wall.clear_graffiti()
+		if state.get("currentGraffiti") != null:
+			wall.show_graffiti(state["currentGraffiti"])
+		if state.has("crossOut"):
+			wall.show_cross_out(state["crossOut"])
+
 ## Plan.md section 11: base value scaled by visibility and risk multipliers.
 func _reputation_for(style: Dictionary, def: Dictionary) -> int:
 	var base := float(style.get("baseValue", 10))

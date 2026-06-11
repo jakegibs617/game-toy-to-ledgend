@@ -38,6 +38,35 @@ var fill_color_index := 0
 func _ready() -> void:
 	_setup_input_actions()
 
+func save_state() -> Dictionary:
+	return {
+		"alias": alias,
+		"alias_chosen": alias_chosen,
+		"reputation": reputation,
+		"rank": rank,
+		"paint": paint,
+		"selected_graffiti_type": selected_graffiti_type,
+		"unlocked_types": unlocked_types.duplicate(true),
+		"colors_unlocked": colors_unlocked,
+		"fill_color_index": fill_color_index,
+	}
+
+func load_state(data: Dictionary) -> void:
+	alias = String(data.get("alias", alias))
+	alias_chosen = bool(data.get("alias_chosen", alias_chosen))
+	reputation = int(data.get("reputation", reputation))
+	rank = String(data.get("rank", _rank_for(reputation)))
+	paint = int(data.get("paint", paint))
+	selected_graffiti_type = String(data.get("selected_graffiti_type", selected_graffiti_type))
+	unlocked_types = data.get("unlocked_types", unlocked_types).duplicate(true)
+	colors_unlocked = bool(data.get("colors_unlocked", colors_unlocked))
+	fill_color_index = clampi(int(data.get("fill_color_index", fill_color_index)), 0, FILL_COLORS.size() - 1)
+	reputation_changed.emit(reputation, 0)
+	rank_changed.emit(rank)
+	paint_changed.emit(paint)
+	graffiti_type_changed.emit(selected_graffiti_type)
+	fill_color_changed.emit(current_fill_color_name())
+
 func add_reputation(amount: int) -> void:
 	reputation += amount
 	reputation_changed.emit(reputation, amount)
@@ -105,6 +134,8 @@ func _setup_input_actions() -> void:
 	_add_key_action("graffiti_throwup", KEY_2)
 	_add_key_action("graffiti_piece", KEY_3)
 	_add_key_action("cycle_color", KEY_C)
+	_add_key_action("quick_save", KEY_F5)
+	_add_key_action("quick_load", KEY_F9)
 	_add_key_action("crew_menu", KEY_TAB)
 	_add_key_action("map", KEY_M)
 	_add_key_action("toggle_mouse", KEY_ESCAPE)

@@ -81,6 +81,20 @@ func any_recruited() -> bool:
 			return true
 	return false
 
+func save_state() -> Dictionary:
+	var stages := {}
+	for member_id in members:
+		stages[member_id] = String(members[member_id].get("stage", "not_met"))
+	return {"stages": stages}
+
+func load_state(data: Dictionary) -> void:
+	var stages: Dictionary = data.get("stages", {})
+	for member_id in stages:
+		if members.has(member_id):
+			members[member_id]["stage"] = String(stages[member_id])
+			stage_changed.emit(String(member_id), String(stages[member_id]))
+	crew_changed.emit()
+
 ## One status line per member for the crew menu.
 func status_text(m: Dictionary) -> String:
 	match String(m["stage"]):

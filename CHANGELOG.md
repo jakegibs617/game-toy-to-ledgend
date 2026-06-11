@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-06-11 — Milestone 8: Save/Load Slice
+
+- Added `SaveManager` autoload (`Scripts/SaveSystem/save_manager.gd`).
+  F5 quick-saves to `user://toy_to_legend_save.json`; F9 quick-loads.
+- Save files persist player position, GameState progression
+  (rep/rank/paint/unlocks/colors), WallManager state
+  (ownership/current graffiti/history/cross-outs), CrewManager
+  recruitment stages, TerritoryManager claimed districts, and
+  MissionManager progress.
+- Wall visuals now refresh from loaded state, including cleared walls,
+  restored graffiti, and restored "TOY" cross-outs.
+- HUD shows save/load feedback messages and README controls now include
+  F5/F9.
+- Smoke test extended with a disk round trip: save, mutate wall/player/
+  progression state, load, and assert the saved state is restored.
+  Passing.
+
 ## 2026-06-11 — Milestone 7: Vertical Slice Mission Chain (Plan.md §35)
 
 - `MissionManager` is now autoloaded and active in the main scene,

@@ -34,6 +34,8 @@ SMOKE_TEST=1 /Applications/Godot.app/Contents/MacOS/Godot --headless --path .
 | E | Paint focused wall / talk / pick up |
 | 1 / 2 / 3 | Select Tag / Throw-up / Piece |
 | C | Cycle fill color after Lupe unlocks colors |
+| F5 | Quick save |
+| F9 | Quick load |
 | Tab | Crew menu |
 | M | District map |
 | Esc | Toggle mouse capture |
@@ -91,12 +93,17 @@ prompt appears at the bottom of the screen, then press E.
   include the safehouse zone and Lupe; HUD objective text updates as
   each objective advances. Mission rewards unlock throw-ups, pieces,
   and fill-color cycling.
+- **SaveManager** (`Scripts/SaveSystem/save_manager.gd`,
+  Milestone 8) — F5 writes `user://toy_to_legend_save.json`; F9
+  restores player position, reputation/rank/paint/unlocks, wall
+  ownership/history/cross-outs, crew recruitment stages, claimed
+  territory, and mission progress.
 
 All wall, style, crew, and NPC content is data-driven from `/Data`
 (agent rule 3).
 
 ## Not built yet (by design — Plan.md §47)
 
-Heat, save-to-disk.
-Next up per Plan.md §35: Milestone 8 (polish pass).
+Heat.
+Next up per Plan.md §35: continue Milestone 8 polish (UI/art/SFX/lighting/bug fixes).
 # game-toy-to-ledgend

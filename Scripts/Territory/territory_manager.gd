@@ -28,6 +28,19 @@ func _ready() -> void:
 func is_claimed(district_id: String) -> bool:
 	return bool(districts.get(district_id, {}).get("claimed", false))
 
+func save_state() -> Dictionary:
+	var claimed := {}
+	for district_id in districts:
+		claimed[district_id] = bool(districts[district_id].get("claimed", false))
+	return {"claimed": claimed}
+
+func load_state(data: Dictionary) -> void:
+	var claimed: Dictionary = data.get("claimed", {})
+	for district_id in claimed:
+		if districts.has(district_id):
+			districts[district_id]["claimed"] = bool(claimed[district_id])
+			territory_changed.emit(String(district_id))
+
 ## owner -> share of the district's total wall weight (0..1).
 func influence(district_id: String) -> Dictionary:
 	var weights: Dictionary = {}

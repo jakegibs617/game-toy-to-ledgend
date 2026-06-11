@@ -79,6 +79,7 @@ func _ready() -> void:
 	MissionManager.mission_completed.connect(_on_mission_completed)
 	MissionManager.chain_completed.connect(_on_chain_completed)
 	MissionManager.mission_event.connect(_on_mission_event)
+	SaveManager.save_event.connect(_on_save_event)
 	CrewManager.crew_changed.connect(func() -> void: _refresh_crew_menu())
 	_refresh_stats()
 	_refresh_mission()
@@ -98,6 +99,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		_map_panel.visible = not _map_panel.visible
 		if _map_panel.visible:
 			_crew_panel.visible = false
+	elif event.is_action_pressed("quick_save"):
+		SaveManager.quick_save()
+	elif event.is_action_pressed("quick_load"):
+		if SaveManager.quick_load():
+			_refresh_stats()
+			_refresh_mission()
+			_refresh_prompt()
+			_refresh_crew_menu()
+			_map_panel.queue_redraw()
 
 func _refresh_stats() -> void:
 	_rank_label.text = "Rank: %s" % GameState.rank
@@ -182,6 +192,9 @@ func _on_chain_completed() -> void:
 
 func _on_mission_event(message: String) -> void:
 	_show_message(message, 5.0)
+
+func _on_save_event(message: String) -> void:
+	_show_message(message, 3.5)
 
 func _refresh_mission() -> void:
 	var mission := MissionManager.current_mission()
