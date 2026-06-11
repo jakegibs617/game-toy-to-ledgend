@@ -18,6 +18,7 @@ func _ready() -> void:
 	player.position = PLAYER_SPAWN
 	add_child(player)
 	SaveManager.register_player(player)
+	PatrolManager.spawn_patrols(self, player)
 	var hud := Hud.new()
 	add_child(hud)
 	hud.bind_player(player)
@@ -287,9 +288,65 @@ func _run_smoke_test() -> void:
 	print("SMOKE: buff + retaliation bonus OK, heat decays %.1f -> %.1f" % [
 		heat_before_tick, HeatManager.heat])
 
+	# Milestone 10: security patrols (Plan.md sections 12, 18, 25).
+	# Patrol presence follows the heat level — more heat, more guards.
+	var player := get_node("Player") as Player
+	assert(PatrolManager.guard_count() ==
+		PatrolManager.guards_for_level(HeatManager.level_name()))
+	var patrol_events: Array = []
+	PatrolManager.patrol_event.connect(func(msg: String) -> void:
+		patrol_events.append(msg))
+	HeatManager.add_heat(100.0)
+	assert(HeatManager.level_name() == "Blazing")
+	assert(PatrolManager.guard_count() == 3)
+	# A recruited lookout calls out patrols near the paint spot
+	# (Plan.md section 14: warns player of cops) when nobody saw it land.
+	var guard: PatrolGuard = PatrolManager.guards()[0]
+	guard.global_position = player.global_position + Vector3(10, 0, 0)
+	result = WallManager.paint_wall(WallManager.wall_nodes["wall_lot_01"], "tag")
+	assert(result["ok"])
+	assert(not patrol_events.is_empty() and patrol_events[-1].contains("Moth"))
+	print("SMOKE: lookout patrol warning = %s" % patrol_events[-1])
+
+	# Spotted: a guard with line of sight to the painter spikes heat and
+	# gives chase (section 25: security reacts to painting).
+	HeatManager.settle(50.0)
+	assert(PatrolManager.guard_count() == 2)
+	guard = PatrolManager.guards()[0]
+	guard.global_position = player.global_position + Vector3(3, 0, 0)
+	guard.look_at(player.global_position + Vector3.UP, Vector3.UP)
+	var spotted_guards: Array = []
+	PatrolManager.player_spotted.connect(func(g: PatrolGuard) -> void:
+		spotted_guards.append(g))
+	var heat_before_spot: float = HeatManager.heat
+	result = WallManager.paint_wall(WallManager.wall_nodes["wall_lot_01"], "tag")
+	assert(result["ok"])
+	assert(spotted_guards == [guard])
+	assert(guard.is_chasing())
+	assert(HeatManager.heat > heat_before_spot)
+	print("SMOKE: spotted by patrol, heat %.1f -> %.1f" % [
+		heat_before_spot, HeatManager.heat])
+
+	# Getting caught: rep fine, paint confiscated, heat settles — and
+	# patrol presence thins back out as the block cools off.
+	var caught_guards: Array = []
+	PatrolManager.player_caught.connect(func(g: PatrolGuard) -> void:
+		caught_guards.append(g))
+	var rep_before_catch: int = GameState.reputation
+	var paint_before_catch: int = GameState.paint
+	PatrolManager.resolve_catch(guard)
+	assert(caught_guards == [guard])
+	assert(GameState.reputation == rep_before_catch - mini(25, rep_before_catch))
+	assert(GameState.paint == paint_before_catch - mini(3, paint_before_catch))
+	assert(HeatManager.heat <= 25.0)
+	assert(PatrolManager.guard_count() ==
+		PatrolManager.guards_for_level(HeatManager.level_name()))
+	print("SMOKE: caught by patrol — rep %d -> %d, paint %d -> %d, heat %.1f, guards %d" % [
+		rep_before_catch, GameState.reputation, paint_before_catch,
+		GameState.paint, HeatManager.heat, PatrolManager.guard_count()])
+
 	# Milestone 8: save to disk, mutate important runtime state, then
 	# load and prove the saved wall/progression/player state comes back.
-	var player := get_node("Player") as Player
 	var saved_rep := GameState.reputation
 	var saved_paint := GameState.paint
 	var saved_rank := GameState.rank

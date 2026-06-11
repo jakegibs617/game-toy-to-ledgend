@@ -30,6 +30,7 @@ var _crew_panel: PanelContainer
 var _crew_label: Label
 var _map_panel: MapPanel
 var _focused: Node3D = null
+var _rank_index := 0
 
 func _ready() -> void:
 	var root := Control.new()
@@ -113,6 +114,7 @@ func _ready() -> void:
 	HeatManager.heat_changed.connect(_on_heat_changed)
 	HeatManager.heat_level_changed.connect(_on_heat_level_changed)
 	HeatManager.cleanup_event.connect(_on_cleanup_event)
+	PatrolManager.patrol_event.connect(_on_patrol_event)
 	CrewManager.crew_event.connect(_on_crew_event)
 	TerritoryManager.district_claimed.connect(_on_district_claimed)
 	MissionManager.mission_started.connect(_on_mission_started)
@@ -122,6 +124,7 @@ func _ready() -> void:
 	MissionManager.mission_event.connect(_on_mission_event)
 	SaveManager.save_event.connect(_on_save_event)
 	CrewManager.crew_changed.connect(func() -> void: _refresh_crew_menu())
+	_rank_index = GameState.rank_index(GameState.rank)
 	_refresh_stats()
 	_refresh_mission()
 
@@ -162,7 +165,12 @@ func _on_rep_changed(new_rep: int, _gained: int) -> void:
 
 func _on_rank_changed(new_rank: String) -> void:
 	_rank_label.text = "Rank: %s" % new_rank
-	_show_message("RANK UP — you are now \"%s\"" % new_rank)
+	var idx := GameState.rank_index(new_rank)
+	if idx >= _rank_index:
+		_show_message("RANK UP — you are now \"%s\"" % new_rank)
+	else:
+		_show_message("RANK LOST — you're back down to \"%s\"" % new_rank)
+	_rank_index = idx
 
 func _on_paint_changed(new_paint: int) -> void:
 	_paint_label.text = "Paint: %d%s" % [new_paint, "  — LOW" if new_paint < 5 else ""]
@@ -222,6 +230,11 @@ func _on_heat_level_changed(level: String, rising: bool) -> void:
 func _on_cleanup_event(message: String, _wall_id: String) -> void:
 	_show_message(message, 5.0)
 	_refresh_prompt()
+
+## Security activity: lookout warnings, sightings, chases (Plan.md
+## section 25).
+func _on_patrol_event(message: String) -> void:
+	_show_message(message, 4.0)
 
 ## Rival notifications linger longer — they matter (Plan.md section 13).
 func _on_rival_event(message: String, _wall_id: String) -> void:

@@ -117,6 +117,14 @@ func current_fill_color() -> String:
 func current_fill_color_name() -> String:
 	return String(FILL_COLORS[fill_color_index]["name"])
 
+## Position of a rank in the ladder — lets listeners tell a rank-up
+## from a demotion (possible once patrols can dock reputation).
+func rank_index(rank_name: String) -> int:
+	for i in RANKS.size():
+		if String(RANKS[i]["name"]) == rank_name:
+			return i
+	return 0
+
 func _rank_for(rep: int) -> String:
 	var result: String = RANKS[0]["name"]
 	for r in RANKS:

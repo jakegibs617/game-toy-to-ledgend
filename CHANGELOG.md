@@ -1,5 +1,35 @@
 # Changelog
 
+## 2026-06-11 — Security Patrols (Plan.md §12, §18, §25)
+
+Second post-slice "Should-Have" system from Plan.md §36.
+
+- New `PatrolManager` autoload (`Scripts/Patrols/patrol_manager.gd`)
+  and `PatrolGuard` NPC (`Scripts/Patrols/patrol_guard.gd`). Guards
+  walk fixed ping-pong routes from `Data/patrols.json` (street sweep,
+  north alley, bodega side) with a flashlight showing their facing.
+- More heat, more patrols (Plan.md §12): the live guard count follows
+  the heat level (Cold/Low 1, Watched 2, Hot/Blazing 3), spawning onto
+  routes round-robin and thinning out idle guards as the block cools.
+- Spotted (Plan.md §25): a guard in range, facing you, with clear line
+  of sight when your paint lands spikes heat (+12) and gives chase.
+  Chase speed (6.2) sits between walk and run, so sprinting away works;
+  guards give up past 18 m or after 9 seconds.
+- Caught: -25 rep, -3 paint confiscated, and heat settles to 25 — the
+  incident is closed (`HeatManager.settle`). Since patrols introduce
+  the first rep *loss*, rank changes are now direction-aware: the HUD
+  says "RANK LOST" and the Sfx sting only rises on actual rank-ups.
+- Lookout synergy (Plan.md §14): with Moth recruited, painting with a
+  patrol inside 12 m (but unseen) gets her "five-oh close by" callout,
+  on a 10-second cooldown.
+- HUD shows patrol events (spotted / caught / lost them / patrol level
+  changes); a whistle SFX plays when spotted; guards appear as orange
+  dots on the district map.
+- Smoke test extended: guard count tracks the heat level up (Blazing →
+  3) and back down, the lookout warning fires, a sighted paint queues a
+  chase with a heat spike, and a deterministic `resolve_catch` docks
+  exactly 25 rep / 3 paint and settles heat with patrols thinning out.
+
 ## 2026-06-11 — Heat System + City Cleanup (Plan.md §12, §18, §33)
 
 First post-slice "Should-Have" system from Plan.md §36.

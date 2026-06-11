@@ -62,6 +62,13 @@ func force_cleanup(wall_id: String) -> bool:
 		String(WallManager.wall_def(wall_id).get("name", wall_id)), wall_id)
 	return true
 
+## Getting caught closes the incident (Milestone 10 patrols): heat
+## settles down to at most `ceiling` — they got their man, the block
+## cools off.
+func settle(ceiling: float) -> void:
+	if heat > ceiling:
+		_set_heat(ceiling, 0.0)
+
 func save_state() -> Dictionary:
 	return {"heat": heat, "ticks_until_cleanup": _ticks_until_cleanup}
 
