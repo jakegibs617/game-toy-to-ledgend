@@ -51,8 +51,12 @@ func prompt_text() -> String:
 func interact() -> void:
 	if MissionManager.notify_actor(String(data["actorId"])):
 		return
-	# Outside mission beats, a shopkeeper actor opens their catalog
-	# (Milestone 11 supply economy) instead of repeating an idle line.
+	# Outside mission beats: a dialogue tree if the actor has one
+	# (Milestone 12), else the shop catalog (Milestone 11), else an
+	# idle line.
+	var dialogue_id := String(data.get("dialogueId", ""))
+	if dialogue_id != "" and DialogueManager.start(dialogue_id, self):
+		return
 	if data.get("shop", false):
 		SupplyManager.toggle_shop(self)
 		return

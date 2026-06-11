@@ -31,9 +31,9 @@ SMOKE_TEST=1 /Applications/Godot.app/Contents/MacOS/Godot --headless --path .
 | Mouse | Look |
 | Shift | Run |
 | Space | Jump |
-| E | Paint focused wall / talk / shop / pick up |
-| 1 / 2 / 3 | Select Tag / Throw-up / Piece (in Lupe's shop: buy) |
-| 4 | (in Lupe's shop) Take a delivery run |
+| E | Paint focused wall / talk / shop / pick up (in a conversation: walk away) |
+| 1 / 2 / 3 | Select Tag / Throw-up / Piece (in shop: buy; in dialogue: choose) |
+| 4 | (in Lupe's shop) Take a delivery run · (in dialogue) choice 4 |
 | C | Cycle fill color after Lupe unlocks colors |
 | F5 | Quick save |
 | F9 | Quick load |
@@ -118,6 +118,15 @@ prompt appears at the bottom of the screen, then press E.
   beats to open the shop (number keys buy). She also hands out
   repeatable delivery runs: carry a package to a rotating drop spot
   for $25 — but the handoff draws heat.
+- **DialogueManager** (autoload, `Scripts/Dialogue/dialogue_manager.gd`) —
+  RPG-style choice dialogue (Plan.md §26), data-driven from
+  `Data/dialogue.json`. Number keys pick choices; choices can branch,
+  end, open Lupe's shop, or start a delivery, and can gate behind
+  checks (Prime's lesson needs rank Known+). One-time rewards are
+  tracked as flags and persist through save/load. Speakers: Lupe
+  (shop/delivery/street gossip), Darnell "Prime" the old head near the
+  safehouse (lore + a one-time +40 rep lesson), and Moth once
+  recruited.
 - **MissionManager** (`Scripts/Missions/mission_manager.gd`,
   Milestone 7) — loads `Data/missions.json` and runs the five-mission
   vertical slice from Plan.md §16: First Mark, Don't Be a Toy, Get
@@ -137,6 +146,6 @@ All wall, style, crew, and NPC content is data-driven from `/Data`
 ## Not built yet (by design — Plan.md §47)
 
 All Plan.md §35 milestones are in, plus Heat/City Cleanup, security
-patrols, and the supply economy from the §36 "Should-Have" list. Next
-up from that list: dialogue and the blackbook UI.
+patrols, the supply economy, and dialogue from the §36 "Should-Have"
+list. Next up from that list: the blackbook UI.
 # game-toy-to-ledgend

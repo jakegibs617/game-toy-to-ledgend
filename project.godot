@@ -19,6 +19,7 @@ HeatManager="*res://Scripts/Heat/heat_manager.gd"
 MissionManager="*res://Scripts/Missions/mission_manager.gd"
 PatrolManager="*res://Scripts/Patrols/patrol_manager.gd"
 SupplyManager="*res://Scripts/Supplies/supply_manager.gd"
+DialogueManager="*res://Scripts/Dialogue/dialogue_manager.gd"
 SaveManager="*res://Scripts/SaveSystem/save_manager.gd"
 Sfx="*res://Scripts/Audio/sfx.gd"
 
