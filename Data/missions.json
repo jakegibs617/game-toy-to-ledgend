@@ -88,7 +88,7 @@
         {"type": "paint", "text": "Put up a piece with your crew behind you — press 3", "graffitiTypes": ["piece"], "count": 1, "requireCrew": true},
         {"type": "claim_district", "text": "Own the block — push your influence past 50% (check the map on M)", "districtId": "district_mill_yard"}
       ],
-      "onComplete": {"minRep": 400, "cash": 50, "message": "You're KNOWN in the Mill Yard (+$50 in commissions). Canal Side is opening up... (prototype complete)"}
+      "onComplete": {"minRep": 400, "cash": 50, "unlockTypes": ["roller", "mural"], "message": "You're KNOWN in the Mill Yard (+$50 in commissions). Rollers and murals are in reach now. Canal Side is opening up..."}
     }
   ]
 }

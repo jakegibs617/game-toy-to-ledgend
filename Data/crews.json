@@ -20,7 +20,7 @@
     "leaderAlias": "WISP",
     "style": "stealth_rooftop",
     "aggression": 2,
-    "responseType": "tag",
+    "responseType": "stencil",
     "fillColor": "#9fd8cb",
     "outlineColor": "#10202b",
     "crossOutColor": "#7fe7dc",

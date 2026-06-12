@@ -44,7 +44,7 @@ func claim_initial_territory() -> void:
 			var state: Dictionary = WallManager.wall_states.get(wall_id, {})
 			if state.get("state", "blank") == "blank":
 				WallManager.apply_rival_graffiti(
-					wall_id, crew, String(crew.get("responseType", "throwup")))
+					wall_id, crew, _response_type_for(crew, wall_id))
 
 func _on_wall_painted(wall_id: String, graffiti: Dictionary) -> void:
 	if String(graffiti.get("creatorId", "")) != "player":
@@ -129,6 +129,14 @@ func respond(wall_id: String, crew_id: String) -> void:
 		WallManager.cross_out_wall(wall_id, crew, "TOY")
 		rival_event.emit('%s wrote "TOY" over your %s on %s!' % [who, type_label, wall_name], wall_id)
 	else:
-		WallManager.apply_rival_graffiti(wall_id, crew, String(crew.get("responseType", "throwup")))
+		WallManager.apply_rival_graffiti(wall_id, crew, _response_type_for(crew, wall_id))
 		rival_event.emit("%s covered your %s on %s." % [who, type_label, wall_name], wall_id)
+
+## The crew's signature type, downgraded to a throw-up where surface
+## rules block it (Milestone 16) — rivals play by the wall's rules too.
+func _response_type_for(crew: Dictionary, wall_id: String) -> String:
+	var type := String(crew.get("responseType", "throwup"))
+	if WallManager.surface_block_reason(type, WallManager.wall_def(wall_id)) != "":
+		return "throwup"
+	return type
 

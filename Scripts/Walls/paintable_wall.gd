@@ -88,8 +88,35 @@ func show_graffiti(graffiti: Dictionary) -> void:
 			drip_spread = 1.6
 			_add_panel(holder, _panel_size(0.9, 0.84), fill.darkened(0.55), -0.018)
 			_add_panel(holder, _panel_size(0.85, 0.78), Color("#26233a"), -0.015)
+		"stencil":
+			# Crisp single-pass cut: thin outline, no drips (Milestone 16).
+			label.font_size = 110
+			label.outline_size = 10
+			label.pixel_size = 0.004
+			drip_spread = 0.0
+			_add_panel(holder, _panel_size(0.4, 0.3), outline.lightened(0.08), -0.01)
+		"roller":
+			# Blockbuster strip the full width of the parapet.
+			label.font_size = 250
+			label.outline_size = 78
+			label.pixel_size = 0.009
+			letter_bottom = 0.5
+			drip_spread = 2.2
+			_add_panel(holder, _panel_size(0.97, 0.6), outline.darkened(0.2), -0.012)
+		"mural":
+			# Layered color field — the closest placeholder art gets to a
+			# full production (Milestone 16).
+			label.font_size = 230
+			label.outline_size = 60
+			label.pixel_size = 0.009
+			letter_bottom = 0.9
+			drip_spread = 1.4
+			_add_panel(holder, _panel_size(0.94, 0.88), fill.darkened(0.6), -0.021)
+			_add_panel(holder, _panel_size(0.9, 0.8), Color("#1f3a5f"), -0.018)
+			_add_panel(holder, _panel_size(0.6, 0.5), fill.lightened(0.15).darkened(0.1), -0.015)
 	holder.add_child(label)
-	_add_drips(holder, rng, fill, letter_bottom, drip_spread)
+	if drip_spread > 0.0:
+		_add_drips(holder, rng, fill, letter_bottom, drip_spread)
 
 ## Slaps a cross-out (e.g. "TOY") at an angle over the current graffiti,
 ## with a strike bar through the work. Cleared when show_graffiti repaints.

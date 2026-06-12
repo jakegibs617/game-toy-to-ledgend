@@ -36,8 +36,7 @@ SMOKE_TEST=1 /Applications/Godot.app/Contents/MacOS/Godot --headless --path .
 | Shift | Run |
 | Space | Jump |
 | E | Paint focused wall / talk / shop / pick up (in a conversation: walk away) |
-| 1 / 2 / 3 | Select Tag / Throw-up / Piece (in shop: buy; in dialogue: choose) |
-| 4 | (in Lupe's shop) Take a delivery run · (in dialogue) choice 4 |
+| 1–6 | Select can: Tag / Throw-up / Piece / Stencil / Roller / Mural (in shop: buy/delivery; in dialogue: choose; in blackbook: flip pages) |
 | C | Cycle fill color after Lupe unlocks colors (also in the freehand canvas) |
 | F | Freehand piece on the focused wall (needs the Piece can): hold LMB to spray, E/Enter commit, Esc bail |
 | F5 | Quick save |
@@ -58,7 +57,10 @@ prompt appears at the bottom of the screen, then press E.
   `Data/walls.json` and `Data/graffiti_styles.json`, spawns walls, applies
   graffiti, computes reputation (base × visibility × risk multipliers,
   Plan.md §11), and keeps every wall's state + graffiti history in memory.
-  Wall state survives scene reloads within a session.
+  Wall state survives scene reloads within a session. Milestone 16 adds
+  the full §8 type set — stencil (cheap/fast, needs Lupe's kit), roller
+  (rooftop surfaces only) and mural (needs crew present; long exposure
+  draws patrol eyes) — with per-style surface rules rivals obey too.
 - **PaintableWall** (`Scripts/Walls/paintable_wall.gd`) — data-driven wall
   body; placeholder graffiti rendered as Label3D "decals" (alias text styled
   per graffiti type) with a per-graffiti tilt, paint drips, fill panels for

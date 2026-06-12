@@ -8,8 +8,8 @@ const ACCENT := Color("#ffd23f")
 const LOW_PAINT := Color("#ff6b6b")
 ## Number-key actions reused by every modal (shop slots, dialogue
 ## choices, blackbook pages) in display order — one list so the modals
-## can't drift.
-const MODAL_SLOT_ACTIONS := ["graffiti_tag", "graffiti_throwup", "graffiti_piece", "shop_delivery"]
+## can't drift. Outside a modal the same keys select cans (player.gd).
+const MODAL_SLOT_ACTIONS := ["slot_1", "slot_2", "slot_3", "slot_4", "slot_5", "slot_6"]
 ## Preloaded like MissionManager's zone scripts: the global class cache
 ## isn't rebuilt on fresh headless runs, so class_name lookups can fail.
 const BlackbookPanelScript := preload("res://Scripts/UI/blackbook_panel.gd")
@@ -99,7 +99,7 @@ func _ready() -> void:
 	_prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
 	var hint := UiKit.make_label(root, 13, Color(1, 1, 1, 0.55))
-	hint.text = "WASD move · Shift run · Space jump · E interact · 1/2/3 can · C color · F freehand · Tab blackbook · M map · F5 save · F9 load"
+	hint.text = "WASD move · Shift run · Space jump · E interact · 1-6 can · C color · F freehand · Tab blackbook · M map · F5 save · F9 load"
 	hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, 10)
 	hint.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	hint.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -461,12 +461,25 @@ func _refresh_prompt() -> void:
 		var state: Dictionary = WallManager.wall_states.get(def["wallId"], {})
 		var owner_id: String = state.get("ownerCrewId", "none")
 		var style: Dictionary = WallManager.styles.get(GameState.selected_graffiti_type, {})
+		# Unlocked cans by slot number, in the same canonical order the
+		# number keys select them (GameState.select_type_slot).
+		var cans: PackedStringArray = []
+		var order: Array = WallManager.styles.keys()
+		for i in order.size():
+			var type := String(order[i])
+			if GameState.is_type_unlocked(type):
+				cans.append("[%d] %s" % [i + 1, String(WallManager.styles[type].get("label", type))])
 		var freehand_hint := "  [F] Freehand" if GameState.is_type_unlocked("piece") else ""
-		_prompt_label.text = "%s  |  Owner: %s  |  Risk %d  |  Visibility %d\n[E] Paint %s (%d paint)   [1] Tag  [2] Throw-up  [3] Piece%s" % [
+		# Surface/crew rules (Milestone 16): say up front why the
+		# selected can won't work on this wall.
+		var block := WallManager.paint_block_reason(GameState.selected_graffiti_type, def)
+		var block_text := ("\n" + block) if block != "" else ""
+		_prompt_label.text = "%s  |  Owner: %s  |  Risk %d  |  Visibility %d  |  Surface: %s\n[E] Paint %s (%d paint)   %s%s%s" % [
 			_focused.display_name(), owner_id,
 			int(def.get("risk", 1)), int(def.get("visibility", 1)),
+			String(def.get("surfaceType", "plain")),
 			style.get("label", "?"), SupplyManager.paint_cost(style),
-			freehand_hint,
+			"  ".join(cans), freehand_hint, block_text,
 		]
 	elif _focused.has_method("prompt_text"):
 		_prompt_label.text = _focused.prompt_text()

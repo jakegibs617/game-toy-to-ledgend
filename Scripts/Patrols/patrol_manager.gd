@@ -74,8 +74,13 @@ func guard_gave_up(_guard: PatrolGuard) -> void:
 func _on_wall_painted(_wall_id: String, graffiti: Dictionary) -> void:
 	if _player == null or String(graffiti.get("creatorId", "")) != "player":
 		return
+	# Long paints expose the writer (Milestone 16): the style's exposure
+	# widens the witness range and drops the facing requirement.
+	var style: Dictionary = WallManager.styles.get(String(graffiti.get("type", "tag")), {})
+	var exposure := float(style.get("exposure", 1.0))
 	for guard in _guards:
-		if guard.can_see(_player):
+		if guard.can_see(_player) \
+				or (exposure > 1.0 and guard.noticed_during(_player, exposure)):
 			_spotted(guard)
 			return
 	_maybe_lookout_warning()

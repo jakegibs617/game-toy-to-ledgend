@@ -23,6 +23,14 @@
       "price": 30,
       "repeatable": false,
       "color": {"name": "Burner Chrome", "hex": "#9fd8e8"}
+    },
+    {
+      "itemId": "stencil_kit",
+      "name": "Stencil Kit",
+      "desc": "unlocks Stencil work — fast, cheap, clean",
+      "price": 20,
+      "repeatable": false,
+      "unlockType": "stencil"
     }
   ],
   "delivery": {

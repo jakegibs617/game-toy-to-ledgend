@@ -94,8 +94,8 @@ fields `push_error` at startup, and the smoke test asserts
 
 | File | Shape | Consumed by |
 |---|---|---|
-| walls.json | array of wall defs (wallId, name, position, rotationY, size, color, risk, visibility, districtId, ownerCrewId) | WallManager |
-| graffiti_styles.json | dict type → {label, baseValue, paintCost, heatValue, colors} | WallManager, SupplyManager, HUD |
+| walls.json | array of wall defs (wallId, name, position, rotationY, size, color, risk, visibility, districtId, surfaceType, ownerCrewId) | WallManager |
+| graffiti_styles.json | dict type → {label, baseValue, paintCost, heatValue, colors; optional: surfaces[] (surface rule), requiresCrew, exposure (patrol witness range ×), notes/lockedHint (blackbook)} | WallManager, SupplyManager, PatrolManager, HUD |
 | crews.json | rival crew defs (tag, colors, aggression, home walls) | RivalManager |
 | districts.json | array (districtId, name, claimThreshold, claimRepBonus) | TerritoryManager |
 | missions.json | {actors: [...], missions: [...]} | MissionManager |
@@ -112,8 +112,10 @@ shop, dialogue, blackbook (`blackbook_panel.gd`), map
 (`map_panel.gd`), freehand canvas (`freehand_panel.gd`).
 
 Modal conventions:
-* `MODAL_SLOT_ACTIONS` = the number keys 1–4, reused by every modal
-  for slot selection in display order.
+* `MODAL_SLOT_ACTIONS` = the number keys 1–6 (`slot_1..slot_6`),
+  reused by every modal for slot selection in display order; with no
+  modal open the same keys select cans in canonical style order
+  (`GameState.select_type_slot`).
 * HUD's `_unhandled_input` consumes modal input **before** Player sees
   it (HUD is added to the tree after Player, so it handles unhandled
   input first).
