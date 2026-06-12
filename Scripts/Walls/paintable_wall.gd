@@ -153,10 +153,9 @@ func _show_freehand(parent: Node3D, graffiti: Dictionary) -> bool:
 	quad.size = _panel_size(0.92, 0.85)
 	var mesh := MeshInstance3D.new()
 	mesh.mesh = quad
-	var mat := StandardMaterial3D.new()
+	var mat := _flat_material(Color.WHITE)
 	mat.albedo_texture = ImageTexture.create_from_image(image)
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mesh.material_override = mat
 	parent.add_child(mesh)
 	return true

@@ -125,6 +125,10 @@ func handle_input(event: InputEvent) -> bool:
 		GameState.cycle_fill_color()
 		_refresh_ui()
 		return true
+	# Swallow the key that opened the canvas — otherwise it falls through
+	# to Player, re-triggers freehand_requested, and begin() wipes the work.
+	if event.is_action_pressed("freehand_paint"):
+		return true
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		_spraying = event.pressed
 		if _spraying:
@@ -133,9 +137,12 @@ func handle_input(event: InputEvent) -> bool:
 	return false
 
 func _process(_delta: float) -> void:
-	if _spraying and _canvas != null:
+	if _spraying and _canvas != null and image != null:
 		var local := _canvas.get_global_mouse_position() - _canvas.get_global_rect().position
-		if Rect2(Vector2.ZERO, _canvas.get_global_rect().size).has_point(local):
+		# Bound by the image, not the rect: STRETCH_KEEP draws 1:1 at the
+		# top-left, and the VBox can stretch the rect wider than the canvas
+		# — spraying in that dead zone must not score coverage.
+		if Rect2(Vector2.ZERO, Vector2(image.get_width(), image.get_height())).has_point(local):
 			spray_at(local)
 	if _dirty and _texture != null:
 		_texture.update(image)

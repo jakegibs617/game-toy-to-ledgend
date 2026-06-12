@@ -124,9 +124,19 @@ func _player_graffiti(def: Dictionary, type: String, style: Dictionary, rep: int
 	_next_graffiti_id += 1
 	return graffiti
 
+## Walls remember (Plan.md section 9) — but only the metadata. Stored
+## freehand images are dropped from history so wall_states (deep-copied
+## and JSON-written on every quick_save) doesn't grow by a full PNG
+## each time a wall is repainted.
+func _archive_current(state: Dictionary) -> void:
+	if state["currentGraffiti"] == null:
+		return
+	var entry: Dictionary = state["currentGraffiti"].duplicate()
+	entry.erase("image")
+	state["history"].append(entry)
+
 func _commit_player_graffiti(wall: PaintableWall, state: Dictionary, graffiti: Dictionary) -> void:
-	if state["currentGraffiti"] != null:
-		state["history"].append(state["currentGraffiti"])
+	_archive_current(state)
 	state["currentGraffiti"] = graffiti
 	state["ownerCrewId"] = "player"
 	state["state"] = "player_" + String(graffiti["type"])
@@ -154,8 +164,7 @@ func apply_rival_graffiti(wall_id: String, crew: Dictionary, type: String) -> Di
 	}
 	_next_graffiti_id += 1
 	var state: Dictionary = wall_states[wall_id]
-	if state["currentGraffiti"] != null:
-		state["history"].append(state["currentGraffiti"])
+	_archive_current(state)
 	state["currentGraffiti"] = graffiti
 	state["ownerCrewId"] = String(crew["crewId"])
 	state["state"] = "rival_" + type
@@ -190,7 +199,7 @@ func buff_wall(wall_id: String) -> bool:
 	if state.is_empty() or state.get("currentGraffiti") == null:
 		return false
 	state["currentGraffiti"]["isBuffed"] = true
-	state["history"].append(state["currentGraffiti"])
+	_archive_current(state)
 	state["currentGraffiti"] = null
 	state["ownerCrewId"] = "city"
 	state["state"] = "buffed"

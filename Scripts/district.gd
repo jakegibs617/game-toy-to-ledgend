@@ -549,6 +549,12 @@ func _run_smoke_test() -> void:
 	assert(decoded.load_png_from_buffer(Marshalls.base64_to_raw(
 		String(fh_state["currentGraffiti"]["image"]))) == OK)
 	assert(decoded.get_width() == canvas.get_width())
+	# Repainting archives the freehand work without its image payload —
+	# walls remember (Plan.md section 9), saves don't bloat.
+	result = WallManager.paint_wall(WallManager.wall_nodes["wall_bodega_01"], "tag")
+	assert(result["ok"])
+	assert(fh_state["history"][-1].get("freehand", false))
+	assert(not fh_state["history"][-1].has("image"))
 	print("SMOKE: freehand piece — style x%.2f, +%d rep, image survives save/load" % [
 		style_mult, int(fh_result["rep"])])
 	print("SMOKE: OK")
