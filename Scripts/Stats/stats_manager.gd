@@ -140,6 +140,13 @@ func choosable_perks() -> Array:
 func owns_perk(perk_id: String) -> bool:
 	return bool(perks_owned.get(perk_id, false))
 
+## Display names of owned perks, in tree order (blackbook/perks panel).
+func owned_perk_names() -> PackedStringArray:
+	var names: PackedStringArray = []
+	for perk in _owned_perks():
+		names.append(String(perk["name"]))
+	return names
+
 ## Spends a perk point on `perk_id` if it's currently choosable.
 func choose_perk(perk_id: String) -> bool:
 	if perk_points <= 0:

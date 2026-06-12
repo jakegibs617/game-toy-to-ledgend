@@ -44,11 +44,7 @@ func page_text() -> String:
 		var perk: Dictionary = options[i]
 		lines.append("[%d] %s (%s) — %s" % [
 			i + 1, String(perk["name"]), String(perk["tree"]), String(perk["desc"])])
-	var owned_names: PackedStringArray = []
-	for tree in StatsManager.perk_trees:
-		for perk in StatsManager.perk_trees[tree]:
-			if StatsManager.owns_perk(String(perk["perkId"])):
-				owned_names.append(String(perk["name"]))
+	var owned_names := StatsManager.owned_perk_names()
 	if not owned_names.is_empty():
 		lines.append("")
 		lines.append("Yours: %s" % ", ".join(owned_names))

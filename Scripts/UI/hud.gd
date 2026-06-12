@@ -386,7 +386,9 @@ func _refresh_shop() -> void:
 		lines.append("[%d] %s — earn $%d (draws heat)%s" % [
 			SupplyManager.catalog.size() + 1,
 			String(SupplyManager.delivery.get("name", "Delivery Run")),
-			int(SupplyManager.delivery.get("cash", 0)), status])
+			# Show what the run actually pays with the Hustle stat applied.
+			roundi(int(SupplyManager.delivery.get("cash", 0)) * StatsManager.delivery_multiplier()),
+			status])
 	_shop_label.text = "\n".join(lines)
 
 func _on_cash_changed(new_cash: int) -> void:
