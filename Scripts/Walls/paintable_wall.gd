@@ -21,9 +21,7 @@ func setup(wall_def: Dictionary) -> void:
 	var box := BoxMesh.new()
 	box.size = box_size
 	mesh.mesh = box
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(String(def.get("color", "#9a8f84")))
-	mesh.material_override = mat
+	mesh.material_override = _surface_material()
 	add_child(mesh)
 
 	var col := CollisionShape3D.new()
@@ -36,6 +34,7 @@ func setup(wall_def: Dictionary) -> void:
 	_graffiti_anchor = Node3D.new()
 	_graffiti_anchor.position = Vector3(0, 0, box_size.z / 2.0 + 0.03)
 	add_child(_graffiti_anchor)
+	_add_surface_details(box_size)
 
 func display_name() -> String:
 	return String(def.get("name", def.get("wallId", "Wall")))
@@ -223,4 +222,120 @@ func _flat_material(color: Color) -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = color
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	return mat
+
+func _surface_material() -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	var base := Color(String(def.get("color", "#9a8f84")))
+	mat.albedo_color = base
+	mat.roughness = 0.92
+	var noise := FastNoiseLite.new()
+	noise.seed = hash(String(def.get("wallId", "")))
+	noise.frequency = 0.65
+	noise.fractal_octaves = 4
+	var texture := NoiseTexture2D.new()
+	texture.width = 512
+	texture.height = 512
+	texture.noise = noise
+	mat.albedo_texture = texture
+	return mat
+
+func _add_surface_details(box_size: Vector3) -> void:
+	match String(def.get("surfaceType", "plain")):
+		"brick":
+			_add_brick_mortar(box_size)
+		"concrete", "rooftop":
+			_add_concrete_cuts(box_size)
+		"stucco":
+			_add_stucco_pitting(box_size)
+		_:
+			_add_concrete_cuts(box_size)
+
+func _add_brick_mortar(box_size: Vector3) -> void:
+	var z := box_size.z / 2.0 + 0.006
+	var row_h := 0.34
+	var mortar := Color("#201d1b", 0.55)
+	var rows := maxi(1, int(ceil(box_size.y / row_h)))
+	for row in range(rows + 1):
+		var y := -box_size.y / 2.0 + row * row_h
+		_add_surface_quad(Vector3(0, y, z), Vector2(box_size.x * 0.98, 0.022), mortar, 0.0)
+	for row in range(rows):
+		var y_center := -box_size.y / 2.0 + row * row_h + row_h * 0.5
+		var brick_w := 0.78
+		var offset := 0.0 if row % 2 == 0 else brick_w * 0.5
+		var start_x := -box_size.x / 2.0 - brick_w + offset
+		var count := int(ceil(box_size.x / brick_w)) + 3
+		for col in range(count):
+			var x := start_x + col * brick_w
+			if x < -box_size.x / 2.0 or x > box_size.x / 2.0:
+				continue
+			_add_surface_quad(Vector3(x, y_center, z + 0.001), Vector2(0.018, row_h * 0.82), mortar, 0.0)
+	_add_wall_grime(box_size, z)
+
+func _add_concrete_cuts(box_size: Vector3) -> void:
+	var z := box_size.z / 2.0 + 0.006
+	var seam := Color("#343230", 0.45)
+	var panel_w := minf(2.4, box_size.x * 0.45)
+	var x := -box_size.x / 2.0 + panel_w
+	while x < box_size.x / 2.0 - 0.2:
+		_add_surface_quad(Vector3(x, 0, z), Vector2(0.026, box_size.y * 0.94), seam, 0.0)
+		x += panel_w
+	var y := -box_size.y / 2.0 + minf(1.45, box_size.y * 0.5)
+	while y < box_size.y / 2.0 - 0.2:
+		_add_surface_quad(Vector3(0, y, z + 0.001), Vector2(box_size.x * 0.94, 0.024), seam, 0.0)
+		y += minf(1.45, box_size.y * 0.5)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(String(def.get("wallId", "")) + "_cracks")
+	for i in range(4):
+		_add_surface_quad(
+			Vector3(
+				rng.randf_range(-box_size.x * 0.35, box_size.x * 0.35),
+				rng.randf_range(-box_size.y * 0.35, box_size.y * 0.35),
+				z + 0.002),
+			Vector2(rng.randf_range(0.5, 1.2), 0.018),
+			Color("#242424", 0.35),
+			rng.randf_range(-35.0, 35.0))
+	_add_wall_grime(box_size, z)
+
+func _add_stucco_pitting(box_size: Vector3) -> void:
+	var z := box_size.z / 2.0 + 0.006
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(String(def.get("wallId", "")) + "_stucco")
+	for i in range(34):
+		var c := Color("#ffffff", rng.randf_range(0.08, 0.16)) if i % 2 == 0 \
+			else Color("#171717", rng.randf_range(0.08, 0.14))
+		_add_surface_quad(
+			Vector3(
+				rng.randf_range(-box_size.x * 0.47, box_size.x * 0.47),
+				rng.randf_range(-box_size.y * 0.43, box_size.y * 0.43),
+				z + 0.001),
+			Vector2(rng.randf_range(0.06, 0.18), rng.randf_range(0.018, 0.05)),
+			c,
+			rng.randf_range(0.0, 180.0))
+	_add_concrete_cuts(box_size)
+
+func _add_wall_grime(box_size: Vector3, z: float) -> void:
+	_add_surface_quad(
+		Vector3(0, -box_size.y * 0.42, z + 0.003),
+		Vector2(box_size.x * 0.92, box_size.y * 0.12),
+		Color("#111111", 0.22),
+		0.0)
+
+func _add_surface_quad(pos: Vector3, detail_size: Vector2, color: Color,
+		rot_degrees: float) -> void:
+	var quad := QuadMesh.new()
+	quad.size = detail_size
+	var mesh := MeshInstance3D.new()
+	mesh.name = "SurfaceDetail"
+	mesh.mesh = quad
+	mesh.position = pos
+	mesh.rotation_degrees.z = rot_degrees
+	mesh.material_override = _surface_detail_material(color)
+	add_child(mesh)
+
+func _surface_detail_material(color: Color) -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.roughness = 0.98
 	return mat

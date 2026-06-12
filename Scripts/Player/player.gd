@@ -16,7 +16,8 @@ const JUMP_MODEL_PATH := "res://Assets/Characters/neon_rooster_jump.glb"
 const CLIMB_MODEL_PATH := "res://Assets/Characters/neon_rooster_ladder_climb.glb"
 const VAULT_MODEL_PATH := "res://Assets/Characters/neon_rooster_vault.glb"
 const STATIC_MODEL_PATH := "res://Assets/Characters/neon_rooster.glb"
-const MODEL_SOURCE_HEIGHT := 1.913  # GLB bounds, origin-centered
+const ANIMATED_MODEL_SOURCE_HEIGHT := 1.7  # animated GLBs have feet at local y=0
+const STATIC_MODEL_SOURCE_HEIGHT := 1.913  # static fallback GLB is origin-centered
 const IDLE_ANIMATION_NAME := "Armature|clip0|baselayer"
 const WALK_ANIMATION_NAME := "Armature|walking_man|baselayer"
 const WALK_BACK_ANIMATION_NAME := "Armature|Walk_Backward_inplace|baselayer"
@@ -25,6 +26,7 @@ const RUN_FAST_ANIMATION_NAME := "Armature|RunFast|baselayer"
 const JUMP_ANIMATION_NAME := "Armature|Regular_Jump|baselayer"
 const CLIMB_ANIMATION_NAME := "Armature|Fast_Ladder_Climb|baselayer"
 const VAULT_ANIMATION_NAME := "Armature|Parkour_Vault_2|baselayer"
+const AnimatedModelSet := preload("res://Scripts/Characters/animated_model_set.gd")
 
 const WALK_SPEED := 4.0
 const RUN_SPEED := 7.5
@@ -102,7 +104,7 @@ func _try_build_animated_visual() -> bool:
 		return false
 	var container := Node3D.new()
 	container.name = "CharacterModel"
-	_apply_visual_transform(container)
+	_apply_animated_visual_transform(container)
 	var built := false
 	built = _add_animated_model(
 		container, IDLE_MODEL_PATH, "idle", IDLE_ANIMATION_NAME) or built
@@ -128,33 +130,9 @@ func _try_build_animated_visual() -> bool:
 
 func _add_animated_model(container: Node3D, path: String,
 		state: String, preferred_animation: String) -> bool:
-	if not ResourceLoader.exists(path):
-		return false
-	var packed: PackedScene = load(path)
-	if packed == null:
-		return false
-	var model := packed.instantiate()
-	model.name = "%sModel" % state.capitalize()
-	model.visible = false
-	container.add_child(model)
-	var player := _find_animation_player(model)
-	if player == null:
-		return false
-	var names := player.get_animation_list()
-	if names.is_empty():
-		return false
-	var chosen := String(names[0])
-	for name in names:
-		if String(name) == preferred_animation:
-			chosen = String(name)
-			break
-	_visual_models[state] = model
-	_visual_animation_players[state] = player
-	_visual_animation_names[state] = StringName(chosen)
-	player.play(StringName(chosen))
-	player.pause()
-	player.seek(0.0, true)
-	return true
+	return AnimatedModelSet.add_animated_model(container, path, state,
+		preferred_animation, _visual_models, _visual_animation_players,
+		_visual_animation_names)
 
 func _try_build_static_visual(path: String) -> bool:
 	if not ResourceLoader.exists(path):
@@ -164,24 +142,21 @@ func _try_build_static_visual(path: String) -> bool:
 		return false
 	var model := packed.instantiate()
 	model.name = "CharacterModel"
-	_apply_visual_transform(model)
+	_apply_static_visual_transform(model)
 	add_child(model)
 	return true
 
-func _apply_visual_transform(model: Node3D) -> void:
-	var s := 1.8 / MODEL_SOURCE_HEIGHT
+func _apply_animated_visual_transform(model: Node3D) -> void:
+	var s := 1.8 / ANIMATED_MODEL_SOURCE_HEIGHT
 	model.scale = Vector3.ONE * s
-	model.position = Vector3(0, MODEL_SOURCE_HEIGHT * 0.5 * s, 0)
+	model.position = Vector3.ZERO
 	model.rotation.y = PI  # glTF forward is +Z; Godot's is -Z
 
-func _find_animation_player(root: Node) -> AnimationPlayer:
-	if root is AnimationPlayer:
-		return root
-	for child in root.get_children():
-		var found := _find_animation_player(child)
-		if found != null:
-			return found
-	return null
+func _apply_static_visual_transform(model: Node3D) -> void:
+	var s := 1.8 / STATIC_MODEL_SOURCE_HEIGHT
+	model.scale = Vector3.ONE * s
+	model.position = Vector3(0, STATIC_MODEL_SOURCE_HEIGHT * 0.5 * s, 0)
+	model.rotation.y = PI  # glTF forward is +Z; Godot's is -Z
 
 func _update_visual_animation(is_moving: bool, is_running: bool) -> void:
 	if _visual_animation_players.is_empty():
@@ -286,9 +261,24 @@ func _update_focus() -> void:
 			collider is PaintableWall or collider is Npc or collider is PickupItem or collider.has_method("prompt_text")):
 		if global_position.distance_to(_ray.get_collision_point()) <= INTERACT_RANGE + 1.5:
 			focus = collider
+	if focus == null:
+		focus = _nearest_interactable()
 	if focus != _focused:
 		_focused = focus
 		focus_changed.emit(focus)
+
+func _nearest_interactable() -> Node3D:
+	var best: Node3D = null
+	var best_dist := INF
+	var max_dist_sq := pow(INTERACT_RANGE, 2.0)
+	for node in get_tree().get_nodes_in_group("interactable"):
+		if not (node is Node3D) or not is_instance_valid(node):
+			continue
+		var dist := global_position.distance_squared_to(node.global_position)
+		if dist <= max_dist_sq and dist < best_dist:
+			best_dist = dist
+			best = node
+	return best
 
 func _try_interact() -> void:
 	if _focused == null:

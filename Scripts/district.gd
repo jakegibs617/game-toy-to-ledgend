@@ -11,12 +11,16 @@ const ClimbZoneScript := preload("res://Scripts/World/climb_zone.gd")
 
 func _ready() -> void:
 	_build_environment()
-	_add_box(Vector3(0, -0.25, 0), Vector3(80, 0.5, 80), Color("#5c5c60"), "Ground")
+	_add_box(Vector3(0, -0.25, 0), Vector3(80, 0.5, 80), Color("#303236"),
+		"Ground", _street_material(Color("#303236"), 0.95, 0.52))
 	_build_buildings()
 	_build_canal_side()
+	_build_train_yard()
+	_build_street_details()
 	_spawn_travel_points()
 	_spawn_climb_zones()
 	WallManager.spawn_walls(self)
+	TrainManager.spawn_trains(self)
 	RivalManager.claim_initial_territory()
 	CrewManager.spawn_npcs(self)
 	MissionManager.spawn_actors(self)
@@ -116,26 +120,154 @@ func _add_street_lamp(pos: Vector3) -> void:
 
 func _build_buildings() -> void:
 	# Two building rows with a street between (z -8..8) and north/south alleys.
-	_add_box(Vector3(-14, 5, -14), Vector3(18, 10, 12), Color("#7a7066"), "MillWest")
-	_add_box(Vector3(12, 6, -14), Vector3(16, 12, 12), Color("#6e6a70"), "MillEast")
-	_add_box(Vector3(-14, 4, 14), Vector3(18, 8, 12), Color("#75695e"), "CornerBlock")
-	_add_box(Vector3(12, 5, 14), Vector3(16, 10, 12), Color("#7c7368"), "BodegaBlock")
+	_add_box(Vector3(-14, 5, -14), Vector3(18, 10, 12), Color("#7a7066"),
+		"MillWest", _wall_material(Color("#7a7066"), 0.42, 0.96))
+	_add_box(Vector3(12, 6, -14), Vector3(16, 12, 12), Color("#6e6a70"),
+		"MillEast", _wall_material(Color("#6e6a70"), 0.5, 0.96))
+	_add_box(Vector3(-14, 4, 14), Vector3(18, 8, 12), Color("#75695e"),
+		"CornerBlock", _wall_material(Color("#75695e"), 0.72, 0.94))
+	_add_box(Vector3(12, 5, 14), Vector3(16, 10, 12), Color("#7c7368"),
+		"BodegaBlock", _wall_material(Color("#7c7368"), 0.78, 0.92))
 
 ## Canal Side graybox (Milestone 18, Plan.md §45): a second block east
 ## across the water — ground, the canal itself, a footbridge walkway,
 ## and the buildings the canal walls hang on.
 func _build_canal_side() -> void:
-	_add_box(Vector3(120, -0.25, 0), Vector3(80, 0.5, 80), Color("#565a5e"), "CanalGround")
+	_add_box(Vector3(120, -0.25, 0), Vector3(80, 0.5, 80), Color("#35383a"),
+		"CanalGround", _street_material(Color("#35383a"), 0.95, 0.45))
 	# The water between the blocks; the footbridge crosses it at z=0.
 	_add_box(Vector3(60, -0.6, 0), Vector3(40, 0.3, 80), Color("#1d3a4a"), "CanalWater")
 	_add_box(Vector3(60, -0.05, 0), Vector3(44, 0.4, 4.0), Color("#4a4f55"), "Footbridge")
-	_add_box(Vector3(108, 5, -14), Vector3(20, 10, 12), Color("#6e7a82"), "LockHouseBlock")
-	_add_box(Vector3(130, 6, -14), Vector3(14, 12, 12), Color("#75808a"), "PumpStation")
-	_add_box(Vector3(106, 4, 14), Vector3(16, 8, 12), Color("#8a8f86"), "DryDock")
-	_add_box(Vector3(124, 7, 14), Vector3(18, 14, 12), Color("#b9b3a4"), "GrainSilo")
+	_add_box(Vector3(108, 5, -14), Vector3(20, 10, 12), Color("#6e7a82"),
+		"LockHouseBlock", _wall_material(Color("#6e7a82"), 0.45, 0.96))
+	_add_box(Vector3(130, 6, -14), Vector3(14, 12, 12), Color("#75808a"),
+		"PumpStation", _wall_material(Color("#75808a"), 0.62, 0.95))
+	_add_box(Vector3(106, 4, 14), Vector3(16, 8, 12), Color("#8a8f86"),
+		"DryDock", _wall_material(Color("#8a8f86"), 0.72, 0.94))
+	_add_box(Vector3(124, 7, 14), Vector3(18, 14, 12), Color("#b9b3a4"),
+		"GrainSilo", _wall_material(Color("#b9b3a4"), 0.58, 0.97))
 	for lamp_pos in [
 			Vector3(100, 0, -6.5), Vector3(118, 0, 6.5), Vector3(134, 0, -6.5)]:
 		_add_street_lamp(lamp_pos)
+
+## Milestone 20 train yard: an east-edge siding adjacent to Canal Side,
+## sized for the first scheduled train car.
+func _build_train_yard() -> void:
+	_add_box(Vector3(148, -0.15, -3), Vector3(24, 0.3, 8), Color("#3b3d3f"),
+		"TrainYardBed", _street_material(Color("#3b3d3f"), 1.0, 0.9))
+	_add_box(Vector3(148, 0.05, -4.35), Vector3(24, 0.12, 0.18), Color("#202328"), "TrainRailNorth")
+	_add_box(Vector3(148, 0.05, -1.65), Vector3(24, 0.12, 0.18), Color("#202328"), "TrainRailSouth")
+	for x in [138.0, 142.0, 146.0, 150.0, 154.0, 158.0]:
+		_add_box(Vector3(x, 0.08, -3), Vector3(0.25, 0.12, 5.2), Color("#6b5840"), "TrainTie")
+
+## First outside-street art pass: readable asphalt, sidewalks, gutters,
+## lane/crosswalk paint, metal covers, drains, stains, and small litter.
+func _build_street_details() -> void:
+	for origin_x in [0.0, 120.0]:
+		_add_sidewalk_run(origin_x, -7.2, "North")
+		_add_sidewalk_run(origin_x, 7.2, "South")
+		_add_lane_markings(origin_x)
+		_add_crosswalk(origin_x - 23.0, "West")
+		_add_crosswalk(origin_x + 22.0, "East")
+		_add_manhole(Vector3(origin_x - 7.0, 0.035, -1.6), "Main")
+		_add_manhole(Vector3(origin_x + 14.0, 0.035, 2.3), "Side")
+		for z in [-6.25, 6.25]:
+			for x in [origin_x - 18.0, origin_x + 4.0, origin_x + 26.0]:
+				_add_storm_drain(Vector3(x, 0.04, z))
+		_add_oil_stain(Vector3(origin_x - 4.0, 0.045, -2.7), Vector2(2.4, 0.9), 18.0)
+		_add_oil_stain(Vector3(origin_x + 17.0, 0.045, 3.4), Vector2(1.5, 0.65), -12.0)
+		_add_litter_patch(origin_x)
+	_add_flat_box(Vector3(60, 0.065, -2.35), Vector3(44, 0.015, 0.08),
+		Color("#d8d4bd", 0.55), "BridgeLaneLine")
+	for x in [139.5, 143.5, 147.5, 151.5, 155.5]:
+		_add_gravel_chip(Vector3(x, 0.02, -5.2))
+		_add_gravel_chip(Vector3(x + 1.1, 0.02, -0.8))
+
+func _add_sidewalk_run(origin_x: float, z: float, side_name: String) -> void:
+	_add_flat_box(Vector3(origin_x, 0.03, z), Vector3(70.0, 0.08, 1.35),
+		Color("#85817a"), "Sidewalk%s_%d" % [side_name, int(origin_x)])
+	_add_flat_box(Vector3(origin_x, 0.075, z * 0.91), Vector3(70.0, 0.12, 0.18),
+		Color("#b7b0a5"), "Curb%s_%d" % [side_name, int(origin_x)])
+	for i in range(11):
+		var x := origin_x - 33.0 + i * 6.6
+		_add_flat_box(Vector3(x, 0.085, z), Vector3(0.045, 0.01, 1.28),
+			Color("#5f5d59", 0.9), "SidewalkJoint")
+
+func _add_lane_markings(origin_x: float) -> void:
+	for i in range(7):
+		var x := origin_x - 30.0 + i * 9.5
+		_add_flat_box(Vector3(x, 0.04, 0.0), Vector3(4.2, 0.012, 0.11),
+			Color("#d8d4bd", 0.62), "FadedLaneDash")
+	for z in [-5.65, 5.65]:
+		_add_flat_box(Vector3(origin_x, 0.038, z), Vector3(66.0, 0.01, 0.08),
+			Color("#d3c177", 0.4), "FadedCurbPaint")
+
+func _add_crosswalk(x: float, suffix: String) -> void:
+	for i in range(5):
+		_add_flat_box(Vector3(x, 0.045, -3.2 + i * 1.6), Vector3(1.15, 0.014, 0.62),
+			Color("#e6e1cf", 0.54), "Crosswalk%s" % suffix)
+
+func _add_manhole(pos: Vector3, suffix: String) -> void:
+	var cover := MeshInstance3D.new()
+	cover.name = "Manhole%s" % suffix
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = 0.52
+	mesh.bottom_radius = 0.52
+	mesh.height = 0.025
+	mesh.radial_segments = 36
+	cover.mesh = mesh
+	cover.position = pos
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color("#202328")
+	mat.roughness = 0.65
+	cover.material_override = mat
+	add_child(cover)
+	for offset in [-0.22, 0.0, 0.22]:
+		_add_flat_box(pos + Vector3(0, 0.018, offset), Vector3(0.72, 0.006, 0.028),
+			Color("#4d5359"), "ManholeGroove")
+
+func _add_storm_drain(pos: Vector3) -> void:
+	_add_flat_box(pos, Vector3(0.8, 0.025, 0.22), Color("#1b1f24"), "StormDrain")
+	for i in range(4):
+		_add_flat_box(pos + Vector3(-0.27 + i * 0.18, 0.018, 0),
+			Vector3(0.035, 0.006, 0.2), Color("#59606a"), "StormDrainBar")
+
+func _add_oil_stain(pos: Vector3, size: Vector2, rot_degrees: float) -> void:
+	var stain := MeshInstance3D.new()
+	stain.name = "OilStain"
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = 0.5
+	mesh.bottom_radius = 0.5
+	mesh.height = 0.01
+	mesh.radial_segments = 24
+	stain.mesh = mesh
+	stain.position = pos
+	stain.scale = Vector3(size.x, 1.0, size.y)
+	stain.rotation_degrees.y = rot_degrees
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.03, 0.035, 0.04, 0.48)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.roughness = 0.18
+	stain.material_override = mat
+	add_child(stain)
+
+func _add_litter_patch(origin_x: float) -> void:
+	var colors := [Color("#d9d2bc"), Color("#4f658a"), Color("#9a4f4b"), Color("#d8c45f")]
+	var points := [
+		Vector3(origin_x - 19.0, 0.055, 5.2), Vector3(origin_x - 10.0, 0.055, -6.0),
+		Vector3(origin_x + 7.5, 0.055, 6.1), Vector3(origin_x + 23.0, 0.055, -5.5),
+		Vector3(origin_x + 28.0, 0.055, 2.8)]
+	for i in range(points.size()):
+		var p: Vector3 = points[i]
+		var size := Vector3(0.36 + 0.06 * (i % 2), 0.006, 0.18 + 0.05 * (i % 3))
+		var paper := _add_flat_box(p, size, colors[i % colors.size()], "StreetLitter")
+		paper.rotation_degrees.y = float(i * 23)
+
+func _add_gravel_chip(pos: Vector3) -> void:
+	for i in range(4):
+		var chip := _add_flat_box(pos + Vector3(i * 0.18, 0, (i % 2) * 0.22),
+			Vector3(0.14, 0.02, 0.09), Color("#68635a"), "GravelChip")
+		chip.rotation_degrees.y = float(i * 31)
 
 ## Climb routes up the graybox buildings (Milestone 19, Data/climbs.json).
 func _spawn_climb_zones() -> void:
@@ -162,7 +294,8 @@ func _spawn_travel_points() -> void:
 		point.setup(travel, String(travel.get("to", "")))
 		add_child(point)
 
-func _add_box(pos: Vector3, size: Vector3, color: Color, box_name: String) -> StaticBody3D:
+func _add_box(pos: Vector3, size: Vector3, color: Color, box_name: String,
+		material: Material = null) -> StaticBody3D:
 	var body := StaticBody3D.new()
 	body.name = box_name
 	body.position = pos
@@ -170,9 +303,12 @@ func _add_box(pos: Vector3, size: Vector3, color: Color, box_name: String) -> St
 	var box := BoxMesh.new()
 	box.size = size
 	mesh.mesh = box
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = color
-	mesh.material_override = mat
+	if material != null:
+		mesh.material_override = material
+	else:
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = color
+		mesh.material_override = mat
 	body.add_child(mesh)
 	var col := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
@@ -181,6 +317,52 @@ func _add_box(pos: Vector3, size: Vector3, color: Color, box_name: String) -> St
 	body.add_child(col)
 	add_child(body)
 	return body
+
+func _add_flat_box(pos: Vector3, size: Vector3, color: Color, box_name: String) -> MeshInstance3D:
+	var mesh := MeshInstance3D.new()
+	mesh.name = box_name
+	var box := BoxMesh.new()
+	box.size = size
+	mesh.mesh = box
+	mesh.position = pos
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	if color.a < 1.0:
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.roughness = 0.88
+	mesh.material_override = mat
+	add_child(mesh)
+	return mesh
+
+func _street_material(base: Color, roughness: float, noise_frequency: float) -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = base
+	mat.roughness = roughness
+	var noise := FastNoiseLite.new()
+	noise.seed = 4812
+	noise.frequency = noise_frequency
+	noise.fractal_octaves = 4
+	var texture := NoiseTexture2D.new()
+	texture.width = 512
+	texture.height = 512
+	texture.noise = noise
+	mat.albedo_texture = texture
+	return mat
+
+func _wall_material(base: Color, noise_frequency: float, roughness: float) -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = base
+	mat.roughness = roughness
+	var noise := FastNoiseLite.new()
+	noise.seed = hash(str(base))
+	noise.frequency = noise_frequency
+	noise.fractal_octaves = 5
+	var texture := NoiseTexture2D.new()
+	texture.width = 512
+	texture.height = 512
+	texture.noise = noise
+	mat.albedo_texture = texture
+	return mat
 
 ## Headless self-check, split per system (Plan_v2.md §3.3): each
 ## _smoke_* function documents the state it assumes and asserts one
@@ -205,6 +387,7 @@ func _run_smoke_test() -> void:
 	_smoke_progression()
 	_smoke_canal_side()
 	_smoke_rooftop_climbing()
+	_smoke_train_painting()
 	_smoke_history_cap()
 	_smoke_player_model()
 	print("SMOKE: OK")
@@ -280,6 +463,11 @@ func _smoke_missions() -> void:
 	assert(not state.has("crossOut"))
 	assert(state["history"].size() == 2)
 	assert(MissionManager.current_mission()["missionId"] == "m3_get_supplies")
+	var lupe := get_node_or_null("lupe")
+	assert(lupe != null)
+	if ResourceLoader.exists(MissionActor.LUPE_IDLE_MODEL_PATH):
+		assert(lupe.get_node_or_null("LupeRatModel") != null)
+		assert(lupe.get_node_or_null("SupplyCrate") != null)
 	assert(MissionManager.notify_actor("lupe"))
 	assert(GameState.is_type_unlocked("piece"))
 	assert(GameState.colors_unlocked)
@@ -297,11 +485,20 @@ func _smoke_crew() -> void:
 	var chance_before := RivalManager.response_chance("wall_mill_02", "buff_kings")
 	CrewManager.interact("npc_mina_moth")
 	assert(mina["stage"] == "mission_active")
-	assert(CrewManager.collect_item("npc_mina_moth"))
+	var blackbook := get_node_or_null("pickup_npc_mina_moth")
+	assert(blackbook is PickupItem)
+	blackbook.interact()
 	assert(mina["stage"] == "item_recovered")
+	assert(blackbook.is_queued_for_deletion())
 	CrewManager.interact("npc_mina_moth")
 	assert(mina["stage"] == "recruited")
 	assert(CrewManager.has_role("lookout"))
+	var moth_node := get_node_or_null("npc_mina_moth")
+	assert(moth_node != null)
+	assert(moth_node.get_node_or_null("CharacterVisual/LookoutRadioPhone") != null)
+	assert(moth_node.get_node_or_null("CharacterVisual/LookoutActiveIndicator") != null)
+	if ResourceLoader.exists(Npc.LOOKOUT_IDLE_MODEL_PATH):
+		assert(moth_node.get_node_or_null("CharacterVisual/LookoutMeerkatModel") != null)
 	var chance_after := RivalManager.response_chance("wall_mill_02", "buff_kings")
 	assert(chance_after < chance_before)
 	print("SMOKE: lookout bonus %.2f -> %.2f" % [chance_before, chance_after])
@@ -410,10 +607,19 @@ func _smoke_patrols() -> void:
 	# A recruited lookout calls out patrols near the paint spot
 	# (Plan.md section 14: warns player of cops) when nobody saw it land.
 	var guard: PatrolGuard = PatrolManager.guards()[0]
+	var has_guard_model := guard.get_node_or_null("SecurityBullModel") != null
+	var has_guard_capsule := guard.get_node_or_null("CapsuleFallback") != null
+	assert(has_guard_model != has_guard_capsule)
+	if ResourceLoader.exists(PatrolGuard.WALK_MODEL_PATH) and ResourceLoader.exists(PatrolGuard.RUN_MODEL_PATH):
+		assert(has_guard_model)
+		for visual_state in ["idle", "walk", "run", "alert", "look_around", "climb"]:
+			assert(guard._visual_animation_players.has(visual_state))
+			assert(String(guard._visual_animation_names[visual_state]) != "")
 	guard.global_position = player.global_position + Vector3(10, 0, 0)
 	var result: Dictionary = WallManager.paint_wall(WallManager.wall_nodes["wall_lot_01"], "tag")
 	assert(result["ok"])
 	assert(not patrol_events.is_empty() and patrol_events[-1].contains("Moth"))
+	print("SMOKE: patrol visual = %s" % ("animated security bull" if has_guard_model else "capsule fallback"))
 	print("SMOKE: lookout patrol warning = %s" % patrol_events[-1])
 
 	# Spotted: a guard with line of sight to the painter spikes heat and
@@ -550,6 +756,11 @@ func _smoke_supplies() -> void:
 ## Lupe's routes into the shop/delivery systems, and flag persistence.
 func _smoke_dialogue() -> void:
 	var player := _smoke_player()
+	var prime_actor := get_node_or_null("prime")
+	assert(prime_actor != null)
+	if ResourceLoader.exists(MissionActor.PRIME_IDLE_MODEL_PATH):
+		assert(prime_actor.get_node_or_null("PrimeGoriModel") != null)
+		assert(prime_actor.get_node_or_null("PrimeBlackbook") != null)
 	assert(DialogueManager.start("prime"))
 	assert(DialogueManager.is_active())
 	assert(DialogueManager.current_node()["speaker"] == "Prime")
@@ -897,9 +1108,10 @@ func _smoke_canal_side() -> void:
 	assert(is_equal_approx(HeatManager.heat_in("district_canal_side"), 36.0))
 	print("SMOKE: per-district heat — present block -2, absent block -4")
 
-	# v3 save: per-district heat, district, and chain state round-trip;
-	# v2 saves migrate (heat into Mill Yard, painted keys gain chain 0).
-	assert(SaveManager.SAVE_VERSION == 3)
+	# v3 save shape still migrates under the current schema:
+	# per-district heat, district, and chain state round-trip; v2 saves
+	# migrate heat into Mill Yard and painted keys gain chain 0.
+	assert(SaveManager.SAVE_VERSION >= 3)
 	assert(SaveManager.quick_save())
 	HeatManager.heat_by_district.clear()
 	GameState.set_district("district_canal_side")
@@ -911,7 +1123,7 @@ func _smoke_canal_side() -> void:
 		"heat": {"heat": 33.0, "ticks_until_cleanup": 2},
 		"missions": {"began": true, "chain_done": true,
 			"painted_objectives": {"1:0": ["wall_mill_01"]}}})
-	assert(int(migrated["version"]) == 3)
+	assert(int(migrated["version"]) == SaveManager.SAVE_VERSION)
 	assert(is_equal_approx(float(migrated["heat"]["by_district"]["district_mill_yard"]), 33.0))
 	assert(migrated["missions"]["painted_objectives"].has("0:1:0"))
 	print("SMOKE: v3 save round-trips; v2 saves migrate forward")
@@ -950,6 +1162,55 @@ func _smoke_rooftop_climbing() -> void:
 	print("SMOKE: rooftop climbing — fall fine, roller from the roof, guards stay grounded")
 	# Back to street level for the sections that follow.
 	player.global_position = PLAYER_SPAWN
+
+## Assumes: the Canal Side chain is done, the player can spare paint,
+## and train cars spawned. Milestone 20: paint a stopped car in the
+## Canal Side yard, then let the schedule roll it through both known
+## districts for visibility-over-time rep and save/load persistence.
+func _smoke_train_painting() -> void:
+	var train_id := "canal_ghost_local"
+	var car := get_node_or_null("TrainCar_%s" % train_id)
+	assert(car != null)
+	var state: Dictionary = TrainManager.state_for(train_id)
+	assert(String(state.get("phase", "")) == "stopped")
+	assert(state.get("currentGraffiti") == null)
+	GameState.add_paint(20)
+	var paint_before: int = GameState.paint
+	var rep_before: int = GameState.reputation
+	var heat_before: float = HeatManager.heat_in("district_canal_side")
+	var result: Dictionary = TrainManager.paint_train(train_id)
+	assert(result["ok"])
+	assert(GameState.paint == paint_before - int(TrainManager.train_def(train_id)["paintCost"]))
+	assert(GameState.reputation == rep_before + int(result["rep"]))
+	assert(HeatManager.heat_in("district_canal_side") > heat_before)
+	assert(state["currentGraffiti"]["alias"] == GameState.alias)
+	assert(not TrainManager.paint_train(train_id)["ok"])
+	var pass_events: Array = []
+	TrainManager.train_passed.connect(func(tid: String, did: String, rep: int) -> void:
+		pass_events.append([tid, did, rep]))
+	rep_before = GameState.reputation
+	for i in int(TrainManager.train_def(train_id)["stopTicks"]):
+		TrainManager._on_tick()
+	assert(String(state.get("phase", "")) == "passing")
+	assert(pass_events.size() == 2)
+	assert(pass_events[0][1] == "district_canal_side")
+	assert(pass_events[1][1] == "district_mill_yard")
+	assert(GameState.reputation == rep_before + int(TrainManager.train_def(train_id)["passRep"]) * 2)
+	assert(int(state["currentGraffiti"]["passes"]) == 2)
+	var blackbook = preload("res://Scripts/UI/blackbook_panel.gd").new()
+	var city_page: String = blackbook.page_text(3)
+	assert(city_page.contains("Ghost Local") and city_page.contains("passes 2"))
+	blackbook.free()
+	assert(SaveManager.SAVE_VERSION == 4)
+	assert(SaveManager.quick_save())
+	state["currentGraffiti"] = null
+	assert(SaveManager.quick_load())
+	state = TrainManager.state_for(train_id)
+	assert(state["currentGraffiti"]["alias"] == GameState.alias)
+	var migrated: Dictionary = SaveManager._migrate({"version": 3})
+	assert(int(migrated["version"]) == 4)
+	assert(migrated.has("trains"))
+	print("SMOKE: train painting — car painted, pass-through rep paid, v4 state saved")
 
 ## Assumes: nothing beyond a paintable wall. Plan_v2.md §3.5: wall
 ## history is capped — repainting past the cap drops the oldest

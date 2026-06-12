@@ -186,6 +186,10 @@ func _ready() -> void:
 			String(StatsManager.stat_defs.get(stat, {}).get("label", stat)), new_level], 4.0))
 	StatsManager.perk_chosen.connect(func(perk: Dictionary) -> void:
 		_show_message("Perk learned: %s — %s" % [String(perk["name"]), String(perk["desc"])], 5.0))
+	TrainManager.train_event.connect(func(message: String) -> void:
+		_show_message(message, 5.0)
+		if _blackbook.visible:
+			_blackbook.refresh())
 	GameState.district_changed.connect(_on_district_changed)
 	GameState.player_event.connect(func(message: String) -> void:
 		_show_message(message, 4.0))

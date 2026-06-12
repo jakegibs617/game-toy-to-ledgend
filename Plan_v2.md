@@ -19,9 +19,9 @@ dialogue, blackbook), and the first Could-Have (freehand spray
 painting, Milestone 14). The §46 success criteria are testable today:
 paint, get crossed out, resupply, recruit, reclaim, claim the block.
 
-v2 is now partly built. Milestones 15–19 are complete (PRs #9–#13):
+v2 is now partly built. Milestones 15–20 are complete (PRs #9–#14):
 engineering hardening, the full graffiti type set, stats/perks/rep
-decay, Canal Side, and rooftop climbing. The first real player
+decay, Canal Side, rooftop climbing, and train painting. The first real player
 character art is in: the Kronako Iconz neon rooster now has a runtime
 animation action set for idle, walking, backpedaling, running, jumping,
 and ladder climbing. The vault clip is imported and bound but awaits a
@@ -31,8 +31,9 @@ The playable loop is currently: start in Mill Yard, learn the core
 mission chain, recruit Moth, unlock throw-ups/pieces/stencils/rollers/
 murals, claim Mill Yard, travel to Canal Side, push back Ghost Line,
 level Style/Stealth/Hustle through use, choose perks on rank-up, climb
-to rooftop roller spots, and escape grounded security by taking the
-high ground.
+to rooftop roller spots, escape grounded security by taking the high
+ground, paint a stopped train car in Canal Side, and see it pay rep as
+it rolls through the city.
 
 ## Designed in v1, not yet built or only minimally represented
 
@@ -42,7 +43,7 @@ high ground.
 | Player stats (Style, Nerve, Speed, Stealth, Influence, Technique, Hustle) | §6 | Style/Stealth/Hustle subset built in Milestone 17 |
 | Perk trees (Style/Stealth/Crew/Territory/Supplies) | §7 | Minimal chooser built in Milestone 17; not a full tree editor |
 | XP sources separate from rep | §5 | Built for Style/Stealth/Hustle in Milestone 17 |
-| Reputation decay / visibility-over-time value | §11 | Built as district payout/decay in Milestone 17; train pass-through rep remains Milestone 20 |
+| Reputation decay / visibility-over-time value | §11 | Built as district payout/decay in Milestone 17; train pass-through rep built in Milestone 20 |
 | Public rep vs crew rep split | §11 | Single rep number until gallery tension in Milestone 21 |
 | Battle systems (graffiti/dance/rap) | §20 | None |
 | Safehouse features (blackbook table, crew board, planning map) | §22 | Safehouse is a bare mission zone |
@@ -56,7 +57,7 @@ high ground.
 ## Remaining v1 Could-Have list
 
 Dance battles, rap battles, gallery missions, procedural graffiti,
-train painting, dynamic NPC crowd reactions.
+dynamic NPC crowd reactions.
 
 ---
 
@@ -229,24 +230,28 @@ movement guesses.
 
 ## Recommended Next Steps
 
-* **Animation polish pass (small, before Milestone 20 if desired):**
+* **Animation polish pass (small, before Milestone 21 if desired):**
   add event hooks for vault/turn/stop clips only where gameplay
   supports them; avoid swapping clips on every tiny input change until
   blend/cooldown rules exist.
-* **Milestone 20 remains the next system milestone:** train painting
-  is still the signature demo moment and should drive the next gameplay
-  branch.
+* **Milestone 21 is the next system milestone:** gallery missions are
+  the next demo-depth feature now that train painting exists.
 * **Keep presentation changes non-schema:** animation/model work should
   continue without save-version bumps unless player state gains new
   persisted fields.
 
-## Milestone 20: Train Painting (Could-Have — the signature moment) — Next
+## Milestone 20: Train Painting (Could-Have — the signature moment) — Complete
 
 * Train Yard area in/adjacent to Canal Side; trains on a schedule.
 * Painting a stopped train = timed window, high heat.
 * Painted cars then pass through both districts on the schedule —
   rep ticks each pass-through (§11 "visibility over time", finally
   earning its keep). The blackbook logs your cars in service.
+
+**Status:** complete. Canal Side now has a train siding with a
+scheduled Ghost Local car, a stopped-car paint window, high heat,
+save-persisted train graffiti, pass-through rep ticks in Canal Side
+and Mill Yard, HUD events, and blackbook service logging.
 
 ## Milestone 21: Gallery Missions (Could-Have)
 
@@ -285,7 +290,7 @@ Milestone 19.
 
 ## Next Should-Have
 
-Milestones 20, 21.
+Milestone 21.
 
 ## Could-Have
 

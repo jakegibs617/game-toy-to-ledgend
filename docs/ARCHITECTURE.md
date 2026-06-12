@@ -35,6 +35,7 @@ extends a section.
 | SupplyManager | Scripts/Supplies/supply_manager.gd | Lupe's shop catalog, owned upgrades (fat cap), paint_cost discounts, delivery runs |
 | DialogueManager | Scripts/Dialogue/dialogue_manager.gd | Choice trees from Data/dialogue.json, rank/recruit checks, one-time flags |
 | StatsManager | Scripts/Stats/stats_manager.gd | Style/Stealth/Hustle XP+levels (raise by doing), perk points/trees, the multipliers other managers query (rep, heat, spot range, prices, delivery pay, rival damp, payout/decay) |
+| TrainManager | Scripts/Trains/train_manager.gd | Scheduled train cars, train-side painting, pass-through rep ticks, train service log |
 | SaveManager | Scripts/SaveSystem/save_manager.gd | quick_save/quick_load to `user://toy_to_legend_save.json`, `SAVE_VERSION`, per-version `_migrate` |
 | Sfx | Scripts/Audio/sfx.gd | Synthesized placeholder sounds; **must load after the managers** (connects to their signals); self-disables headless |
 
@@ -119,6 +120,7 @@ fields `push_error` at startup, and the smoke test asserts
 | stats.json | stat defs (xpPerLevel, maxLevel, per-level effect coefficients) | StatsManager |
 | perks.json | tree → perk list (perkId, name, desc, effects dict) | StatsManager |
 | climbs.json | climb routes (climbId, label, position, top, fallChance, fallRepPenalty) | district.gd (spawns ClimbZone) |
+| trains.json | scheduled cars (trainId, label, districtId, yardPosition, size, stop/travel ticks, paint/pass rep, heat, serviceDistricts) | TrainManager, district.gd (spawns TrainCar) |
 
 ## UI layer
 
@@ -153,8 +155,9 @@ Modal conventions:
 `version: SAVE_VERSION`. Sections per system: player transform,
 GameState fields, WallManager (wall_states + next id), crew stages,
 territory claims, heat, mission progress, supplies owned, dialogue
-flags. Loading refuses saves newer than SAVE_VERSION. **Bump
-SAVE_VERSION whenever a section's shape changes.**
+flags, stats/perks, and train service state. Loading refuses saves
+newer than SAVE_VERSION. **Bump SAVE_VERSION whenever a section's
+shape changes.**
 
 ## Testing
 

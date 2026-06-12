@@ -8,7 +8,7 @@
     "loyalty": 50,
     "style": 4,
     "specialAbility": "early_warning",
-    "bonusDescription": "Warns you when rivals move on your walls; rivals back off more often.",
+    "bonusDescription": "Monitors security patrols, warns you when rivals move on your walls, and makes rivals back off more often.",
     "hint": "Hangs out near the corner store.",
     "missionDescription": "Recover her blackbook from the north alley.",
     "color": "#b48ee0",
@@ -18,7 +18,7 @@
       "meet": "I'm Moth. Ghost Line lifted my blackbook — years of outlines in there. They stashed it in the north alley. Get it back and I'll be your lookout.",
       "active": "The blackbook's still in the north alley, behind Ghost Line's tags. Watch yourself in there.",
       "recovered": "You actually got it back. Okay — you paint, I watch. I'm in your crew.",
-      "recruited": "Eyes open. I'll whistle if anyone creeps on your walls."
+      "recruited": "Eyes open. I'll whistle if security loops close or anyone creeps on your walls."
     },
     "item": {
       "name": "Moth's Blackbook",

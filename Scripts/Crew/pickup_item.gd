@@ -12,6 +12,7 @@ func setup(owner_member_id: String, item_data: Dictionary) -> void:
 	member_id = owner_member_id
 	item = item_data
 	name = "pickup_%s" % member_id
+	add_to_group("interactable")
 	var pos: Array = item.get("position", [0, 0.5, 0])
 	position = Vector3(pos[0], pos[1], pos[2])
 
@@ -26,9 +27,18 @@ func setup(owner_member_id: String, item_data: Dictionary) -> void:
 
 	var col := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
-	shape.size = Vector3(0.7, 0.5, 0.85)
+	shape.size = Vector3(1.2, 1.1, 1.2)
 	col.shape = shape
+	col.position = Vector3(0, 0.25, 0)
 	add_child(col)
+
+	var glow := OmniLight3D.new()
+	glow.name = "PickupGlow"
+	glow.position = Vector3(0, 0.45, 0)
+	glow.light_color = Color(String(item.get("color", "#7fe7dc"))).lightened(0.35)
+	glow.light_energy = 0.45
+	glow.omni_range = 2.3
+	add_child(glow)
 
 	var label := Label3D.new()
 	label.text = String(item.get("name", "Item"))

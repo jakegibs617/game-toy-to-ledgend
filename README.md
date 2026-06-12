@@ -53,7 +53,9 @@ Canal Side — Ghost Line turf with its own mission chain, walls, patrols,
 and heat: each block heats and cools on its own, and a block you leave
 cools twice as fast. Glowing drainpipes mark climb routes (E to climb,
 slip risk shown) up to the rooftop roller spots — security won't follow
-you up, but a fall costs rep.
+you up, but a fall costs rep. At Canal Side's east-edge train siding,
+paint a stopped car with E before it rolls out; painted cars pass
+through both districts on the schedule and keep paying visibility rep.
 
 The player character is the Kronako Iconz neon rooster. `player.gd`
 prefers the animated action set in `Assets/Characters/`: idle, walk,
@@ -172,7 +174,7 @@ static rooster GLB, then the old debug capsule.
   Milestone 8) — F5 writes `user://toy_to_legend_save.json`; F9
   restores player position, reputation/rank/paint/unlocks, wall
   ownership/history/cross-outs, crew recruitment stages, claimed
-  territory, and mission progress.
+  territory, mission progress, stats/perks, and train service state.
 - **FreehandPanel** (`Scripts/UI/freehand_panel.gd`, Milestone 14) —
   freehand spray painting (Plan.md §10 "Later Advanced System", first
   §36 Could-Have). F at a wall opens a canvas sized to the wall face;
@@ -183,16 +185,23 @@ static rooster GLB, then the old debug capsule.
   as a textured quad, and persists through save/load as base64 PNG in
   the wall state. Rivals, heat, patrols, missions, and territory all
   react like any other piece.
+- **TrainManager** (`Scripts/Trains/train_manager.gd`, Milestone 20) —
+  scheduled train cars from `Data/trains.json`. A stopped Canal Side
+  car can be painted for a high paint/heat cost; once in service it
+  pays rep every time it passes through Canal Side and Mill Yard. The
+  blackbook's City page logs painted cars and pass counts, and train
+  state persists in save v4.
 
-All wall, style, crew, and NPC content is data-driven from `/Data`
-(agent rule 3).
+Wall, style, crew, NPC, district, climb, and train content is
+data-driven from `/Data` (agent rule 3).
 
 ## Not built yet (by design — Plan.md §47)
 
 All Plan.md §35 milestones are in, and the §36 "Should-Have" list is
 complete: Heat/City Cleanup, security patrols, supply economy,
 dialogue, and the blackbook UI. From the §36 "Could-Have" list,
-freehand spray painting is in (Milestone 14) and rooftop climbing is
-in (Milestone 19); what remains is the rest of that list (battles,
-train painting, gallery missions, procedural graffiti, crowd reactions)
-— deliberately out of prototype scope per Plan.md §47.
+freehand spray painting is in (Milestone 14), rooftop climbing is in
+(Milestone 19), and train painting is in (Milestone 20); what remains
+is the rest of that list (battles, gallery missions, procedural
+graffiti, crowd reactions) — deliberately out of prototype scope per
+Plan.md §47.

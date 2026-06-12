@@ -134,6 +134,17 @@ func _city_text() -> String:
 	lines.append("")
 	lines.append("Your name is on %d of %d walls; the city buffed %d." % [
 		int(held.get("player", 0)), WallManager.wall_defs.size(), int(held.get("city", 0))])
+	var trains := TrainManager.service_log()
+	if not trains.is_empty():
+		lines.append("")
+		lines.append("Train cars in service:")
+		for train in trains:
+			var graffiti: Dictionary = train["currentGraffiti"]
+			lines.append("      %s — %s, passes %d, %s" % [
+				String(train.get("label", train.get("trainId", "Train"))),
+				String(graffiti.get("alias", "?")),
+				int(graffiti.get("passes", 0)),
+				String(train.get("phase", "stopped"))])
 	return "\n".join(lines)
 
 ## owner -> wall count, in one pass over the wall states.
