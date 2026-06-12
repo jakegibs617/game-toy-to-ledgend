@@ -109,5 +109,47 @@
         ]
       }
     }
+  },
+  "rico": {
+    "start": "hub",
+    "nodes": {
+      "hub": {
+        "speaker": "Caps",
+        "text": "Fat caps, fast hands. Empty walls make a claimed block look nervous.",
+        "choices": [
+          {"text": "What do you do for the crew?", "next": "role"},
+          {"text": "Keep the fills heavy.", "action": "end"}
+        ]
+      },
+      "role": {
+        "speaker": "Caps",
+        "text": "You take the block, I make sure it looks taken. Throwies on the weak spots, no speeches.",
+        "choices": [
+          {"text": "That's the work.", "next": "hub"},
+          {"text": "Keep the fills heavy.", "action": "end"}
+        ]
+      }
+    }
+  },
+  "metro": {
+    "start": "hub",
+    "nodes": {
+      "hub": {
+        "speaker": "Metro",
+        "text": "I listen to routes. Security talks before they move.",
+        "choices": [
+          {"text": "How clean is the getaway?", "next": "role"},
+          {"text": "Stay ready.", "action": "end"}
+        ]
+      },
+      "role": {
+        "speaker": "Metro",
+        "text": "One clean pull per heat level. After that, they learn the route and you're on your own until the block cools or spikes.",
+        "choices": [
+          {"text": "Good to know.", "next": "hub"},
+          {"text": "Stay ready.", "action": "end"}
+        ]
+      }
+    }
   }
 }

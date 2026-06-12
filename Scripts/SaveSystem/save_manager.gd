@@ -13,7 +13,8 @@ const SAVE_PATH := "user://toy_to_legend_save.json"
 ## index/flags, painted-objective keys gain a chain prefix).
 ## v4 (Milestone 20): painted train-car service state.
 ## v5 (Milestone 21): gallery sales log; "game" section gains crew_rep.
-const SAVE_VERSION := 5
+## v6 (Milestone 22): crew section tracks used getaway heat levels.
+const SAVE_VERSION := 6
 
 var _player: Player
 
@@ -123,6 +124,11 @@ func _migrate(data: Dictionary) -> Dictionary:
 		if data.has("game"):
 			data["game"]["crew_rep"] = int(data["game"].get("crew_rep", 0))
 		version = 5
+	if version < 6:
+		if not data.has("crew"):
+			data["crew"] = {}
+		data["crew"]["getaway_used_levels"] = data["crew"].get("getaway_used_levels", {})
+		version = 6
 	data["version"] = version
 	return data
 

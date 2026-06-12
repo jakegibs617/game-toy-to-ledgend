@@ -202,6 +202,7 @@ func _ready() -> void:
 	GameState.district_changed.connect(_on_district_changed)
 	GameState.player_event.connect(func(message: String) -> void:
 		_show_message(message, 4.0))
+	GameState.crew_board_requested.connect(_open_crew_board)
 	MissionManager.mission_started.connect(_on_mission_started)
 	MissionManager.objective_changed.connect(_on_objective_changed)
 	MissionManager.mission_completed.connect(_on_mission_completed)
@@ -259,6 +260,10 @@ func _register_modals() -> void:
 func _open_blackbook() -> void:
 	_blackbook.visible = true
 	_blackbook.refresh()
+
+func _open_crew_board() -> void:
+	open_modal("blackbook")
+	_blackbook.set_page(2)
 
 func _open_perks() -> void:
 	_perks.visible = true

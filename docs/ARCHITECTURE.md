@@ -27,7 +27,7 @@ extends a section.
 | GameState | Scripts/Data/game_state.gd | Alias, rep, rank, paint, cash, selected type, unlocked types, fill palette, current district, input map |
 | WallManager | Scripts/Walls/wall_manager.gd | Wall defs/styles JSON, wall spawning, **wall_states** (the world's memory), player/rival/buff paint paths, rep formula |
 | RivalManager | Scripts/Rivals/rival_manager.gd | Rival crews, initial territory, retaliation queue, cross-outs |
-| CrewManager | Scripts/Crew/crew_manager.gd | NPC spawning, recruitment stages, crew roles (lookout bonus) |
+| CrewManager | Scripts/Crew/crew_manager.gd | NPC spawning, recruitment stages, crew roles (lookout/filler/getaway), crew save state |
 | TerritoryManager | Scripts/Territory/territory_manager.gd | Per-district influence shares, claim threshold/bonus |
 | HeatManager | Scripts/Heat/heat_manager.gd | Per-district heat (`heat` reads the player's block), levels, rep multiplier, decay tick (absent blocks cool 2×), city cleanup (buffing) |
 | MissionManager | Scripts/Missions/mission_manager.gd | Mission **chains** from Data/missions.json (triggered in order, e.g. enter_district), world actors/zones, `notify_actor` |
@@ -57,10 +57,17 @@ its path + animation name in `player.gd`, and triggering the state from
 the gameplay event rather than hard-coding animation logic into the
 world object.
 
+Recruitable NPCs and mission actors use the same
+`AnimatedModelSet.build_from_manifest` helper, but their paths and clip
+names live in JSON `visuals` blocks (`npc_data.json` members and
+`missions.json` actors). A `visuals` block has sourceHeight,
+rotationY, initialState, and `states` mapping state → {model, clip};
+missing imports fall back to the capsule visuals.
+
 ## The signal hub: `WallManager.wall_painted`
 
 Every paint — player tag/throw-up/piece, freehand commit, rival
-repaint — flows through WallManager and emits
+repaint, crew assist — flows through WallManager and emits
 `wall_painted(wall_id, graffiti)`. Consumers:
 
 * **HeatManager** — adds the style's `heatValue`
@@ -72,7 +79,7 @@ repaint — flows through WallManager and emits
 
 **Rule: never paint a wall by mutating wall_states directly** — go
 through `paint_wall` / `paint_freehand` / `apply_rival_graffiti` /
-`buff_wall` so the whole game reacts.
+`apply_crew_graffiti` / `buff_wall` so the whole game reacts.
 
 Other cross-system signals follow the same pattern: managers emit,
 HUD and Sfx listen. The HUD never owns game state.
@@ -113,11 +120,11 @@ fields `push_error` at startup, and the smoke test asserts
 | graffiti_styles.json | dict type → {label, baseValue, paintCost, heatValue, colors; optional: surfaces[] (surface rule), requiresCrew, exposure (patrol witness range ×), notes/lockedHint (blackbook)} | WallManager, SupplyManager, PatrolManager, HUD |
 | crews.json | rival crew defs (tag, colors, aggression, home walls) | RivalManager |
 | districts.json | array (districtId, name, claimThreshold, claimRepBonus, payoutPerWeight, decayRep, arrival, travel) | TerritoryManager, district.gd (travel points) |
-| missions.json | {actors: [...], chains: [{chainId, trigger?, completeMessage, missions: [...]}]} | MissionManager |
+| missions.json | {actors: [...], chains: [{chainId, trigger?, completeMessage, missions: [...]}]}; actors may include `visuals` manifests | MissionManager |
 | dialogue.json | speaker → node tree | DialogueManager |
 | supplies.json | shop catalog + delivery def (items may carry unlockType) | SupplyManager |
 | patrols.json | guard counts per heat level, speeds | PatrolManager |
-| npc_data.json | recruitable NPCs (Moth) | CrewManager |
+| npc_data.json | recruitable NPCs (Moth, Caps, Metro), item pickups, role metadata, optional `visuals` manifests | CrewManager |
 | stats.json | stat defs (xpPerLevel, maxLevel, per-level effect coefficients) | StatsManager |
 | perks.json | tree → perk list (perkId, name, desc, effects dict) | StatsManager |
 | climbs.json | climb routes (climbId, label, position, top, fallChance, fallRepPenalty) | district.gd (spawns ClimbZone) |
@@ -158,9 +165,9 @@ Modal conventions:
 GameState fields (including crew_rep — the §11 public/crew split),
 WallManager (wall_states + next id), crew stages, territory claims,
 heat, mission progress, supplies owned, dialogue flags, stats/perks,
-train service state, and the gallery sales log. Loading refuses saves
-newer than SAVE_VERSION. **Bump SAVE_VERSION whenever a section's
-shape changes.**
+train service state, the gallery sales log, and crew getaway route
+usage. Loading refuses saves newer than SAVE_VERSION. **Bump
+SAVE_VERSION whenever a section's shape changes.**
 
 ## Testing
 

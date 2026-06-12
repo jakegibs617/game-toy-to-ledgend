@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-06-12 — Milestone 22: Crew Depth (Plan_v2.md)
+
+The crew now has more than a lookout.
+
+- Added Rico "Caps" (filler) and Jay "Metro" (getaway) to
+  `Data/npc_data.json`, each with the existing recruitment mini-chain:
+  meet them, recover their item, return it, then unlock their role.
+- Rico auto-fills a small number of open/non-player walls with
+  no-rep throw-ups when a district is already claimed, keeping passive
+  crew work inside `WallManager.apply_crew_graffiti` so territory
+  updates without counting as player heat, XP, or mission paint.
+- Metro gives one free security escape per heat level before normal
+  catch penalties apply.
+- The safehouse zone is now an interactable crew board: E opens the
+  blackbook directly to the Crew page.
+- Character visuals for recruitable NPCs and mission actors are now
+  data-driven through `visuals` manifest blocks in `npc_data.json` and
+  `missions.json`, consumed by `animated_model_set.gd`; Lupe, Prime,
+  Moth, Caps, and Metro no longer need per-script model-path constants.
+- Smoke test now covers the new recruitment paths, manifest-driven
+  visuals, Caps territory fills, Metro's escape-then-catch behavior,
+  Crew-page UI text, and v5→v6 save migration.
+- Save schema bumped to v6 for the crew getaway ledger.
+
 ## 2026-06-12 — Milestone 21: Gallery Missions (Plan_v2.md)
 
 Selling out is now a real decision (the last §46 success criterion).

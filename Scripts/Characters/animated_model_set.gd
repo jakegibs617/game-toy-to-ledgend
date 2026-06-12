@@ -41,6 +41,34 @@ static func add_animated_model(container: Node3D, path: String,
 	player.seek(0.0, true)
 	return true
 
+## Data-driven version of the same pattern. `visuals` is a JSON-safe
+## block with sourceHeight, optional rotationY degrees, and states:
+## state -> {model, clip}. Callers keep their own model/player/name
+## dictionaries so their animation selection logic remains local.
+static func build_from_manifest(parent: Node3D, visuals: Dictionary,
+		models: Dictionary, players: Dictionary,
+		animation_names: Dictionary, target_height := 1.7) -> Node3D:
+	var states: Dictionary = visuals.get("states", {})
+	if states.is_empty():
+		return null
+	var container := Node3D.new()
+	container.name = String(visuals.get("containerName", "AnimatedModel"))
+	var source_height := float(visuals.get("sourceHeight", target_height))
+	if source_height > 0.0:
+		container.scale = Vector3.ONE * (target_height / source_height)
+	container.rotation.y = deg_to_rad(float(visuals.get("rotationY", 0.0)))
+	parent.add_child(container)
+	var built := false
+	for state in states:
+		var def: Dictionary = states[state]
+		built = add_animated_model(container, String(def.get("model", "")),
+			String(state), String(def.get("clip", "")), models, players,
+			animation_names) or built
+	if not built:
+		container.queue_free()
+		return null
+	return container
+
 static func find_animation_player(root: Node) -> AnimationPlayer:
 	if root is AnimationPlayer:
 		return root

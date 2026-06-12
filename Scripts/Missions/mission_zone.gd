@@ -14,6 +14,8 @@ func setup(id: String, pos: Vector3, size: Vector3, one_shot_zone := false) -> v
 	one_shot = one_shot_zone
 	name = "zone_%s" % id
 	position = pos
+	if actor_id == "safehouse":
+		add_to_group("interactable")
 	var col := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
 	shape.size = size
@@ -31,3 +33,10 @@ func _physics_process(_delta: float) -> void:
 		if one_shot:
 			queue_free()
 	_player_inside = inside
+
+func prompt_text() -> String:
+	return "[E] Crew board" if actor_id == "safehouse" else ""
+
+func interact() -> void:
+	if actor_id == "safehouse":
+		GameState.crew_board_requested.emit()

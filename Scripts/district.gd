@@ -466,7 +466,9 @@ func _smoke_missions() -> void:
 	assert(MissionManager.current_mission()["missionId"] == "m3_get_supplies")
 	var lupe := get_node_or_null("lupe")
 	assert(lupe != null)
-	if ResourceLoader.exists(MissionActor.LUPE_IDLE_MODEL_PATH):
+	var lupe_visuals: Dictionary = MissionManager.actor_defs[1].get("visuals", {})
+	if not lupe_visuals.is_empty() \
+			and ResourceLoader.exists(String(lupe_visuals["states"]["idle"]["model"])):
 		assert(lupe.get_node_or_null("LupeRatModel") != null)
 		assert(lupe.get_node_or_null("SupplyCrate") != null)
 	assert(MissionManager.notify_actor("lupe"))
@@ -481,6 +483,8 @@ func _smoke_missions() -> void:
 ## and warns when a new retaliation is queued.
 func _smoke_crew() -> void:
 	assert(CrewManager.members.has("npc_mina_moth"))
+	assert(CrewManager.members.has("npc_rico_caps"))
+	assert(CrewManager.members.has("npc_jay_metro"))
 	var mina: Dictionary = CrewManager.members["npc_mina_moth"]
 	assert(mina["stage"] == "not_met")
 	var chance_before := RivalManager.response_chance("wall_mill_02", "buff_kings")
@@ -500,11 +504,34 @@ func _smoke_crew() -> void:
 	assert(moth_node != null)
 	assert(moth_node.get_node_or_null("CharacterVisual/LookoutRadioPhone") != null)
 	assert(moth_node.get_node_or_null("CharacterVisual/LookoutActiveIndicator") != null)
-	if ResourceLoader.exists(Npc.LOOKOUT_IDLE_MODEL_PATH):
+	if ResourceLoader.exists(String(mina["visuals"]["states"]["idle"]["model"])):
 		assert(moth_node.get_node_or_null("CharacterVisual/LookoutMeerkatModel") != null)
 	var chance_after := RivalManager.response_chance("wall_mill_02", "buff_kings")
 	assert(chance_after < chance_before)
 	print("SMOKE: lookout bonus %.2f -> %.2f" % [chance_before, chance_after])
+
+	for member_id in ["npc_rico_caps", "npc_jay_metro"]:
+		var member: Dictionary = CrewManager.members[member_id]
+		CrewManager.interact(member_id)
+		assert(member["stage"] == "mission_active")
+		var pickup := get_node_or_null("pickup_%s" % member_id)
+		assert(pickup is PickupItem)
+		pickup.interact()
+		assert(member["stage"] == "item_recovered")
+		CrewManager.interact(member_id)
+		assert(member["stage"] == "recruited")
+	assert(CrewManager.has_role("filler"))
+	assert(CrewManager.has_role("getaway"))
+	assert(GameState.crew_rep == CrewManager.RECRUIT_CREW_REP * 3)
+	assert(get_node_or_null("npc_rico_caps/CharacterVisual/RicoCapsModel") != null)
+	assert(get_node_or_null("npc_jay_metro/CharacterVisual/JayMetroModel") != null)
+	var migrated_v5 := SaveManager._migrate({
+		"version": 5,
+		"crew": {"stages": {"npc_mina_moth": "recruited"}},
+	})
+	assert(int(migrated_v5["version"]) == SaveManager.SAVE_VERSION)
+	assert(migrated_v5["crew"].has("getaway_used_levels"))
+	print("SMOKE: crew depth — Caps and Metro recruited from data")
 
 	# The recruited lookout warns when a new retaliation is queued.
 	var events: Array = []
@@ -541,8 +568,17 @@ func _smoke_territory() -> void:
 	assert(TerritoryManager.is_claimed(district_id))
 	assert(claims == [district_id])  # threshold reward fires exactly once
 	assert(GameState.reputation > rep_before + 150)  # paints + 150 claim bonus
+	var caps_fill_count := 0
+	for state in WallManager.wall_states.values():
+		var graffiti: Dictionary = {}
+		if state.get("currentGraffiti") is Dictionary:
+			graffiti = state["currentGraffiti"]
+		if String(graffiti.get("creatorId", "")) == "npc_rico_caps":
+			caps_fill_count += 1
+	assert(caps_fill_count > 0)
 	print("SMOKE: district claimed, influence = %s" % str(shares))
-	print("SMOKE: %s" % TerritoryManager.summary_text(district_id))
+	print("SMOKE: %s; Caps filled %d spots" % [
+		TerritoryManager.summary_text(district_id), caps_fill_count])
 	if MissionManager.current_objective().get("type", "") == "defend":
 		var defend_wall := String(MissionManager.remembered.get("defend_wall", ""))
 		assert(defend_wall != "")
@@ -644,13 +680,20 @@ func _smoke_patrols() -> void:
 	print("SMOKE: spotted by patrol, heat %.1f -> %.1f" % [
 		heat_before_spot, HeatManager.heat])
 
-	# Getting caught: rep fine, paint confiscated, heat settles — and
-	# patrol presence thins back out as the block cools off.
+	# Metro's getaway role (Milestone 22): the first catch at a heat
+	# level becomes a free escape, then the usual fine applies once that
+	# route is spent.
 	var caught_guards: Array = []
 	PatrolManager.player_caught.connect(func(g: PatrolGuard) -> void:
 		caught_guards.append(g))
 	var rep_before_catch: int = GameState.reputation
 	var paint_before_catch: int = GameState.paint
+	PatrolManager.resolve_catch(guard)
+	assert(caught_guards.is_empty())
+	assert(GameState.reputation == rep_before_catch)
+	assert(GameState.paint == paint_before_catch)
+	assert(CrewManager._getaway_used_levels.has("Hot"))
+	guard.start_chase(player)
 	PatrolManager.resolve_catch(guard)
 	assert(caught_guards == [guard])
 	assert(GameState.reputation == rep_before_catch - mini(25, rep_before_catch))
@@ -658,7 +701,7 @@ func _smoke_patrols() -> void:
 	assert(HeatManager.heat <= 25.0)
 	assert(PatrolManager.guard_count() ==
 		PatrolManager.guards_for_level(HeatManager.level_name()))
-	print("SMOKE: caught by patrol — rep %d -> %d, paint %d -> %d, heat %.1f, guards %d" % [
+	print("SMOKE: Metro escape, then caught — rep %d -> %d, paint %d -> %d, heat %.1f, guards %d" % [
 		rep_before_catch, GameState.reputation, paint_before_catch,
 		GameState.paint, HeatManager.heat, PatrolManager.guard_count()])
 
@@ -761,7 +804,9 @@ func _smoke_dialogue() -> void:
 	var player := _smoke_player()
 	var prime_actor := get_node_or_null("prime")
 	assert(prime_actor != null)
-	if ResourceLoader.exists(MissionActor.PRIME_IDLE_MODEL_PATH):
+	var prime_visuals: Dictionary = MissionManager.actor_defs[2].get("visuals", {})
+	if not prime_visuals.is_empty() \
+			and ResourceLoader.exists(String(prime_visuals["states"]["idle"]["model"])):
 		assert(prime_actor.get_node_or_null("PrimeGoriModel") != null)
 		assert(prime_actor.get_node_or_null("PrimeBlackbook") != null)
 	assert(DialogueManager.start("prime"))
@@ -829,6 +874,8 @@ func _smoke_blackbook() -> void:
 	assert(styles_page.contains("Burner Chrome"))  # bought rare color listed
 	var crew_page: String = blackbook.page_text(2)
 	assert(crew_page.contains("Moth") and crew_page.contains("Recruited"))
+	assert(crew_page.contains("Caps") and crew_page.contains("Filler"))
+	assert(crew_page.contains("Metro") and crew_page.contains("Getaway"))
 	var city_page: String = blackbook.page_text(3)
 	assert(city_page.contains("The Buff Kings") and city_page.contains("VEK"))
 	assert(city_page.contains("Your name is on"))
@@ -928,11 +975,14 @@ func _smoke_graffiti_types() -> void:
 	assert(result["ok"])
 	assert(WallManager.wall_states["wall_roof_mill_01"]["state"] == "player_roller")
 	# Murals need crew on the street with you.
-	var mina: Dictionary = CrewManager.members["npc_mina_moth"]
-	mina["stage"] = "mission_active"
+	var saved_stages := {}
+	for member_id in CrewManager.members:
+		saved_stages[member_id] = String(CrewManager.members[member_id]["stage"])
+		CrewManager.members[member_id]["stage"] = "mission_active"
 	result = WallManager.paint_wall(wall, "mural")
 	assert(not result["ok"] and String(result["reason"]).contains("crew"))
-	mina["stage"] = "recruited"
+	for member_id in saved_stages:
+		CrewManager.members[member_id]["stage"] = saved_stages[member_id]
 	var rep_before: int = GameState.reputation
 	var crew_rep_before: int = GameState.crew_rep
 	result = WallManager.paint_wall(wall, "mural")
@@ -1311,8 +1361,9 @@ func _smoke_gallery() -> void:
 	assert(blackbook.page_text(3).contains("Gallery sales: 1"))
 	blackbook.free()
 
-	# Gallery state and the rep split survive save/load; v4 saves migrate.
-	assert(SaveManager.SAVE_VERSION == 5)
+	# Gallery state and the rep split survive save/load; v4 saves migrate
+	# through the gallery and crew-depth schema bumps.
+	assert(SaveManager.SAVE_VERSION == 6)
 	assert(SaveManager.quick_save())
 	var saved_crew: int = GameState.crew_rep
 	GameState.crew_rep = 0
@@ -1321,10 +1372,11 @@ func _smoke_gallery() -> void:
 	assert(GameState.crew_rep == saved_crew)
 	assert(GalleryManager.sales_count() == 1)
 	var migrated: Dictionary = SaveManager._migrate({"version": 4, "game": {}})
-	assert(int(migrated["version"]) == 5)
+	assert(int(migrated["version"]) == SaveManager.SAVE_VERSION)
 	assert(migrated.has("gallery"))
+	assert(migrated.has("crew") and migrated["crew"].has("getaway_used_levels"))
 	assert(int(migrated["game"]["crew_rep"]) == 0)
-	print("SMOKE: gallery — refusal, sale (score x%.2f), crew rep split, v5 save" % score)
+	print("SMOKE: gallery — refusal, sale (score x%.2f), crew rep split, v6 save" % score)
 
 ## Assumes: nothing beyond a paintable wall. Plan_v2.md §3.5: wall
 ## history is capped — repainting past the cap drops the oldest
