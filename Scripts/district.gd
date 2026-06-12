@@ -5,11 +5,14 @@ extends Node3D
 
 const PLAYER_SPAWN := Vector3(0, 0.5, 4)
 const DataLoader := preload("res://Scripts/Data/data_loader.gd")
+const TravelPointScript := preload("res://Scripts/World/travel_point.gd")
 
 func _ready() -> void:
 	_build_environment()
 	_add_box(Vector3(0, -0.25, 0), Vector3(80, 0.5, 80), Color("#5c5c60"), "Ground")
 	_build_buildings()
+	_build_canal_side()
+	_spawn_travel_points()
 	WallManager.spawn_walls(self)
 	RivalManager.claim_initial_territory()
 	CrewManager.spawn_npcs(self)
@@ -115,6 +118,33 @@ func _build_buildings() -> void:
 	_add_box(Vector3(-14, 4, 14), Vector3(18, 8, 12), Color("#75695e"), "CornerBlock")
 	_add_box(Vector3(12, 5, 14), Vector3(16, 10, 12), Color("#7c7368"), "BodegaBlock")
 
+## Canal Side graybox (Milestone 18, Plan.md §45): a second block east
+## across the water — ground, the canal itself, a footbridge walkway,
+## and the buildings the canal walls hang on.
+func _build_canal_side() -> void:
+	_add_box(Vector3(120, -0.25, 0), Vector3(80, 0.5, 80), Color("#565a5e"), "CanalGround")
+	# The water between the blocks; the footbridge crosses it at z=0.
+	_add_box(Vector3(60, -0.6, 0), Vector3(40, 0.3, 80), Color("#1d3a4a"), "CanalWater")
+	_add_box(Vector3(60, -0.05, 0), Vector3(44, 0.4, 4.0), Color("#4a4f55"), "Footbridge")
+	_add_box(Vector3(108, 5, -14), Vector3(20, 10, 12), Color("#6e7a82"), "LockHouseBlock")
+	_add_box(Vector3(130, 6, -14), Vector3(14, 12, 12), Color("#75808a"), "PumpStation")
+	_add_box(Vector3(106, 4, 14), Vector3(16, 8, 12), Color("#8a8f86"), "DryDock")
+	_add_box(Vector3(124, 7, 14), Vector3(18, 14, 12), Color("#b9b3a4"), "GrainSilo")
+	for lamp_pos in [
+			Vector3(100, 0, -6.5), Vector3(118, 0, 6.5), Vector3(134, 0, -6.5)]:
+		_add_street_lamp(lamp_pos)
+
+## One gate per district that has a travel def (districts.json).
+func _spawn_travel_points() -> void:
+	for district_id in TerritoryManager.districts:
+		var district: Dictionary = TerritoryManager.districts[district_id]
+		var travel: Dictionary = district.get("travel", {})
+		if travel.is_empty():
+			continue
+		var point := TravelPointScript.new()
+		point.setup(travel, String(travel.get("to", "")))
+		add_child(point)
+
 func _add_box(pos: Vector3, size: Vector3, color: Color, box_name: String) -> StaticBody3D:
 	var body := StaticBody3D.new()
 	body.name = box_name
@@ -156,6 +186,7 @@ func _run_smoke_test() -> void:
 	_smoke_freehand()
 	_smoke_graffiti_types()
 	_smoke_progression()
+	_smoke_canal_side()
 	_smoke_history_cap()
 	print("SMOKE: OK")
 	get_tree().quit()
@@ -767,7 +798,7 @@ func _smoke_progression() -> void:
 	print("SMOKE: stats/perks/decay — style +1 level, 2 perks chosen, block pays")
 
 	# Progression survives save/load, and v1 saves migrate forward.
-	assert(SaveManager.SAVE_VERSION == 2)
+	assert(SaveManager.SAVE_VERSION >= 2)
 	assert(SaveManager.quick_save())
 	var saved_xp: int = StatsManager.xp_for("style")
 	var saved_points: int = StatsManager.perk_points
@@ -779,9 +810,92 @@ func _smoke_progression() -> void:
 	assert(StatsManager.perk_points == saved_points)
 	assert(StatsManager.owns_perk("street_respect") and StatsManager.owns_perk("connect"))
 	var migrated: Dictionary = SaveManager._migrate({"version": 1})
-	assert(int(migrated["version"]) == 2)
+	assert(int(migrated["version"]) == SaveManager.SAVE_VERSION)
 	assert(migrated.has("stats"))
-	print("SMOKE: progression survives save/load; v1 saves migrate to v2")
+	print("SMOKE: progression survives save/load; v1 saves migrate forward")
+
+## Assumes: the mill chain is done (canal chain waits on its trigger),
+## the player stands in Mill Yard, and earlier sections left paint and
+## cash to spare. Milestone 18 (Plan.md §45, §12): cross the
+## footbridge, run the Canal Side chain (m6–m8) against Ghost Line
+## territory, prove heat is per district and cools faster in the block
+## you left, and round-trip the v3 save with v2 migration.
+func _smoke_canal_side() -> void:
+	var player := _smoke_player()
+	assert(GameState.current_district_id == "district_mill_yard")
+	assert(not TerritoryManager.is_claimed("district_canal_side"))
+	# Ghost Line pre-claimed their canal territory in stencils at boot.
+	assert(WallManager.wall_states["wall_canal_01"]["state"] == "rival_stencil")
+	HeatManager.heat = 12.0
+	var mill_heat: float = HeatManager.heat_in("district_mill_yard")
+	# Cross the footbridge: arrival spot, district flip, chain trigger.
+	var gate := get_node_or_null("TravelPoint_district_canal_side")
+	assert(gate != null)
+	gate.interact()
+	assert(GameState.current_district_id == "district_canal_side")
+	assert(player.global_position.distance_to(Vector3(86, 0.5, 0)) < 1.0)
+	assert(not MissionManager.chain_done)
+	assert(MissionManager.current_mission()["missionId"] == "m6_new_waters")
+	# Heat is per district: this block is cold while the mill simmers,
+	# and painting here heats Canal Side only.
+	assert(HeatManager.heat == 0.0)
+	assert(is_equal_approx(HeatManager.heat_in("district_mill_yard"), mill_heat))
+	assert(PatrolManager.guard_count() ==
+		PatrolManager.guards_for_level(HeatManager.level_name()))
+	GameState.add_paint(60)
+	var result: Dictionary = WallManager.paint_wall(WallManager.wall_nodes["wall_canal_03"], "tag")
+	assert(result["ok"])
+	assert(HeatManager.heat > 0.0)
+	assert(is_equal_approx(HeatManager.heat_in("district_mill_yard"), mill_heat))
+	result = WallManager.paint_wall(WallManager.wall_nodes["wall_canal_04"], "tag")
+	assert(result["ok"])
+	# m6 done -> m7's scripted Ghost Line hit landed on the last wall.
+	assert(MissionManager.current_mission()["missionId"] == "m7_ghosts_in_the_water")
+	assert(WallManager.wall_states["wall_canal_04"]["state"] == "crossed_out")
+	result = WallManager.paint_wall(WallManager.wall_nodes["wall_canal_04"], "throwup")
+	assert(result["ok"])
+	assert(MissionManager.current_mission()["missionId"] == "m8_canal_king")
+	# m8: take the block — Ghost Line keeps their three walls (7 of 24
+	# weight), the rest is enough to cross 50%.
+	for wall_id in ["wall_canal_06", "wall_canal_07", "wall_canal_08"]:
+		result = WallManager.paint_wall(WallManager.wall_nodes[wall_id], "tag")
+		assert(result["ok"])
+	assert(TerritoryManager.is_claimed("district_canal_side"))
+	assert(MissionManager.chain_done)
+	assert(MissionManager.all_chains_done())
+	print("SMOKE: Canal Side chain complete — m6/m7/m8 against Ghost Line")
+
+	# Leaving the block is laying low: the absent district cools at
+	# double rate on the tick.
+	HeatManager.heat = 40.0  # canal (current district)
+	var back := get_node_or_null("TravelPoint_district_mill_yard")
+	assert(back != null)
+	back.interact()
+	assert(GameState.current_district_id == "district_mill_yard")
+	HeatManager.heat = 20.0  # mill (current district)
+	HeatManager._on_tick()
+	assert(is_equal_approx(HeatManager.heat_in("district_mill_yard"), 18.0))
+	assert(is_equal_approx(HeatManager.heat_in("district_canal_side"), 36.0))
+	print("SMOKE: per-district heat — present block -2, absent block -4")
+
+	# v3 save: per-district heat, district, and chain state round-trip;
+	# v2 saves migrate (heat into Mill Yard, painted keys gain chain 0).
+	assert(SaveManager.SAVE_VERSION == 3)
+	assert(SaveManager.quick_save())
+	HeatManager.heat_by_district.clear()
+	GameState.set_district("district_canal_side")
+	assert(SaveManager.quick_load())
+	assert(GameState.current_district_id == "district_mill_yard")
+	assert(is_equal_approx(HeatManager.heat_in("district_canal_side"), 36.0))
+	assert(MissionManager.all_chains_done())
+	var migrated: Dictionary = SaveManager._migrate({"version": 2,
+		"heat": {"heat": 33.0, "ticks_until_cleanup": 2},
+		"missions": {"began": true, "chain_done": true,
+			"painted_objectives": {"1:0": ["wall_mill_01"]}}})
+	assert(int(migrated["version"]) == 3)
+	assert(is_equal_approx(float(migrated["heat"]["by_district"]["district_mill_yard"]), 33.0))
+	assert(migrated["missions"]["painted_objectives"].has("0:1:0"))
+	print("SMOKE: v3 save round-trips; v2 saves migrate forward")
 
 ## Assumes: nothing beyond a paintable wall. Plan_v2.md §3.5: wall
 ## history is capped — repainting past the cap drops the oldest

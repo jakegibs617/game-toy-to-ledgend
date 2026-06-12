@@ -24,7 +24,7 @@
     "fillColor": "#9fd8cb",
     "outlineColor": "#10202b",
     "crossOutColor": "#7fe7dc",
-    "territory": ["wall_alley_n_01", "wall_alley_n_02"],
+    "territory": ["wall_alley_n_01", "wall_alley_n_02", "wall_canal_01", "wall_canal_02", "wall_canal_05"],
     "relationshipToPlayer": 0
   },
   {

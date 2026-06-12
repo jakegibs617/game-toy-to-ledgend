@@ -9,7 +9,9 @@ const SAVE_PATH := "user://toy_to_legend_save.json"
 ## Bump whenever any section's shape changes (CLAUDE.md rule), and add
 ## the matching step to _migrate so mid-demo saves keep loading.
 ## v2 (Milestone 17): adds the "stats" section (xp, perk points, perks).
-const SAVE_VERSION := 2
+## v3 (Milestone 18): per-district heat dict; mission chains (chain
+## index/flags, painted-objective keys gain a chain prefix).
+const SAVE_VERSION := 3
 
 var _player: Player
 
@@ -55,6 +57,7 @@ func quick_load() -> bool:
 		save_event.emit("Load failed: save is from a newer prototype.")
 		return false
 	data = _migrate(data)
+	var district_before := GameState.current_district_id
 	GameState.load_state(data.get("game", {}))
 	WallManager.load_state(data.get("walls", {}))
 	CrewManager.load_state(data.get("crew", {}))
@@ -65,6 +68,10 @@ func quick_load() -> bool:
 	MissionManager.load_state(data.get("missions", {}))
 	StatsManager.load_state(data.get("stats", {}))
 	_apply_player_state(data.get("player", {}))
+	# Every manager is restored — now it's safe for district listeners
+	# (chain triggers, patrol respawns, HUD) to react to where we are.
+	if GameState.current_district_id != district_before:
+		GameState.district_changed.emit(GameState.current_district_id)
 	save_event.emit("Loaded prototype state.")
 	return true
 
@@ -78,6 +85,28 @@ func _migrate(data: Dictionary) -> Dictionary:
 		# keeps their rep/rank; the new systems start clean.
 		data["stats"] = {}
 		version = 2
+	if version < 3:
+		# v2's single heat value belonged to the only district there
+		# was; the mission state was chain 0 of what is now a chain
+		# list, so painted keys "mi:oi" gain the chain prefix "0:".
+		var old_heat: Dictionary = data.get("heat", {})
+		data["heat"] = {
+			"by_district": {"district_mill_yard": float(old_heat.get("heat", 0.0))},
+			"ticks_until_cleanup": int(old_heat.get("ticks_until_cleanup", 0)),
+		}
+		var missions: Dictionary = data.get("missions", {})
+		missions["chain_index"] = 0
+		missions["chain_flags"] = [{
+			"started": bool(missions.get("began", false)),
+			"done": bool(missions.get("chain_done", false)),
+		}]
+		var painted: Dictionary = missions.get("painted_objectives", {})
+		var rekeyed := {}
+		for key in painted:
+			rekeyed["0:%s" % String(key)] = painted[key]
+		missions["painted_objectives"] = rekeyed
+		data["missions"] = missions
+		version = 3
 	data["version"] = version
 	return data
 

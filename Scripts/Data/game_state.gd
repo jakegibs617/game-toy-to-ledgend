@@ -9,6 +9,9 @@ signal paint_changed(new_paint: int)
 signal cash_changed(new_cash: int)
 signal graffiti_type_changed(new_type: String)
 signal fill_color_changed(color_name: String)
+## Milestone 18: which block the writer is standing in. Travel points
+## set it; HeatManager, PatrolManager, and the HUD read it.
+signal district_changed(district_id: String)
 
 const RANKS := [
 	{"name": "Toy", "min_rep": 0},
@@ -42,6 +45,7 @@ var unlocked_types := {"tag": true}
 var colors_unlocked := false
 var fill_color_index := 0
 var extra_fill_colors: Array = []  # rare colors bought from the shop
+var current_district_id := "district_mill_yard"
 
 func _ready() -> void:
 	_setup_input_actions()
@@ -59,6 +63,7 @@ func save_state() -> Dictionary:
 		"colors_unlocked": colors_unlocked,
 		"fill_color_index": fill_color_index,
 		"extra_fill_colors": extra_fill_colors.duplicate(true),
+		"current_district_id": current_district_id,
 	}
 
 func load_state(data: Dictionary) -> void:
@@ -74,6 +79,10 @@ func load_state(data: Dictionary) -> void:
 	colors_unlocked = bool(data.get("colors_unlocked", colors_unlocked))
 	extra_fill_colors = data.get("extra_fill_colors", extra_fill_colors).duplicate(true)
 	fill_color_index = clampi(int(data.get("fill_color_index", fill_color_index)), 0, fill_palette().size() - 1)
+	# Silent on purpose: district_changed listeners (chain triggers,
+	# patrol respawns) must not react against half-restored state.
+	# SaveManager re-announces the district once the full load is done.
+	current_district_id = String(data.get("current_district_id", current_district_id))
 	reputation_changed.emit(reputation, 0)
 	if rank != old_rank:  # otherwise every quick-load announces "RANK UP"
 		rank_changed.emit(rank)
@@ -131,6 +140,12 @@ func unlock_type(type: String) -> void:
 
 func is_type_unlocked(type: String) -> bool:
 	return bool(unlocked_types.get(type, false))
+
+func set_district(district_id: String) -> void:
+	if district_id == current_district_id or district_id == "":
+		return
+	current_district_id = district_id
+	district_changed.emit(district_id)
 
 func unlock_colors() -> void:
 	colors_unlocked = true

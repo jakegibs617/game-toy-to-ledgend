@@ -76,7 +76,8 @@ func _writer_text() -> String:
 			TerritoryManager.summary_text(String(district_id))])
 	lines.append("")
 	if MissionManager.chain_done:
-		lines.append("Notes: the Mill Yard knows your name. Canal Side is next.")
+		lines.append("Notes: %s" % String(
+			MissionManager.current_chain().get("completeMessage", "the city knows your name.")))
 	else:
 		var mission := MissionManager.current_mission()
 		var objective := MissionManager.current_objective()

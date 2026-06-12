@@ -38,6 +38,10 @@ func _ready() -> void:
 	WallManager.wall_painted.connect(_on_wall_painted)
 	HeatManager.heat_changed.connect(func(_heat: float, _gained: float) -> void:
 		_sync_guard_count())
+	# Milestone 18: patrols belong to a block. Crossing districts swaps
+	# the active guard set for the new block's routes, quietly.
+	GameState.district_changed.connect(func(_district_id: String) -> void:
+		_respawn_for_district())
 
 ## Called by the district scene once the player exists.
 func spawn_patrols(parent: Node3D, player: Player) -> void:
@@ -55,7 +59,24 @@ func guards() -> Array[PatrolGuard]:
 ## Plan.md section 12: higher heat causes more patrols.
 func guards_for_level(level: String) -> int:
 	var per_level: Dictionary = config.get("guardsPerLevel", {})
-	return mini(int(per_level.get(level, 1)), _routes.size())
+	return mini(int(per_level.get(level, 1)), _current_routes().size())
+
+## Routes belonging to the player's current district (Milestone 18).
+func _current_routes() -> Array:
+	var result: Array = []
+	for route in _routes:
+		if String(route.get("districtId", "district_mill_yard")) == GameState.current_district_id:
+			result.append(route)
+	return result
+
+## District switch: clear every guard (chasing or not — they don't
+## follow across the water) and respawn from the new block's routes.
+func _respawn_for_district() -> void:
+	for guard in _guards:
+		if is_instance_valid(guard):
+			guard.queue_free()
+	_guards.clear()
+	_sync_guard_count(true)
 
 ## A guard reached the player: dock rep, confiscate paint, and settle
 ## heat — they moved you along, the incident is closed. Public so tests
@@ -116,13 +137,14 @@ func _maybe_lookout_warning() -> void:
 ## Keeps the live guard count matched to the heat level, spawning onto
 ## routes round-robin and despawning idle guards first when cooling.
 func _sync_guard_count(quiet := false) -> void:
-	if _parent == null or not is_instance_valid(_parent) or _routes.is_empty():
+	var routes := _current_routes()
+	if _parent == null or not is_instance_valid(_parent) or routes.is_empty():
 		return
 	var target := guards_for_level(HeatManager.level_name())
 	var grew := _guards.size() < target
 	while _guards.size() < target:
 		var guard := PatrolGuard.new()
-		guard.setup(_routes[_guards.size() % _routes.size()], config)
+		guard.setup(routes[_guards.size() % routes.size()], config)
 		_parent.add_child(guard)
 		_guards.append(guard)
 	var shrank := false

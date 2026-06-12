@@ -24,13 +24,13 @@ extends a section.
 
 | Autoload | File | Owns |
 |---|---|---|
-| GameState | Scripts/Data/game_state.gd | Alias, rep, rank, paint, cash, selected type, unlocked types, fill palette, input map |
+| GameState | Scripts/Data/game_state.gd | Alias, rep, rank, paint, cash, selected type, unlocked types, fill palette, current district, input map |
 | WallManager | Scripts/Walls/wall_manager.gd | Wall defs/styles JSON, wall spawning, **wall_states** (the world's memory), player/rival/buff paint paths, rep formula |
 | RivalManager | Scripts/Rivals/rival_manager.gd | Rival crews, initial territory, retaliation queue, cross-outs |
 | CrewManager | Scripts/Crew/crew_manager.gd | NPC spawning, recruitment stages, crew roles (lookout bonus) |
 | TerritoryManager | Scripts/Territory/territory_manager.gd | Per-district influence shares, claim threshold/bonus |
-| HeatManager | Scripts/Heat/heat_manager.gd | Heat value/levels, rep multiplier, decay tick, city cleanup (buffing) |
-| MissionManager | Scripts/Missions/mission_manager.gd | Mission chain from Data/missions.json, world actors/zones, `notify_actor` |
+| HeatManager | Scripts/Heat/heat_manager.gd | Per-district heat (`heat` reads the player's block), levels, rep multiplier, decay tick (absent blocks cool 2×), city cleanup (buffing) |
+| MissionManager | Scripts/Missions/mission_manager.gd | Mission **chains** from Data/missions.json (triggered in order, e.g. enter_district), world actors/zones, `notify_actor` |
 | PatrolManager | Scripts/Patrols/patrol_manager.gd | Heat-scaled guard spawning, witness checks, chase/catch |
 | SupplyManager | Scripts/Supplies/supply_manager.gd | Lupe's shop catalog, owned upgrades (fat cap), paint_cost discounts, delivery runs |
 | DialogueManager | Scripts/Dialogue/dialogue_manager.gd | Choice trees from Data/dialogue.json, rank/recruit checks, one-time flags |
@@ -98,8 +98,8 @@ fields `push_error` at startup, and the smoke test asserts
 | walls.json | array of wall defs (wallId, name, position, rotationY, size, color, risk, visibility, districtId, surfaceType, ownerCrewId) | WallManager |
 | graffiti_styles.json | dict type → {label, baseValue, paintCost, heatValue, colors; optional: surfaces[] (surface rule), requiresCrew, exposure (patrol witness range ×), notes/lockedHint (blackbook)} | WallManager, SupplyManager, PatrolManager, HUD |
 | crews.json | rival crew defs (tag, colors, aggression, home walls) | RivalManager |
-| districts.json | array (districtId, name, claimThreshold, claimRepBonus) | TerritoryManager |
-| missions.json | {actors: [...], missions: [...]} | MissionManager |
+| districts.json | array (districtId, name, claimThreshold, claimRepBonus, payoutPerWeight, decayRep, arrival, travel) | TerritoryManager, district.gd (travel points) |
+| missions.json | {actors: [...], chains: [{chainId, trigger?, completeMessage, missions: [...]}]} | MissionManager |
 | dialogue.json | speaker → node tree | DialogueManager |
 | supplies.json | shop catalog + delivery def (items may carry unlockType) | SupplyManager |
 | patrols.json | guard counts per heat level, speeds | PatrolManager |

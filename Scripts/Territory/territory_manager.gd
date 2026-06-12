@@ -126,14 +126,19 @@ func decay_amount(district: Dictionary, player_share: float) -> int:
 
 ## The §11 loop: standing work keeps paying a trickle; letting a block
 ## slip below the claim threshold costs rep every tick. Holding
-## territory is now upkeep, not a trophy.
+## territory is now upkeep, not a trophy. Decay only bites where the
+## player has fame to lose — some standing work or a claim — so an
+## untouched district doesn't drain a new writer.
 func _on_decay_tick() -> void:
 	for district_id in districts:
 		var district: Dictionary = districts[district_id]
-		var payout := int(floor(standing_player_weight(String(district_id))
+		var weight := standing_player_weight(String(district_id))
+		var payout := int(floor(weight
 			* float(district.get("payoutPerWeight", 0.1))
 			* StatsManager.payout_multiplier()))
-		var decay := decay_amount(district, float(influence(String(district_id)).get("player", 0.0)))
+		var decay := 0
+		if weight > 0.0 or bool(district.get("claimed", false)):
+			decay = decay_amount(district, float(influence(String(district_id)).get("player", 0.0)))
 		var net := payout - decay
 		if net != 0:
 			GameState.add_reputation(maxi(net, -GameState.reputation))
