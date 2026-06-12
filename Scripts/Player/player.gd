@@ -82,7 +82,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	else:
 		# Number keys select cans by style order (modals consume these
 		# first via Hud, so this only fires with the world in focus).
-		for i in 6:
+		for i in GameState.SLOT_COUNT:
 			if event.is_action_pressed("slot_%d" % (i + 1)):
 				GameState.select_type_slot(i)
 				return

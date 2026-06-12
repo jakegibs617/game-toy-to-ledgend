@@ -18,6 +18,11 @@ const RANKS := [
 	{"name": "Block King", "min_rep": 800},
 ]
 
+## Number-key slots registered as slot_1..slot_N (Milestone 16). The
+## single source for everyone who loops them (player can selection,
+## Hud.MODAL_SLOT_ACTIONS length).
+const SLOT_COUNT := 6
+
 const FILL_COLORS := [
 	{"name": "White", "hex": "#f2f2f2"},
 	{"name": "Chrome", "hex": "#c9d4df"},
@@ -180,12 +185,8 @@ func _setup_input_actions() -> void:
 	# Generic number-key slots (Milestone 16): in the world they select
 	# cans by style order; in a modal they pick that modal's slots
 	# (shop rows, dialogue choices, blackbook pages).
-	_add_key_action("slot_1", KEY_1)
-	_add_key_action("slot_2", KEY_2)
-	_add_key_action("slot_3", KEY_3)
-	_add_key_action("slot_4", KEY_4)
-	_add_key_action("slot_5", KEY_5)
-	_add_key_action("slot_6", KEY_6)
+	for i in SLOT_COUNT:
+		_add_key_action("slot_%d" % (i + 1), (KEY_1 + i) as Key)
 	_add_key_action("cycle_color", KEY_C)
 	_add_key_action("freehand_paint", KEY_F)
 	_add_key_action("quick_save", KEY_F5)
