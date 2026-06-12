@@ -175,6 +175,7 @@ func _setup_input_actions() -> void:
 	_add_key_action("graffiti_piece", KEY_3)
 	_add_key_action("shop_delivery", KEY_4)
 	_add_key_action("cycle_color", KEY_C)
+	_add_key_action("freehand_paint", KEY_F)
 	_add_key_action("quick_save", KEY_F5)
 	_add_key_action("quick_load", KEY_F9)
 	_add_key_action("crew_menu", KEY_TAB)

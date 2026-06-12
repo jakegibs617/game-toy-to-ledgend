@@ -500,5 +500,62 @@ func _run_smoke_test() -> void:
 	assert(city_page.contains("Your name is on"))
 	blackbook.free()
 	print("SMOKE: blackbook pages — writer/styles/crew/city all read")
+
+	# Milestone 14: freehand spray painting (Plan.md sections 10 and 36
+	# Could-Have). The canvas model works off-tree: spray it in code,
+	# commit through WallManager, and prove the image survives save/load.
+	var freehand = preload("res://Scripts/UI/freehand_panel.gd").new()
+	var fh_wall: PaintableWall = WallManager.wall_nodes["wall_bodega_01"]
+	freehand.begin(fh_wall)
+	var canvas: Image = freehand.image
+	assert(canvas != null and canvas.get_width() > 0)
+	for i in 60:
+		freehand.spray_at(Vector2(
+			(i % 10 + 0.5) / 10.0 * canvas.get_width(),
+			(floorf(i / 10.0) + 0.5) / 6.0 * canvas.get_height()))
+	GameState.cycle_fill_color()
+	for i in 20:
+		freehand.spray_at(Vector2(canvas.get_width() * 0.5, canvas.get_height() * 0.5))
+	var art: Dictionary = freehand.result()
+	freehand.free()
+	assert(int(art["colors_used"]) == 2)
+	assert(float(art["coverage"]) > 0.2)
+	var style_mult: float = WallManager.freehand_style_multiplier(
+		int(art["colors_used"]), float(art["coverage"]))
+	assert(style_mult > 1.0)  # two colors + real coverage beats a stock piece
+	var plain_piece: int = WallManager._reputation_for(
+		WallManager.styles["piece"], fh_wall.def)
+	var paint_before_fh: int = GameState.paint
+	var rep_before_fh: int = GameState.reputation
+	var fh_result: Dictionary = WallManager.paint_freehand(
+		fh_wall, art["image"], int(art["colors_used"]), float(art["coverage"]))
+	assert(fh_result["ok"])
+	assert(int(fh_result["rep"]) == int(round(plain_piece * style_mult)))
+	assert(GameState.paint == paint_before_fh - SupplyManager.paint_cost(WallManager.styles["piece"]))
+	assert(GameState.reputation == rep_before_fh + int(fh_result["rep"]))
+	var fh_state: Dictionary = WallManager.wall_states["wall_bodega_01"]
+	assert(fh_state["state"] == "player_piece")
+	assert(fh_state["ownerCrewId"] == "player")
+	assert(fh_state["currentGraffiti"]["freehand"])
+	assert(String(fh_state["currentGraffiti"]["image"]) != "")
+	# The sprayed image survives the save/load round trip and decodes.
+	assert(SaveManager.quick_save())
+	assert(WallManager.buff_wall("wall_bodega_01"))
+	assert(fh_state["currentGraffiti"] == null)
+	assert(SaveManager.quick_load())
+	fh_state = WallManager.wall_states["wall_bodega_01"]
+	assert(fh_state["currentGraffiti"]["freehand"])
+	var decoded := Image.new()
+	assert(decoded.load_png_from_buffer(Marshalls.base64_to_raw(
+		String(fh_state["currentGraffiti"]["image"]))) == OK)
+	assert(decoded.get_width() == canvas.get_width())
+	# Repainting archives the freehand work without its image payload —
+	# walls remember (Plan.md section 9), saves don't bloat.
+	result = WallManager.paint_wall(WallManager.wall_nodes["wall_bodega_01"], "tag")
+	assert(result["ok"])
+	assert(fh_state["history"][-1].get("freehand", false))
+	assert(not fh_state["history"][-1].has("image"))
+	print("SMOKE: freehand piece — style x%.2f, +%d rep, image survives save/load" % [
+		style_mult, int(fh_result["rep"])])
 	print("SMOKE: OK")
 	get_tree().quit()

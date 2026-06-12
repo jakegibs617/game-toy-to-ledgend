@@ -5,6 +5,7 @@ extends CharacterBody3D
 
 signal focus_changed(node: Node3D)
 signal painted(result: Dictionary)
+signal freehand_requested(wall: PaintableWall)
 
 const WALK_SPEED := 4.0
 const RUN_SPEED := 7.5
@@ -73,6 +74,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	elif event.is_action_pressed("interact"):
 		_try_interact()
+	elif event.is_action_pressed("freehand_paint"):
+		if _focused is PaintableWall:
+			freehand_requested.emit(_focused)
 	elif event.is_action_pressed("graffiti_tag"):
 		GameState.select_graffiti_type("tag")
 	elif event.is_action_pressed("graffiti_throwup"):
