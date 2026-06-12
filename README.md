@@ -185,8 +185,7 @@ All wall, style, crew, and NPC content is data-driven from `/Data`
 All Plan.md §35 milestones are in, and the §36 "Should-Have" list is
 complete: Heat/City Cleanup, security patrols, supply economy,
 dialogue, and the blackbook UI. From the §36 "Could-Have" list,
-freehand spray painting is in (Milestone 14); what remains is the rest
-of that list (battles, train painting, rooftop climbing, gallery
-missions, procedural graffiti, crowd reactions) — deliberately out of
-prototype scope per Plan.md §47.
-# game-toy-to-ledgend
+freehand spray painting is in (Milestone 14) and rooftop climbing is
+in (Milestone 19); what remains is the rest of that list (battles,
+train painting, gallery missions, procedural graffiti, crowd reactions)
+— deliberately out of prototype scope per Plan.md §47.
