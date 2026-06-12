@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-06-12 — Player character: Kronako Iconz rooster
+
+First real character art replaces the debug capsule.
+
+- **Neon rooster GLB** (`Assets/Characters/neon_rooster.glb`, ~10k
+  tris, textured): instantiated at runtime in `player.gd`
+  (`_build_visual`), scaled to the 1.8 m capsule collider, rotated
+  180° (glTF +Z forward → Godot -Z).
+- Falls back to the old debug capsule when the GLB import is
+  unavailable (fresh checkouts before an editor / `--import` run), so
+  headless smoke runs never hard-fail on a missing import.
+- Smoke test: `_smoke_player_model` — exactly one visual child, and
+  the rooster whenever the import resolves.
+- No save schema change; collision/movement untouched.
+
 ## 2026-06-12 — Milestone 19: Rooftop Climbing (Plan_v2.md Should-Have)
 
 The high ground opens up — and the risk moves into the climb.

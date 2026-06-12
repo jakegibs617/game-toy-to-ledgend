@@ -206,6 +206,7 @@ func _run_smoke_test() -> void:
 	_smoke_canal_side()
 	_smoke_rooftop_climbing()
 	_smoke_history_cap()
+	_smoke_player_model()
 	print("SMOKE: OK")
 	get_tree().quit()
 
@@ -963,3 +964,16 @@ func _smoke_history_cap() -> void:
 	assert(state["history"].size() == WallManager.MAX_WALL_HISTORY)
 	assert(state["history"][-1]["type"] == "tag")  # newest entry survived
 	print("SMOKE: wall history capped at %d entries" % WallManager.MAX_WALL_HISTORY)
+
+## Assumes: player exists. The Kronako Iconz rooster GLB replaces the
+## debug capsule; player.gd falls back to the capsule when the import
+## is unavailable (fresh checkouts before an editor/--import run), so
+## assert the visual that the import state implies.
+func _smoke_player_model() -> void:
+	var player := _smoke_player()
+	var has_model := player.get_node_or_null("CharacterModel") != null
+	var has_capsule := player.get_node_or_null("CapsuleFallback") != null
+	assert(has_model != has_capsule)  # exactly one visual
+	if ResourceLoader.exists(Player.MODEL_PATH):
+		assert(has_model)
+	print("SMOKE: player visual = %s" % ("rooster model" if has_model else "capsule fallback"))

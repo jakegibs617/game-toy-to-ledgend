@@ -11,7 +11,7 @@ the code is actually organized before starting any milestone.
 
 ---
 
-# 1. Where v1 Landed
+# 1. Where the Project Stands
 
 All 14 v1 milestones are complete (PRs #1–#7): the §35 vertical slice,
 the entire §36 Should-Have list (heat, patrols, supply economy,
@@ -19,28 +19,42 @@ dialogue, blackbook), and the first Could-Have (freehand spray
 painting, Milestone 14). The §46 success criteria are testable today:
 paint, get crossed out, resupply, recruit, reclaim, claim the block.
 
-## Designed in v1, not yet built
+v2 is now partly built. Milestones 15–19 are complete (PRs #9–#13):
+engineering hardening, the full graffiti type set, stats/perks/rep
+decay, Canal Side, and rooftop climbing. PR #14 adds the first real
+player character art, the Kronako Iconz neon rooster GLB, without
+changing gameplay or save data.
+
+The playable loop is currently: start in Mill Yard, learn the core
+mission chain, recruit Moth, unlock throw-ups/pieces/stencils/rollers/
+murals, claim Mill Yard, travel to Canal Side, push back Ghost Line,
+level Style/Stealth/Hustle through use, choose perks on rank-up, climb
+to rooftop roller spots, and escape grounded security by taking the
+high ground.
+
+## Designed in v1, not yet built or only minimally represented
 
 | v1 design | Section | Status |
 |---|---|---|
-| Graffiti types: mural, stencil, roller/blockbuster | §8 | Only tag/throw-up/piece exist |
-| Player stats (Style, Nerve, Speed, Stealth, Influence, Technique, Hustle) | §6 | None — progression is rep-only |
-| Perk trees (Style/Stealth/Crew/Territory/Supplies) | §7 | None |
-| XP sources separate from rep | §5 | Rep is the only currency of progress |
-| Reputation decay / visibility-over-time value | §11 | Rep only ever goes up (minus patrol fines) |
-| Public rep vs crew rep split | §11 | Single rep number |
+| Graffiti types: mural, stencil, roller/blockbuster | §8 | Built in Milestone 16; train-scale blockbuster use is still future-facing |
+| Player stats (Style, Nerve, Speed, Stealth, Influence, Technique, Hustle) | §6 | Style/Stealth/Hustle subset built in Milestone 17 |
+| Perk trees (Style/Stealth/Crew/Territory/Supplies) | §7 | Minimal chooser built in Milestone 17; not a full tree editor |
+| XP sources separate from rep | §5 | Built for Style/Stealth/Hustle in Milestone 17 |
+| Reputation decay / visibility-over-time value | §11 | Built as district payout/decay in Milestone 17; train pass-through rep remains Milestone 20 |
+| Public rep vs crew rep split | §11 | Single rep number until gallery tension in Milestone 21 |
 | Battle systems (graffiti/dance/rap) | §20 | None |
 | Safehouse features (blackbook table, crew board, planning map) | §22 | Safehouse is a bare mission zone |
-| Districts beyond Mill Yard (Canal Side, Train Yard, Rooftop Row, …) | §45 | One district, one map |
-| Crew members Rico "Caps" (filler), Jay "Metro" (getaway) + 5 unused roles | §14, §43 | Only Moth (lookout) |
+| Districts beyond Mill Yard (Canal Side, Train Yard, Rooftop Row, …) | §45 | Canal Side is built; Train Yard/Rooftop Row remain future |
+| Crew members Rico "Caps" (filler), Jay "Metro" (getaway) + 5 unused roles | §14, §43 | Only Moth (lookout); murals currently need any recruited crew |
 | Alias selection / main menu | §38, §40 | Hardcoded "NOVA", boots straight into the district |
 | Controller support | §37 | Keyboard/mouse only |
 | Gallery contact / art-world faction | §18, §43 | None |
+| Player presentation | §28, §40 | Neon rooster GLB replaces the debug capsule; animation still placeholder |
 
 ## Remaining v1 Could-Have list
 
 Dance battles, rap battles, gallery missions, procedural graffiti,
-rooftop climbing, train painting, dynamic NPC crowd reactions.
+train painting, dynamic NPC crowd reactions.
 
 ---
 
@@ -57,10 +71,11 @@ kind of writer you are → your name moves without you.**
 
 ---
 
-# 3. Engineering Recommendations (do these first)
+# 3. Engineering Recommendations
 
 Findings from building milestones 8–14. None block gameplay today;
-all get more expensive every milestone they wait.
+all were addressed by Milestone 15 and should stay true as guardrails
+for future work.
 
 ## 3.1 HUD modal manager
 
@@ -72,12 +87,16 @@ small modal stack: one `open_modal(panel)` that closes the current
 one, one input dispatch to whatever is open. The
 `MODAL_SLOT_ACTIONS` number-key convention already points this way.
 
+**Status:** complete in Milestone 15 via HUD's modal registry.
+
 ## 3.2 Shared UI helpers
 
 `_make_label` and the StyleBoxFlat panel recipe are copy-pasted in
 `hud.gd`, `blackbook_panel.gd`, and `freehand_panel.gd` with drifting
 margins. Extract a `Scripts/UI/ui_kit.gd` (static funcs, preloaded —
 see the class-cache rule in CLAUDE.md) before a 4th copy appears.
+
+**Status:** complete in Milestone 15 via `Scripts/UI/ui_kit.gd`.
 
 ## 3.3 Split the smoke test
 
@@ -88,6 +107,9 @@ per-system check functions (`_smoke_walls()`, `_smoke_heat()`, …)
 called in sequence, each documenting the state it assumes. Same
 SMOKE_TEST=1 entry point.
 
+**Status:** complete in Milestone 15; later milestones add their own
+`_smoke_*` sections.
+
 ## 3.4 Unify the player paint paths
 
 `paint_wall` and `paint_freehand` share the commit tail
@@ -96,12 +118,18 @@ unlock/spend/buff-bonus head. A perk that discounts paint or boosts
 buff retaliation (§7) would need editing both. Extract the head
 before stats/perks (Milestone 17) multiply the call sites.
 
+**Status:** complete in Milestone 15 via
+`WallManager._begin_player_paint`.
+
 ## 3.5 Cap wall history
 
 History entries no longer carry freehand images (PR #7), but the
 array itself is unbounded and deep-copied on every quick_save. Cap at
 ~20 entries per wall (drop oldest). Walls remember (§9) — they don't
 need to remember everything forever.
+
+**Status:** complete in Milestone 15 with
+`WallManager.MAX_WALL_HISTORY = 20`.
 
 ## 3.6 Data validation on load
 
@@ -111,6 +139,9 @@ typo'd wall def fails silently into a 4×3 gray box. Add a
 fields at startup — content work in v2 (new districts, new types)
 multiplies the JSON surface area.
 
+**Status:** complete in Milestone 15 via `DataLoader.require_fields`;
+the smoke test asserts clean shipped data.
+
 ## 3.7 Save migration
 
 `SaveManager` already writes `version: 1` and refuses newer saves.
@@ -118,6 +149,10 @@ v2 will change the schema (stats, second district, new wall fields).
 Keep the discipline: bump SAVE_VERSION when the shape changes, and
 add per-version migration (or an explicit "save too old" message) so
 mid-demo saves don't break.
+
+**Status:** active discipline. Milestone 17 bumped to save v2 for
+stats/perks, and Milestone 18 bumped to save v3 for per-district heat
+and mission chains.
 
 ---
 
@@ -128,13 +163,13 @@ CLAUDE.md (branch → implement → smoke test additions → PR → review →
 fixes → merge). Order matters: 15 unblocks cheap UI/content work,
 16–18 are the demo's spine, 19–21 are the signature features.
 
-## Milestone 15: Engineering Hardening
+## Milestone 15: Engineering Hardening — Complete
 
 All of §3 above. No new gameplay. Deliverable: identical smoke-test
 behavior (now split per system), modal manager, ui_kit, unified paint
 path, history cap, data validation, no regressions in a windowed run.
 
-## Milestone 16: Full Graffiti Type Set (§8)
+## Milestone 16: Full Graffiti Type Set (§8) — Complete
 
 * Stencil: cheap, fast, low rep, needs a bought stencil item (shop).
 * Roller/blockbuster: high rep, big paint cost, only on `rooftop`
@@ -144,7 +179,7 @@ path, history cap, data validation, no regressions in a windowed run.
 * Wall defs gain `surfaceType` + allowed-types rules; prompt and
   blackbook Styles page updated; rivals may use the new types.
 
-## Milestone 17: Progression Depth (§5, §6, §7, §11)
+## Milestone 17: Progression Depth (§5, §6, §7, §11) — Complete
 
 * A 3-stat subset: **Style** (rep multiplier), **Stealth** (witness
   radius/heat), **Hustle** (prices, delivery pay). Stats raise by
@@ -155,7 +190,11 @@ path, history cap, data validation, no regressions in a windowed run.
   buffed work stops paying. Makes territory defense a real loop.
 * Save version bump + migration.
 
-## Milestone 18: Second District (§45)
+**Status:** complete. The implemented subset is Style, Stealth, and
+Hustle with use-based XP, perk choices, district payout/decay, and save
+v2 migration.
+
+## Milestone 18: Second District (§45) — Complete
 
 * Canal Side: new wall set, own crew presence (Ghost Line territory),
   own mini mission chain (3 missions), travel point between districts.
@@ -163,7 +202,7 @@ path, history cap, data validation, no regressions in a windowed run.
   district already supports this (`districts.json` is an array).
 * Per-district heat (cool down by leaving the block — §12).
 
-## Milestone 19: Rooftop Climbing (Could-Have)
+## Milestone 19: Rooftop Climbing (Could-Have) — Complete
 
 * Ledge-grab + climb zones on the existing graybox buildings; reach
   rooftop-only roller spots from Milestone 16.
@@ -171,7 +210,17 @@ path, history cap, data validation, no regressions in a windowed run.
   caught-equivalent fine).
 * Unlocks Rooftop Row district later — don't build that district yet.
 
-## Milestone 20: Train Painting (Could-Have — the signature moment)
+**Status:** complete for climb zones, rooftop roller access, fall rep
+penalties, and guards giving up from below. Rooftop Row remains future.
+
+## Current Non-Milestone Presentation Update — Complete
+
+The debug capsule has been replaced by the Kronako Iconz neon rooster
+GLB. `player.gd` loads it at runtime, keeps the existing movement and
+collision, and falls back to the capsule if Godot import metadata has
+not been generated yet.
+
+## Milestone 20: Train Painting (Could-Have — the signature moment) — Next
 
 * Train Yard area in/adjacent to Canal Side; trains on a schedule.
 * Painting a stopped train = timed window, high heat.
@@ -197,7 +246,7 @@ path, history cap, data validation, no regressions in a windowed run.
 ## Milestone 23: Presentation Pass
 
 * Main menu + alias selection (replaces hardcoded NOVA — §40 opening).
-* Placeholder character model/animation over the capsule; music loop
+* Animation/presentation pass on the rooster player model; music loop
   + per-district ambience (§28); controller bindings (§37).
 * This is the "make the demo feel like a game" milestone — keep it
   last so systems stay the priority (§47 agent rule 2).
@@ -206,13 +255,17 @@ path, history cap, data validation, no regressions in a windowed run.
 
 # 5. v2 Priorities
 
-## Must-Have (demo blocks without these)
+## Complete Demo Spine
 
 Milestones 15, 16, 17, 18.
 
-## Should-Have
+## Complete Should-Have
 
-Milestones 19, 20, 21.
+Milestone 19.
+
+## Next Should-Have
+
+Milestones 20, 21.
 
 ## Could-Have
 
