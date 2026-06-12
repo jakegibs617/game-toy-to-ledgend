@@ -55,6 +55,11 @@ func show_graffiti(graffiti: Dictionary) -> void:
 	holder.rotation_degrees = Vector3(0, 0, rng.randf_range(-3.5, 3.5))
 	_graffiti_anchor.add_child(holder)
 
+	# Freehand work (Milestone 14) is the player's actual sprayed image;
+	# falls through to the placeholder rendering if the image is bad.
+	if graffiti.get("freehand", false) and _show_freehand(holder, graffiti):
+		return
+
 	var fill := Color(String(graffiti.get("fillColor", "#ffffff")))
 	var outline := Color(String(graffiti.get("outlineColor", "#000000")))
 	var label := Label3D.new()
@@ -135,6 +140,26 @@ func show_buff() -> void:
 		_add_panel(holder, Vector2(
 			float(size[0]) * rng.randf_range(0.45, 0.68),
 			float(size[1]) * rng.randf_range(0.35, 0.55)), patch, 0.0)
+
+## The player's sprayed PNG (stored base64 in the wall state so it
+## survives save/load) on a quad sized to the wall face. Returns false
+## on a bad image so show_graffiti can fall back to placeholder art.
+func _show_freehand(parent: Node3D, graffiti: Dictionary) -> bool:
+	var image := Image.new()
+	var bytes := Marshalls.base64_to_raw(String(graffiti.get("image", "")))
+	if bytes.is_empty() or image.load_png_from_buffer(bytes) != OK:
+		return false
+	var quad := QuadMesh.new()
+	quad.size = _panel_size(0.92, 0.85)
+	var mesh := MeshInstance3D.new()
+	mesh.mesh = quad
+	var mat := StandardMaterial3D.new()
+	mat.albedo_texture = ImageTexture.create_from_image(image)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mesh.material_override = mat
+	parent.add_child(mesh)
+	return true
 
 ## Filled quad behind the letters (throw-up halo / piece background).
 func _add_panel(parent: Node3D, panel_size: Vector2, color: Color, z_offset: float) -> void:

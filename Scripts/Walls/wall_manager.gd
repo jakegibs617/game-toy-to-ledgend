@@ -74,6 +74,40 @@ func paint_wall(wall: PaintableWall, type: String) -> Dictionary:
 	var rep := _reputation_for(style, def)
 	if String(state.get("state", "")) == "buffed":
 		rep = int(round(rep * BUFF_RETALIATION_BONUS))
+	var graffiti := _player_graffiti(def, type, style, rep)
+	_commit_player_graffiti(wall, state, graffiti)
+	return {"ok": true, "rep": rep, "graffiti": graffiti}
+
+## Freehand spray painting (Plan.md section 10 "Later Advanced System"):
+## commits a player-drawn image as a piece. The hand-made work earns a
+## style multiplier (Plan.md section 11) from canvas coverage and the
+## number of colors used — a lazy scribble pays less than a full burner.
+func paint_freehand(wall: PaintableWall, image: Image,
+		colors_used: int, coverage: float) -> Dictionary:
+	if not GameState.is_type_unlocked("piece"):
+		return {"ok": false, "reason": "Freehand work needs the Piece can unlocked."}
+	var style: Dictionary = styles.get("piece", {})
+	if not GameState.try_spend_paint(SupplyManager.paint_cost(style)):
+		return {"ok": false, "reason": "Not enough paint."}
+	var def := wall.def
+	var state: Dictionary = wall_states[def["wallId"]]
+	var style_mult := freehand_style_multiplier(colors_used, coverage)
+	var rep := int(round(_reputation_for(style, def) * style_mult))
+	if String(state.get("state", "")) == "buffed":
+		rep = int(round(rep * BUFF_RETALIATION_BONUS))
+	var graffiti := _player_graffiti(def, "piece", style, rep)
+	graffiti["freehand"] = true
+	graffiti["image"] = Marshalls.raw_to_base64(image.save_png_to_buffer())
+	graffiti["styleMultiplier"] = style_mult
+	_commit_player_graffiti(wall, state, graffiti)
+	return {"ok": true, "rep": rep, "styleMultiplier": style_mult, "graffiti": graffiti}
+
+## Style multiplier for hand-drawn work: filling the wall and mixing
+## colors pays up to 2x a stock piece; a few stray dots pay half.
+func freehand_style_multiplier(colors_used: int, coverage: float) -> float:
+	return clampf(0.5 + coverage * 1.2 + 0.15 * (colors_used - 1), 0.5, 2.0)
+
+func _player_graffiti(def: Dictionary, type: String, style: Dictionary, rep: int) -> Dictionary:
 	var graffiti := {
 		"graffitiId": "graffiti_%03d" % _next_graffiti_id,
 		"creatorId": "player",
@@ -88,16 +122,18 @@ func paint_wall(wall: PaintableWall, type: String) -> Dictionary:
 		"isBuffed": false,
 	}
 	_next_graffiti_id += 1
+	return graffiti
+
+func _commit_player_graffiti(wall: PaintableWall, state: Dictionary, graffiti: Dictionary) -> void:
 	if state["currentGraffiti"] != null:
 		state["history"].append(state["currentGraffiti"])
 	state["currentGraffiti"] = graffiti
 	state["ownerCrewId"] = "player"
-	state["state"] = "player_" + type
+	state["state"] = "player_" + String(graffiti["type"])
 	state.erase("crossOut")
-	GameState.add_reputation(rep)
+	GameState.add_reputation(int(graffiti["repValue"]))
 	wall.show_graffiti(graffiti)
-	wall_painted.emit(def["wallId"], graffiti)
-	return {"ok": true, "rep": rep, "graffiti": graffiti}
+	wall_painted.emit(String(graffiti["wallId"]), graffiti)
 
 ## A rival crew paints over whatever is on the wall (Plan.md section 13
 ## "cover weak graffiti" / initial territory claims).

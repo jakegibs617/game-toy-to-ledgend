@@ -34,7 +34,8 @@ SMOKE_TEST=1 /Applications/Godot.app/Contents/MacOS/Godot --headless --path .
 | E | Paint focused wall / talk / shop / pick up (in a conversation: walk away) |
 | 1 / 2 / 3 | Select Tag / Throw-up / Piece (in shop: buy; in dialogue: choose) |
 | 4 | (in Lupe's shop) Take a delivery run · (in dialogue) choice 4 |
-| C | Cycle fill color after Lupe unlocks colors |
+| C | Cycle fill color after Lupe unlocks colors (also in the freehand canvas) |
+| F | Freehand piece on the focused wall (needs the Piece can): hold LMB to spray, E/Enter commit, Esc bail |
 | F5 | Quick save |
 | F9 | Quick load |
 | Tab | Blackbook (1-4 flip pages: Writer / Styles / Crew / The City) |
@@ -146,6 +147,16 @@ prompt appears at the bottom of the screen, then press E.
   restores player position, reputation/rank/paint/unlocks, wall
   ownership/history/cross-outs, crew recruitment stages, claimed
   territory, and mission progress.
+- **FreehandPanel** (`Scripts/UI/freehand_panel.gd`, Milestone 14) —
+  freehand spray painting (Plan.md §10 "Later Advanced System", first
+  §36 Could-Have). F at a wall opens a canvas sized to the wall face;
+  hold LMB to spray (speckled spray-can stamps), C cycles the fill
+  palette, E/Enter commits, Esc bails. The committed image is a piece:
+  costs piece paint, earns piece rep scaled by a style multiplier
+  (0.5x–2x) from canvas coverage and colors used, renders on the wall
+  as a textured quad, and persists through save/load as base64 PNG in
+  the wall state. Rivals, heat, patrols, missions, and territory all
+  react like any other piece.
 
 All wall, style, crew, and NPC content is data-driven from `/Data`
 (agent rule 3).
@@ -154,7 +165,9 @@ All wall, style, crew, and NPC content is data-driven from `/Data`
 
 All Plan.md §35 milestones are in, and the §36 "Should-Have" list is
 complete: Heat/City Cleanup, security patrols, supply economy,
-dialogue, and the blackbook UI. What remains is §36 "Could-Have"
-territory (freehand painting, battles, train painting, rooftop
-climbing) — deliberately out of prototype scope per Plan.md §47.
+dialogue, and the blackbook UI. From the §36 "Could-Have" list,
+freehand spray painting is in (Milestone 14); what remains is the rest
+of that list (battles, train painting, rooftop climbing, gallery
+missions, procedural graffiti, crowd reactions) — deliberately out of
+prototype scope per Plan.md §47.
 # game-toy-to-ledgend

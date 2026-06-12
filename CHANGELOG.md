@@ -1,5 +1,40 @@
 # Changelog
 
+## 2026-06-11 — Freehand Spray Painting (Plan.md §10, §36 Could-Have)
+
+First "Could-Have" feature from Plan.md §36, promoted from §10's
+"Later Advanced System" list now that the Should-Have list is done.
+
+- New `FreehandPanel` (`Scripts/UI/freehand_panel.gd`): pressing F at
+  a paintable wall (once the Piece can is unlocked) opens a spray
+  canvas sized to the wall face. Hold LMB to spray — speckled,
+  falloff-weighted stamps that build to solid color on repeated
+  passes — C cycles the fill palette, E/Enter commits, Esc bails.
+  The painting model (image, coverage grid, colors-used set) lives
+  apart from the UI nodes so the headless smoke test can drive it
+  off-tree.
+- `WallManager.paint_freehand`: commits the drawn image as a piece —
+  piece paint cost, piece heat — with a style multiplier (Plan.md §11
+  "Style multiplier", 0.5x–2x) computed from canvas coverage and the
+  number of colors used: a lazy scribble pays half a stock piece, a
+  multi-color burner pays double. Buff retaliation bonus still
+  applies. The shared player-commit tail (history, ownership, rep,
+  signal) is now one helper used by both paint paths, and the commit
+  emits the same `wall_painted` signal, so rivals, heat, patrols,
+  missions, territory, and SFX all react like any other piece.
+- `PaintableWall` renders freehand work as the player's actual sprayed
+  image on a wall-sized quad (alpha-transparent, unshaded), falling
+  back to placeholder art if the stored image is bad. The image is
+  stored as base64 PNG inside the wall state, so it survives quick
+  save/load and scene re-entry with zero SaveManager changes.
+- HUD: wall prompt advertises `[F] Freehand` once pieces are unlocked;
+  opening the canvas releases the mouse and closes the other modals;
+  the commit toast shows the style multiplier earned.
+- Smoke test extended: sprays a two-color piece off-tree, checks the
+  coverage/color counting, asserts the rep payout equals the plain
+  piece value times the style multiplier, and round-trips the sprayed
+  PNG through save/load.
+
 ## 2026-06-11 — Blackbook UI (Plan.md §23)
 
 Fifth and final post-slice "Should-Have" system from Plan.md §36 — the

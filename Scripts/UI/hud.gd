@@ -13,6 +13,7 @@ const MODAL_SLOT_ACTIONS := ["graffiti_tag", "graffiti_throwup", "graffiti_piece
 ## Preloaded like MissionManager's zone scripts: the global class cache
 ## isn't rebuilt on fresh headless runs, so class_name lookups can fail.
 const BlackbookPanelScript := preload("res://Scripts/UI/blackbook_panel.gd")
+const FreehandPanelScript := preload("res://Scripts/UI/freehand_panel.gd")
 const HEAT_COLORS := {
 	"Cold": Color.WHITE,
 	"Low": Color("#ffd23f"),
@@ -40,7 +41,9 @@ var _prompt_label: Label
 var _message_label: Label
 var _message_timer: Timer
 var _blackbook  # BlackbookPanelScript instance (untyped: see preload note)
+var _freehand  # FreehandPanelScript instance (untyped: see preload note)
 var _map_panel: MapPanel
+var _freehand_wall: PaintableWall = null
 var _focused: Node3D = null
 var _rank_index := 0
 
@@ -91,7 +94,7 @@ func _ready() -> void:
 	_prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
 	var hint := _make_label(root, 13, Color(1, 1, 1, 0.55))
-	hint.text = "WASD move · Shift run · Space jump · E interact · 1/2/3 can · C color · Tab blackbook · M map · F5 save · F9 load"
+	hint.text = "WASD move · Shift run · Space jump · E interact · 1/2/3 can · C color · F freehand · Tab blackbook · M map · F5 save · F9 load"
 	hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, 10)
 	hint.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	hint.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -106,6 +109,13 @@ func _ready() -> void:
 	_blackbook.set_anchors_preset(Control.PRESET_CENTER)
 	_blackbook.visible = false
 	root.add_child(_blackbook)
+
+	_freehand = FreehandPanelScript.new()
+	_freehand.set_anchors_preset(Control.PRESET_CENTER)
+	_freehand.visible = false
+	_freehand.committed.connect(_on_freehand_committed)
+	_freehand.cancelled.connect(_close_freehand)
+	root.add_child(_freehand)
 
 	_shop_panel = _make_panel(Color("#e0a030"))
 	_shop_panel.set_anchors_preset(Control.PRESET_CENTER)
@@ -169,12 +179,16 @@ func _ready() -> void:
 func bind_player(player: Player) -> void:
 	player.focus_changed.connect(_on_focus_changed)
 	player.painted.connect(_on_painted)
+	player.freehand_requested.connect(_on_freehand_requested)
 	_map_panel.bind_player(player)
 
 func _unhandled_input(event: InputEvent) -> void:
 	# While a conversation or the shop is open, the number keys answer
 	# or buy instead of switching cans, so consume everything those
 	# modals handle before the player controller sees the event.
+	if _freehand.visible and _freehand.handle_input(event):
+		get_viewport().set_input_as_handled()
+		return
 	if DialogueManager.is_active() and _handle_dialogue_input(event):
 		get_viewport().set_input_as_handled()
 		return
@@ -335,6 +349,45 @@ func _on_focus_changed(node: Node3D) -> void:
 	_focused = node
 	_refresh_prompt()
 
+## Milestone 14: F at a wall opens the freehand canvas. The paint check
+## here is a courtesy — the real spend happens at commit.
+func _on_freehand_requested(wall: PaintableWall) -> void:
+	if not GameState.is_type_unlocked("piece"):
+		Sfx.play("denied")
+		_show_message("Freehand work needs the Piece can unlocked.")
+		return
+	if GameState.paint < SupplyManager.paint_cost(WallManager.styles.get("piece", {})):
+		Sfx.play("denied")
+		_show_message("Not enough paint.")
+		return
+	SupplyManager.close_shop()
+	DialogueManager.end_dialogue()
+	_blackbook.visible = false
+	_map_panel.visible = false
+	_freehand.begin(wall)
+	_freehand.visible = true
+	_freehand_wall = wall
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+
+func _on_freehand_committed(image: Image, colors_used: int, coverage: float) -> void:
+	var wall := _freehand_wall
+	_close_freehand()
+	if wall == null:
+		return
+	var result: Dictionary = WallManager.paint_freehand(wall, image, colors_used, coverage)
+	if result.get("ok", false):
+		_show_message("Painted!  +%d rep (style x%.1f)" % [
+			int(result["rep"]), float(result["styleMultiplier"])], 4.0)
+	else:
+		Sfx.play("denied")
+		_show_message(String(result.get("reason", "Can't paint here.")))
+	_refresh_prompt()
+
+func _close_freehand() -> void:
+	_freehand.visible = false
+	_freehand_wall = null
+	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+
 func _on_painted(result: Dictionary) -> void:
 	if result.get("ok", false):
 		_show_message("Painted!  +%d rep" % int(result["rep"]))
@@ -354,10 +407,12 @@ func _refresh_prompt() -> void:
 		var state: Dictionary = WallManager.wall_states.get(def["wallId"], {})
 		var owner_id: String = state.get("ownerCrewId", "none")
 		var style: Dictionary = WallManager.styles.get(GameState.selected_graffiti_type, {})
-		_prompt_label.text = "%s  |  Owner: %s  |  Risk %d  |  Visibility %d\n[E] Paint %s (%d paint)   [1] Tag  [2] Throw-up  [3] Piece" % [
+		var freehand_hint := "  [F] Freehand" if GameState.is_type_unlocked("piece") else ""
+		_prompt_label.text = "%s  |  Owner: %s  |  Risk %d  |  Visibility %d\n[E] Paint %s (%d paint)   [1] Tag  [2] Throw-up  [3] Piece%s" % [
 			_focused.display_name(), owner_id,
 			int(def.get("risk", 1)), int(def.get("visibility", 1)),
 			style.get("label", "?"), SupplyManager.paint_cost(style),
+			freehand_hint,
 		]
 	elif _focused.has_method("prompt_text"):
 		_prompt_label.text = _focused.prompt_text()
