@@ -40,6 +40,19 @@
         0,
         6.5
       ],
+      "visuals": {
+        "containerName": "LupeRatModel",
+        "sourceHeight": 1.7,
+        "rotationY": 180,
+        "initialState": "idle_02",
+        "states": {
+          "idle": {"model": "res://Assets/Characters/lupe_rat_idle.glb", "clip": "Armature|clip0|baselayer"},
+          "idle_02": {"model": "res://Assets/Characters/lupe_rat_idle_02.glb", "clip": "Armature|Idle_02|baselayer"},
+          "walk": {"model": "res://Assets/Characters/lupe_rat_walking.glb", "clip": "Armature|walking_man|baselayer"},
+          "run": {"model": "res://Assets/Characters/lupe_rat_running.glb", "clip": "Armature|running|baselayer"},
+          "alert": {"model": "res://Assets/Characters/lupe_rat_alert_turn_right.glb", "clip": "Armature|Alert_Quick_Turn_Right|baselayer"}
+        }
+      },
       "shop": true,
       "dialogueId": "lupe",
       "dialogue": {
@@ -57,6 +70,19 @@
         0,
         6.5
       ],
+      "visuals": {
+        "containerName": "PrimeGoriModel",
+        "sourceHeight": 1.7,
+        "rotationY": 180,
+        "initialState": "listening",
+        "states": {
+          "idle": {"model": "res://Assets/Characters/prime_gori_idle.glb", "clip": "Armature|clip0|baselayer"},
+          "idle_02": {"model": "res://Assets/Characters/prime_gori_idle_02.glb", "clip": "Armature|Idle_02|baselayer"},
+          "listening": {"model": "res://Assets/Characters/prime_gori_listening.glb", "clip": "Armature|Listening_Gesture|baselayer"},
+          "walk": {"model": "res://Assets/Characters/prime_gori_walking.glb", "clip": "Armature|walking_man|baselayer"},
+          "run": {"model": "res://Assets/Characters/prime_gori_running.glb", "clip": "Armature|running|baselayer"}
+        }
+      },
       "dialogueId": "prime"
     },
     {

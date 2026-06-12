@@ -3,15 +3,6 @@ extends StaticBody3D
 ## A recruitable NPC, built at runtime from Data/npc_data.json.
 ## The player's interaction ray focuses it; E talks via CrewManager.
 
-const LOOKOUT_IDLE_MODEL_PATH := "res://Assets/Characters/lookout_meerkat_idle.glb"
-const LOOKOUT_WALK_MODEL_PATH := "res://Assets/Characters/lookout_meerkat_walking.glb"
-const LOOKOUT_RUN_MODEL_PATH := "res://Assets/Characters/lookout_meerkat_running.glb"
-const LOOKOUT_ALERT_MODEL_PATH := "res://Assets/Characters/lookout_meerkat_alert.glb"
-const LOOKOUT_MODEL_SOURCE_HEIGHT := 1.7
-const LOOKOUT_IDLE_ANIMATION_NAME := "Armature|clip0|baselayer"
-const LOOKOUT_WALK_ANIMATION_NAME := "Armature|walking_man|baselayer"
-const LOOKOUT_RUN_ANIMATION_NAME := "Armature|running|baselayer"
-const LOOKOUT_ALERT_ANIMATION_NAME := "Armature|Alert|baselayer"
 const AnimatedModelSet := preload("res://Scripts/Characters/animated_model_set.gd")
 
 var data: Dictionary = {}
@@ -61,7 +52,7 @@ func _build_character() -> void:
 	_visual_root = Node3D.new()
 	_visual_root.name = "CharacterVisual"
 	add_child(_visual_root)
-	if String(data.get("role", "")) == "lookout" and _try_build_lookout_model():
+	if _try_build_data_visual():
 		return
 	_build_capsule_character()
 
@@ -101,39 +92,16 @@ func _build_capsule_character() -> void:
 	hood.material_override = hood_mat
 	_visual_root.add_child(hood)
 
-func _try_build_lookout_model() -> bool:
-	if not ResourceLoader.exists(LOOKOUT_IDLE_MODEL_PATH):
+func _try_build_data_visual() -> bool:
+	var visuals: Dictionary = data.get("visuals", {})
+	if visuals.is_empty():
 		return false
-	var model_root := Node3D.new()
-	model_root.name = "LookoutMeerkatModel"
-	_apply_lookout_model_transform(model_root)
-	_visual_root.add_child(model_root)
-	var built := false
-	built = _add_animated_model(
-		model_root, LOOKOUT_IDLE_MODEL_PATH, "idle", LOOKOUT_IDLE_ANIMATION_NAME) or built
-	built = _add_animated_model(
-		model_root, LOOKOUT_WALK_MODEL_PATH, "walk", LOOKOUT_WALK_ANIMATION_NAME) or built
-	built = _add_animated_model(
-		model_root, LOOKOUT_RUN_MODEL_PATH, "run", LOOKOUT_RUN_ANIMATION_NAME) or built
-	built = _add_animated_model(
-		model_root, LOOKOUT_ALERT_MODEL_PATH, "alert", LOOKOUT_ALERT_ANIMATION_NAME) or built
-	if not built:
-		model_root.queue_free()
+	var model_root := AnimatedModelSet.build_from_manifest(_visual_root, visuals,
+		_visual_models, _visual_animation_players, _visual_animation_names)
+	if model_root == null:
 		return false
-	_set_visual_state("idle")
+	_set_visual_state(String(visuals.get("initialState", "idle")))
 	return true
-
-func _add_animated_model(container: Node3D, path: String,
-		visual_state: String, preferred_animation: String) -> bool:
-	return AnimatedModelSet.add_animated_model(container, path, visual_state,
-		preferred_animation, _visual_models, _visual_animation_players,
-		_visual_animation_names)
-
-func _apply_lookout_model_transform(model: Node3D) -> void:
-	var s := 1.7 / LOOKOUT_MODEL_SOURCE_HEIGHT
-	model.scale = Vector3.ONE * s
-	model.position = Vector3.ZERO
-	model.rotation.y = PI
 
 func _set_visual_state(visual_state: String) -> void:
 	if _visual_animation_players.is_empty():

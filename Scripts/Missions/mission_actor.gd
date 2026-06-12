@@ -5,28 +5,6 @@ extends StaticBody3D
 ## placeholder look as Npc; E reports to MissionManager, falling back
 ## to an idle line when no objective wants this actor.
 
-const LUPE_IDLE_MODEL_PATH := "res://Assets/Characters/lupe_rat_idle.glb"
-const LUPE_IDLE_02_MODEL_PATH := "res://Assets/Characters/lupe_rat_idle_02.glb"
-const LUPE_WALK_MODEL_PATH := "res://Assets/Characters/lupe_rat_walking.glb"
-const LUPE_RUN_MODEL_PATH := "res://Assets/Characters/lupe_rat_running.glb"
-const LUPE_ALERT_MODEL_PATH := "res://Assets/Characters/lupe_rat_alert_turn_right.glb"
-const LUPE_MODEL_SOURCE_HEIGHT := 1.7
-const LUPE_IDLE_ANIMATION_NAME := "Armature|clip0|baselayer"
-const LUPE_IDLE_02_ANIMATION_NAME := "Armature|Idle_02|baselayer"
-const LUPE_WALK_ANIMATION_NAME := "Armature|walking_man|baselayer"
-const LUPE_RUN_ANIMATION_NAME := "Armature|running|baselayer"
-const LUPE_ALERT_ANIMATION_NAME := "Armature|Alert_Quick_Turn_Right|baselayer"
-const PRIME_IDLE_MODEL_PATH := "res://Assets/Characters/prime_gori_idle.glb"
-const PRIME_IDLE_02_MODEL_PATH := "res://Assets/Characters/prime_gori_idle_02.glb"
-const PRIME_LISTENING_MODEL_PATH := "res://Assets/Characters/prime_gori_listening.glb"
-const PRIME_WALK_MODEL_PATH := "res://Assets/Characters/prime_gori_walking.glb"
-const PRIME_RUN_MODEL_PATH := "res://Assets/Characters/prime_gori_running.glb"
-const PRIME_MODEL_SOURCE_HEIGHT := 1.7
-const PRIME_IDLE_ANIMATION_NAME := "Armature|clip0|baselayer"
-const PRIME_IDLE_02_ANIMATION_NAME := "Armature|Idle_02|baselayer"
-const PRIME_LISTENING_ANIMATION_NAME := "Armature|Listening_Gesture|baselayer"
-const PRIME_WALK_ANIMATION_NAME := "Armature|walking_man|baselayer"
-const PRIME_RUN_ANIMATION_NAME := "Armature|running|baselayer"
 const AnimatedModelSet := preload("res://Scripts/Characters/animated_model_set.gd")
 
 var data: Dictionary = {}
@@ -43,11 +21,12 @@ func setup(actor_data: Dictionary) -> void:
 	var pos: Array = data.get("position", [0, 0, 0])
 	position = Vector3(pos[0], pos[1], pos[2])
 
-	var actor_id := String(data.get("actorId", ""))
-	if actor_id == "lupe" and _try_build_lupe_model():
-		_build_shop_props()
-	elif actor_id == "prime" and _try_build_prime_model():
-		_build_prime_props()
+	if _try_build_data_visual():
+		var actor_id := String(data.get("actorId", ""))
+		if actor_id == "lupe":
+			_build_shop_props()
+		elif actor_id == "prime":
+			_build_prime_props()
 	else:
 		_build_capsule_visual()
 	_build_collision()
@@ -99,63 +78,16 @@ func _build_label() -> void:
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	add_child(label)
 
-func _try_build_lupe_model() -> bool:
-	if not ResourceLoader.exists(LUPE_IDLE_MODEL_PATH):
+func _try_build_data_visual() -> bool:
+	var visuals: Dictionary = data.get("visuals", {})
+	if visuals.is_empty():
 		return false
-	var container := Node3D.new()
-	container.name = "LupeRatModel"
-	_apply_model_transform(container, LUPE_MODEL_SOURCE_HEIGHT)
-	var built := false
-	built = _add_animated_model(
-		container, LUPE_IDLE_MODEL_PATH, "idle", LUPE_IDLE_ANIMATION_NAME) or built
-	built = _add_animated_model(
-		container, LUPE_IDLE_02_MODEL_PATH, "idle_02", LUPE_IDLE_02_ANIMATION_NAME) or built
-	built = _add_animated_model(
-		container, LUPE_WALK_MODEL_PATH, "walk", LUPE_WALK_ANIMATION_NAME) or built
-	built = _add_animated_model(
-		container, LUPE_RUN_MODEL_PATH, "run", LUPE_RUN_ANIMATION_NAME) or built
-	built = _add_animated_model(
-		container, LUPE_ALERT_MODEL_PATH, "alert", LUPE_ALERT_ANIMATION_NAME) or built
-	if not built:
+	var container := AnimatedModelSet.build_from_manifest(self, visuals,
+		_visual_models, _visual_animation_players, _visual_animation_names)
+	if container == null:
 		return false
-	add_child(container)
-	_set_visual_state("idle_02")
+	_set_visual_state(String(visuals.get("initialState", "idle")))
 	return true
-
-func _try_build_prime_model() -> bool:
-	if not ResourceLoader.exists(PRIME_IDLE_MODEL_PATH):
-		return false
-	var container := Node3D.new()
-	container.name = "PrimeGoriModel"
-	_apply_model_transform(container, PRIME_MODEL_SOURCE_HEIGHT)
-	var built := false
-	built = _add_animated_model(
-		container, PRIME_IDLE_MODEL_PATH, "idle", PRIME_IDLE_ANIMATION_NAME) or built
-	built = _add_animated_model(
-		container, PRIME_IDLE_02_MODEL_PATH, "idle_02", PRIME_IDLE_02_ANIMATION_NAME) or built
-	built = _add_animated_model(
-		container, PRIME_LISTENING_MODEL_PATH, "listening", PRIME_LISTENING_ANIMATION_NAME) or built
-	built = _add_animated_model(
-		container, PRIME_WALK_MODEL_PATH, "walk", PRIME_WALK_ANIMATION_NAME) or built
-	built = _add_animated_model(
-		container, PRIME_RUN_MODEL_PATH, "run", PRIME_RUN_ANIMATION_NAME) or built
-	if not built:
-		return false
-	add_child(container)
-	_set_visual_state("listening")
-	return true
-
-func _add_animated_model(container: Node3D, path: String,
-		visual_state: String, preferred_animation: String) -> bool:
-	return AnimatedModelSet.add_animated_model(container, path, visual_state,
-		preferred_animation, _visual_models, _visual_animation_players,
-		_visual_animation_names)
-
-func _apply_model_transform(model: Node3D, source_height: float) -> void:
-	var s := 1.7 / source_height
-	model.scale = Vector3.ONE * s
-	model.position = Vector3.ZERO
-	model.rotation.y = PI
 
 func _set_visual_state(visual_state: String) -> void:
 	if _visual_animation_players.is_empty():

@@ -108,6 +108,41 @@ func paint_freehand(wall: PaintableWall, image: Image,
 	_commit_player_graffiti(wall, start["state"], graffiti)
 	return {"ok": true, "rep": start["rep"], "styleMultiplier": style_mult, "graffiti": graffiti}
 
+## Crew assist path (Milestone 22): recruited fillers can throw quick
+## crew-backed throw-ups onto held territory. It still routes through
+## WallManager and emits wall_painted so territory updates, but the
+## creator is the member, not "player", so heat/XP/missions don't treat
+## passive fill-ins as direct player paints.
+func apply_crew_graffiti(wall_id: String, member: Dictionary, type := "throwup") -> Dictionary:
+	if not wall_states.has(wall_id) or not wall_nodes.has(wall_id):
+		return {"ok": false, "reason": "Unknown wall."}
+	var style: Dictionary = styles.get(type, {})
+	if style.is_empty():
+		return {"ok": false, "reason": "Unknown graffiti type."}
+	var graffiti := {
+		"graffitiId": "graffiti_%03d" % _next_graffiti_id,
+		"creatorId": String(member.get("memberId", "crew")),
+		"crewId": "player_crew",
+		"wallId": wall_id,
+		"type": type,
+		"alias": String(member.get("alias", GameState.alias)),
+		"fillColor": member.get("color", style.get("fillColor", "#ffffff")),
+		"outlineColor": style.get("outlineColor", "#000000"),
+		"repValue": 0,
+		"isCrossedOut": false,
+		"isBuffed": false,
+	}
+	_next_graffiti_id += 1
+	var state: Dictionary = wall_states[wall_id]
+	_archive_current(state)
+	state["currentGraffiti"] = graffiti
+	state["ownerCrewId"] = "player"
+	state["state"] = "player_" + type
+	state.erase("crossOut")
+	wall_nodes[wall_id].show_graffiti(graffiti)
+	wall_painted.emit(wall_id, graffiti)
+	return {"ok": true, "graffiti": graffiti}
+
 ## The shared head of every player paint path (Plan_v2.md §3.4): unlock
 ## check, paint spend, and the rep payout including the buff-retaliation
 ## bonus. A perk that discounts paint or boosts retaliation pay (Plan.md

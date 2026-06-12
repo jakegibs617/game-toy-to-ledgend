@@ -58,7 +58,8 @@ paint a stopped car with E before it rolls out; painted cars pass
 through both districts on the schedule and keep paying visibility rep.
 Once you're Known, Vesper the gallery scout appears by the Canal Side
 dry dock: sell her freehand canvases for cash and public rep — and
-watch your crew rep pay the price.
+watch your crew rep pay the price. At the safehouse, E on the crew
+board opens the blackbook's Crew page.
 
 The player character is the Kronako Iconz neon rooster. `player.gd`
 prefers the animated action set in `Assets/Characters/`: idle, walk,
@@ -107,11 +108,14 @@ static rooster GLB, then the old debug capsule.
   tags or low-rank work get **"TOY"** crossed out, stronger work gets
   covered by the crew's own graffiti. Repainting reclaims the wall.
 - **CrewManager** (autoload, `Scripts/Crew/crew_manager.gd`,
-  Milestone 5) — loads `Data/npc_data.json`. Mina "Moth" waits near
-  the corner store; recover her blackbook from the north alley and she
-  joins as your Lookout (Plan.md §14): rivals back off more often
-  (response chance ×0.6) and she warns you when a crew is about to hit
-  one of your walls. The blackbook's Crew page (Tab) tracks her status.
+  Milestones 5 and 22) — loads `Data/npc_data.json`. Mina "Moth"
+  joins as your Lookout (rivals back off more often and she warns you
+  about patrols/retaliation), Rico "Caps" joins as your Filler
+  (auto-fills throw-ups on a few open/non-player walls in claimed
+  territory), and Jay "Metro" joins as your Getaway (one free escape
+  per heat level before normal security penalties apply). The
+  blackbook's Crew page and the safehouse crew board track their
+  status.
 - **TerritoryManager** (autoload, `Scripts/Territory/territory_manager.gd`,
   Milestone 6) — loads `Data/districts.json` and scores district
   influence (Plan.md §24): every wall contributes its visibility as
@@ -206,8 +210,8 @@ static rooster GLB, then the old debug capsule.
   through recruiting and crew-backed murals, and goes negative when
   the street decides you sold out. Sales persist in save v5.
 
-Wall, style, crew, NPC, district, climb, train, and gallery content is
-data-driven from `/Data` (agent rule 3).
+Wall, style, crew, NPC, character-visual manifest, district, climb,
+train, and gallery content is data-driven from `/Data` (agent rule 3).
 
 ## Not built yet (by design — Plan.md §47)
 
@@ -216,6 +220,7 @@ complete: Heat/City Cleanup, security patrols, supply economy,
 dialogue, and the blackbook UI. From the §36 "Could-Have" list,
 freehand spray painting is in (Milestone 14), rooftop climbing is in
 (Milestone 19), train painting is in (Milestone 20), and gallery
-missions are in (Milestone 21); what remains is the rest of that list
+missions are in (Milestone 21). Crew depth is in (Milestone 22) with
+Caps and Metro; what remains is the rest of that list
 (battles, procedural graffiti, crowd reactions) — deliberately out of
 prototype scope per Plan.md §47.

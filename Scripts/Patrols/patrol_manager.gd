@@ -82,6 +82,12 @@ func _respawn_for_district() -> void:
 ## heat — they moved you along, the incident is closed. Public so tests
 ## and scripted beats can trigger a catch deterministically.
 func resolve_catch(guard: PatrolGuard) -> void:
+	var heat_level := HeatManager.level_name()
+	if CrewManager.try_getaway_escape(heat_level):
+		guard.end_chase()
+		chase_escaped.emit()
+		patrol_event.emit("Metro ghosts you through a service route — no fine this time.")
+		return
 	guard.end_chase()
 	var rep_loss := mini(int(config.get("caughtRepPenalty", 25)), GameState.reputation)
 	if rep_loss > 0:

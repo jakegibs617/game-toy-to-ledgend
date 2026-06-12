@@ -13,6 +13,18 @@
     "missionDescription": "Recover her blackbook from the north alley.",
     "color": "#b48ee0",
     "position": [-13, 0, 6],
+    "visuals": {
+      "containerName": "LookoutMeerkatModel",
+      "sourceHeight": 1.7,
+      "rotationY": 180,
+      "initialState": "idle",
+      "states": {
+        "idle": {"model": "res://Assets/Characters/lookout_meerkat_idle.glb", "clip": "Armature|clip0|baselayer"},
+        "walk": {"model": "res://Assets/Characters/lookout_meerkat_walking.glb", "clip": "Armature|walking_man|baselayer"},
+        "run": {"model": "res://Assets/Characters/lookout_meerkat_running.glb", "clip": "Armature|running|baselayer"},
+        "alert": {"model": "res://Assets/Characters/lookout_meerkat_alert.glb", "clip": "Armature|Alert|baselayer"}
+      }
+    },
     "dialogueId": "moth",
     "dialogue": {
       "meet": "I'm Moth. Ghost Line lifted my blackbook — years of outlines in there. They stashed it in the north alley. Get it back and I'll be your lookout.",
@@ -24,6 +36,84 @@
       "name": "Moth's Blackbook",
       "position": [0, 0.6, -15],
       "color": "#3b2f4a"
+    }
+  },
+  {
+    "memberId": "npc_rico_caps",
+    "name": "Rico",
+    "alias": "Caps",
+    "role": "filler",
+    "roleLabel": "Filler",
+    "loyalty": 45,
+    "style": 6,
+    "specialAbility": "auto_throwups",
+    "autoFillCount": 2,
+    "bonusDescription": "Assists murals and auto-fills throw-ups on open walls in claimed territory.",
+    "hint": "Sketching fat letters by the loading dock.",
+    "missionDescription": "Recover his cap case from the train siding.",
+    "color": "#46d9c7",
+    "position": [5.5, 0, -5.8],
+    "visuals": {
+      "containerName": "RicoCapsModel",
+      "sourceHeight": 1.7,
+      "rotationY": 180,
+      "initialState": "idle_02",
+      "states": {
+        "idle": {"model": "res://Assets/Characters/prime_gori_idle.glb", "clip": "Armature|clip0|baselayer"},
+        "idle_02": {"model": "res://Assets/Characters/prime_gori_idle_02.glb", "clip": "Armature|Idle_02|baselayer"},
+        "walk": {"model": "res://Assets/Characters/prime_gori_walking.glb", "clip": "Armature|walking_man|baselayer"},
+        "run": {"model": "res://Assets/Characters/prime_gori_running.glb", "clip": "Armature|running|baselayer"}
+      }
+    },
+    "dialogueId": "rico",
+    "dialogue": {
+      "meet": "Call me Caps. City's sitting on my cap case by the train siding. Get that back and I'll fatten your fills wherever you hold ground.",
+      "active": "My caps are still out by the siding. Chrome boys won't use 'em right anyway.",
+      "recovered": "That's the case. Say less — your walls need weight, and I got the hand for it.",
+      "recruited": "Point me at a held block and I'll make the empty spots look claimed."
+    },
+    "item": {
+      "name": "Caps' Cap Case",
+      "position": [144, 0.6, -6.2],
+      "color": "#46d9c7"
+    }
+  },
+  {
+    "memberId": "npc_jay_metro",
+    "name": "Jay",
+    "alias": "Metro",
+    "role": "getaway",
+    "roleLabel": "Getaway",
+    "loyalty": 40,
+    "style": 3,
+    "specialAbility": "free_escape",
+    "bonusDescription": "Calls one free escape per heat level before security can dock your rep or paint.",
+    "hint": "Leans on the footbridge, listening for patrol radios.",
+    "missionDescription": "Recover his transit scanner from the south alley.",
+    "color": "#ffd23f",
+    "position": [54, 0, 3.5],
+    "visuals": {
+      "containerName": "JayMetroModel",
+      "sourceHeight": 1.7,
+      "rotationY": 180,
+      "initialState": "idle",
+      "states": {
+        "idle": {"model": "res://Assets/Characters/neon_rooster_character_output.glb", "clip": "Armature|clip0|baselayer"},
+        "walk": {"model": "res://Assets/Characters/neon_rooster_walking.glb", "clip": "Armature|walking_man|baselayer"},
+        "run": {"model": "res://Assets/Characters/neon_rooster_running.glb", "clip": "Armature|running|baselayer"}
+      }
+    },
+    "dialogueId": "metro",
+    "dialogue": {
+      "meet": "Metro. I run shortcuts by sound. My scanner's in the south alley — bring it back and I'll pull you out when heat turns ugly.",
+      "active": "Scanner's still south alley. Without it, I'm guessing at sirens like everybody else.",
+      "recovered": "That's my scanner. Now when heat jumps, I can hear the gap before security closes it.",
+      "recruited": "Keep moving. I got one clean route per heat level before they learn it."
+    },
+    "item": {
+      "name": "Metro's Transit Scanner",
+      "position": [18, 0.6, 14.5],
+      "color": "#ffd23f"
     }
   }
 ]
