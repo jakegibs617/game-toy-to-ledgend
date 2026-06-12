@@ -1,5 +1,40 @@
 # Changelog
 
+## 2026-06-12 — Milestone 17: Progression Depth (Plan.md §5, §6, §7, §11)
+
+Choosing what kind of writer you are. New `StatsManager` autoload
+(`Scripts/Stats/stats_manager.gd`), all numbers in `Data/stats.json` /
+`Data/perks.json`.
+
+- **Stats raise by doing** (§6): **Style** (+5% rep per level; XP from
+  every paint, by paint cost), **Stealth** (guards spot you 5% closer
+  and paint draws 5% less heat per level; XP from unwitnessed paints
+  and escaped chases via new `PatrolManager.paint_observed` /
+  `chase_escaped` signals), **Hustle** (4% cheaper shop prices and
+  +10% delivery pay per level; XP from purchases and deliveries via
+  new `SupplyManager.item_bought` / `delivery_completed` signals).
+- **Perks** (§7): one perk point per rank-up (highest-rank watermark —
+  no farming via demotion), two perks per tree across the five §7
+  trees: Clean Lines / Burner Hand (style), Soft Steps / Ghost
+  (stealth), Street Respect / Scout Network (crew — rival retaliation
+  damp), Block Pride / Deep Roots (territory), The Connect / Runner
+  (supplies). **P** opens the chooser (a modal-registry entry): one
+  option per tree at a time, so choices always fit the number keys.
+- **Reputation decay** (§11): every 36 s tick, standing player work
+  pays a trickle (`payoutPerWeight` × visibility weight) while
+  **crossed-out and buffed work pays nothing**, and any district
+  where your share is below the claim threshold cools you by
+  `decayRep`. Territory defense is now upkeep, not a trophy.
+- Save schema **v2**: new `stats` section; v1 saves migrate forward in
+  `SaveManager._migrate`.
+- Blackbook Writer page shows stat levels and perk points; shop rows
+  show discounted prices; HUD announces stat-ups, perk points, perk
+  picks, and fading districts.
+- Smoke test: `_smoke_progression` — XP earned through play, level-up
+  changes the rep math, perk gating (owned/tree-order/point spend),
+  price cut math, payout tick, crossed-out exclusion, decay branches,
+  stats save/load, v1→v2 migration.
+
 ## 2026-06-12 — Milestone 16: Full Graffiti Type Set (Plan.md §8, Plan_v2.md §4)
 
 The three missing §8 types, all data-driven from

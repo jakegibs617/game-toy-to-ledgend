@@ -8,11 +8,16 @@ extends Node
 
 signal territory_changed(district_id: String)
 signal district_claimed(district_id: String, district: Dictionary)
+signal territory_event(message: String)
 
 const DISTRICTS_PATH := "res://Data/districts.json"
 const DataLoader := preload("res://Scripts/Data/data_loader.gd")
 ## Disrespected (crossed-out) work holds only half its weight.
 const CROSSED_OUT_FACTOR := 0.5
+## Reputation decay tick (Milestone 17, Plan.md section 11 "visibility
+## over time"): every compressed in-game "day", standing work pays and
+## unattended districts cool.
+const DECAY_TICK_SECONDS := 36.0
 
 var districts: Dictionary = {}  # districtId -> definition + runtime "claimed"
 
@@ -29,6 +34,11 @@ func _ready() -> void:
 		func(wall_id: String, _graffiti: Dictionary) -> void: _on_wall_changed(wall_id))
 	WallManager.wall_crossed_out.connect(_on_wall_changed)
 	WallManager.wall_buffed.connect(_on_wall_changed)
+	var timer := Timer.new()
+	timer.wait_time = DECAY_TICK_SECONDS
+	timer.autostart = true
+	timer.timeout.connect(_on_decay_tick)
+	add_child(timer)
 
 func is_claimed(district_id: String) -> bool:
 	return bool(districts.get(district_id, {}).get("claimed", false))
@@ -90,6 +100,46 @@ func summary_text(district_id: String) -> String:
 	var status := "CLAIMED — this block is yours" if district.get("claimed", false) \
 		else "claim at %d%%" % roundi(float(district.get("claimThreshold", 0.5)) * 100)
 	return "%s   (%s)" % ["  ·  ".join(parts), status]
+
+## Visibility weight of the player's work that still pays: owned walls
+## whose graffiti stands clean. Crossed-out and buffed work stops
+## paying (Plan.md section 11) — buffed walls belong to the city again,
+## crossed-out ones are excluded here.
+func standing_player_weight(district_id: String) -> float:
+	var weight := 0.0
+	for def in WallManager.wall_defs:
+		if String(def.get("districtId", "")) != district_id:
+			continue
+		var state: Dictionary = WallManager.wall_states.get(String(def["wallId"]), {})
+		if String(state.get("ownerCrewId", "")) == "player" \
+				and String(state.get("state", "")) != "crossed_out":
+			weight += float(def.get("visibility", 1))
+	return weight
+
+## Rep lost per decay tick in a district the player doesn't dominate
+## (share below the claim threshold = "unattended"); territory perks
+## slow the fade. Pure so the smoke test can probe both branches.
+func decay_amount(district: Dictionary, player_share: float) -> int:
+	if player_share >= float(district.get("claimThreshold", 0.5)):
+		return 0
+	return roundi(float(district.get("decayRep", 4)) * StatsManager.decay_multiplier())
+
+## The §11 loop: standing work keeps paying a trickle; letting a block
+## slip below the claim threshold costs rep every tick. Holding
+## territory is now upkeep, not a trophy.
+func _on_decay_tick() -> void:
+	for district_id in districts:
+		var district: Dictionary = districts[district_id]
+		var payout := int(floor(standing_player_weight(String(district_id))
+			* float(district.get("payoutPerWeight", 0.1))
+			* StatsManager.payout_multiplier()))
+		var decay := decay_amount(district, float(influence(String(district_id)).get("player", 0.0)))
+		var net := payout - decay
+		if net != 0:
+			GameState.add_reputation(maxi(net, -GameState.reputation))
+		if decay > 0 and net < 0:
+			territory_event.emit("Your name is fading in %s — get back out there."
+				% String(district.get("name", district_id)))
 
 func _on_wall_changed(wall_id: String) -> void:
 	var district_id := String(WallManager.wall_def(wall_id).get("districtId", ""))

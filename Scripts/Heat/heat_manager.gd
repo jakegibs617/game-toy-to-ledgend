@@ -83,7 +83,9 @@ func _on_wall_painted(wall_id: String, graffiti: Dictionary) -> void:
 		return
 	var style: Dictionary = WallManager.styles.get(String(graffiti.get("type", "tag")), {})
 	var risk := float(WallManager.wall_def(wall_id).get("risk", 1))
-	add_heat(float(style.get("heatValue", 4)) * (0.5 + 0.25 * risk))
+	# Stealth stat/perks dampen the noise (Milestone 17).
+	add_heat(float(style.get("heatValue", 4)) * (0.5 + 0.25 * risk)
+		* StatsManager.heat_multiplier())
 
 func _on_tick() -> void:
 	if heat > 0.0:

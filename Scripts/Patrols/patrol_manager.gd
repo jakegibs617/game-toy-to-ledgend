@@ -10,6 +10,10 @@ extends Node
 signal patrol_event(message: String)
 signal player_spotted(guard: PatrolGuard)
 signal player_caught(guard: PatrolGuard)
+## Every player paint reports whether security witnessed it — clean
+## getaways feed the Stealth stat (Milestone 17).
+signal paint_observed(spotted: bool)
+signal chase_escaped
 
 const PATROLS_PATH := "res://Data/patrols.json"
 const DataLoader := preload("res://Scripts/Data/data_loader.gd")
@@ -69,6 +73,7 @@ func resolve_catch(guard: PatrolGuard) -> void:
 	HeatManager.settle(float(config.get("caughtHeatCeiling", 25.0)))
 
 func guard_gave_up(_guard: PatrolGuard) -> void:
+	chase_escaped.emit()
 	patrol_event.emit("You lost them. Security gave up the chase.")
 
 func _on_wall_painted(_wall_id: String, graffiti: Dictionary) -> void:
@@ -82,7 +87,9 @@ func _on_wall_painted(_wall_id: String, graffiti: Dictionary) -> void:
 		if guard.can_see(_player) \
 				or (exposure > 1.0 and guard.noticed_during(_player, exposure)):
 			_spotted(guard)
+			paint_observed.emit(true)
 			return
+	paint_observed.emit(false)
 	_maybe_lookout_warning()
 
 func _spotted(guard: PatrolGuard) -> void:

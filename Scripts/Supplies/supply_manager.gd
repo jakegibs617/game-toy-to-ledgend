@@ -9,6 +9,9 @@ extends Node
 
 signal supply_event(message: String)
 signal shop_toggled(open: bool)
+## Hustle XP sources (Milestone 17): StatsManager listens.
+signal item_bought(item_id: String)
+signal delivery_completed(cash: int)
 
 const SUPPLIES_PATH := "res://Data/supplies.json"
 const DataLoader := preload("res://Scripts/Data/data_loader.gd")
@@ -83,7 +86,7 @@ func buy(item_id: String) -> Dictionary:
 	var item_name := String(def.get("name", item_id))
 	if not def.get("repeatable", false) and is_owned(item_id):
 		return {"ok": false, "reason": "%s: you've already got one." % item_name}
-	var price := int(def.get("price", 0))
+	var price := item_price(def)
 	if not GameState.try_spend_cash(price):
 		return {"ok": false, "reason": "Not enough cash for the %s ($%d)." % [item_name, price]}
 	if def.has("paint"):
@@ -97,8 +100,13 @@ func buy(item_id: String) -> Dictionary:
 		GameState.unlock_type(String(def["unlockType"]))
 	if not def.get("repeatable", false):
 		owned[item_id] = true
+	item_bought.emit(item_id)
 	supply_event.emit("Bought %s — %s. (-$%d)" % [item_name, String(def.get("desc", "")), price])
 	return {"ok": true}
+
+## Sticker price after the Hustle stat and supply perks (Milestone 17).
+func item_price(def: Dictionary) -> int:
+	return maxi(1, roundi(int(def.get("price", 0)) * StatsManager.price_multiplier()))
 
 ## Effective paint cost of a graffiti style with owned cap upgrades
 ## applied (Plan.md section 21: caps modify spray behavior). Never
@@ -138,9 +146,11 @@ func resolve_delivery() -> void:
 	delivery_active = false
 	_active_drop = -1
 	_clear_drop_zone()
-	var cash := int(delivery.get("cash", 0))
+	# Hustle raises the pay (Milestone 17).
+	var cash := roundi(int(delivery.get("cash", 0)) * StatsManager.delivery_multiplier())
 	GameState.add_cash(cash)
 	HeatManager.add_heat(float(delivery.get("heat", 0.0)))
+	delivery_completed.emit(cash)
 	supply_event.emit("Package delivered. (+$%d) Wrong people clocked the handoff — heat's up." % cash)
 
 func save_state() -> Dictionary:

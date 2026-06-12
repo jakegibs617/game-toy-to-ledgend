@@ -14,6 +14,7 @@ const MODAL_SLOT_ACTIONS := ["slot_1", "slot_2", "slot_3", "slot_4", "slot_5", "
 ## isn't rebuilt on fresh headless runs, so class_name lookups can fail.
 const BlackbookPanelScript := preload("res://Scripts/UI/blackbook_panel.gd")
 const FreehandPanelScript := preload("res://Scripts/UI/freehand_panel.gd")
+const PerksPanelScript := preload("res://Scripts/UI/perks_panel.gd")
 const UiKit := preload("res://Scripts/UI/ui_kit.gd")
 const HEAT_COLORS := {
 	"Cold": Color.WHITE,
@@ -43,6 +44,7 @@ var _message_label: Label
 var _message_timer: Timer
 var _blackbook  # BlackbookPanelScript instance (untyped: see preload note)
 var _freehand  # FreehandPanelScript instance (untyped: see preload note)
+var _perks  # PerksPanelScript instance (untyped: see preload note)
 var _map_panel: MapPanel
 var _freehand_wall: PaintableWall = null
 var _focused: Node3D = null
@@ -99,7 +101,7 @@ func _ready() -> void:
 	_prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
 	var hint := UiKit.make_label(root, 13, Color(1, 1, 1, 0.55))
-	hint.text = "WASD move · Shift run · Space jump · E interact · 1-6 can · C color · F freehand · Tab blackbook · M map · F5 save · F9 load"
+	hint.text = "WASD move · Shift run · Space jump · E interact · 1-6 can · C color · F freehand · P perks · Tab blackbook · M map · F5 save · F9 load"
 	hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, 10)
 	hint.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	hint.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -114,6 +116,11 @@ func _ready() -> void:
 	_blackbook.set_anchors_preset(Control.PRESET_CENTER)
 	_blackbook.visible = false
 	root.add_child(_blackbook)
+
+	_perks = PerksPanelScript.new()
+	_perks.set_anchors_preset(Control.PRESET_CENTER)
+	_perks.visible = false
+	root.add_child(_perks)
 
 	_freehand = FreehandPanelScript.new()
 	_freehand.set_anchors_preset(Control.PRESET_CENTER)
@@ -170,6 +177,15 @@ func _ready() -> void:
 	PatrolManager.patrol_event.connect(_on_patrol_event)
 	CrewManager.crew_event.connect(_on_crew_event)
 	TerritoryManager.district_claimed.connect(_on_district_claimed)
+	TerritoryManager.territory_event.connect(func(message: String) -> void:
+		_show_message(message, 4.0))
+	StatsManager.perk_point_earned.connect(func(points: int) -> void:
+		_show_message("PERK POINT EARNED — press P to choose. (%d unspent)" % points, 5.0))
+	StatsManager.stat_changed.connect(func(stat: String, new_level: int) -> void:
+		_show_message("%s is now %d — it shows in your work." % [
+			String(StatsManager.stat_defs.get(stat, {}).get("label", stat)), new_level], 4.0))
+	StatsManager.perk_chosen.connect(func(perk: Dictionary) -> void:
+		_show_message("Perk learned: %s — %s" % [String(perk["name"]), String(perk["desc"])], 5.0))
 	MissionManager.mission_started.connect(_on_mission_started)
 	MissionManager.objective_changed.connect(_on_objective_changed)
 	MissionManager.mission_completed.connect(_on_mission_completed)
@@ -212,6 +228,11 @@ func _register_modals() -> void:
 			"close": func() -> void: _blackbook.visible = false,
 			"open": _open_blackbook,
 			"input": _handle_blackbook_input},
+		{"name": "perks",
+			"is_open": func() -> bool: return _perks.visible,
+			"close": func() -> void: _perks.visible = false,
+			"open": _open_perks,
+			"input": _handle_perks_input},
 		{"name": "map",
 			"is_open": func() -> bool: return _map_panel.visible,
 			"close": func() -> void: _map_panel.visible = false,
@@ -222,6 +243,10 @@ func _register_modals() -> void:
 func _open_blackbook() -> void:
 	_blackbook.visible = true
 	_blackbook.refresh()
+
+func _open_perks() -> void:
+	_perks.visible = true
+	_perks.refresh()
 
 ## Closes every open modal except `except` — the one call every
 ## opener routes through, so two modals can never stay open together.
@@ -270,6 +295,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		_toggle_modal("blackbook")
 	elif event.is_action_pressed("map"):
 		_toggle_modal("map")
+	elif event.is_action_pressed("perks"):
+		_toggle_modal("perks")
 	elif event.is_action_pressed("quick_save"):
 		SaveManager.quick_save()
 	elif event.is_action_pressed("quick_load"):
@@ -352,14 +379,16 @@ func _refresh_shop() -> void:
 		if not item.get("repeatable", false) and SupplyManager.is_owned(String(item["itemId"])):
 			status = "   [OWNED]"
 		lines.append("[%d] %s — $%d (%s)%s" % [
-			i + 1, String(item["name"]), int(item.get("price", 0)),
+			i + 1, String(item["name"]), SupplyManager.item_price(item),
 			String(item.get("desc", "")), status])
 	if not SupplyManager.delivery.is_empty():
 		var status := "   [PACKAGE OUT — make the drop]" if SupplyManager.delivery_active else ""
 		lines.append("[%d] %s — earn $%d (draws heat)%s" % [
 			SupplyManager.catalog.size() + 1,
 			String(SupplyManager.delivery.get("name", "Delivery Run")),
-			int(SupplyManager.delivery.get("cash", 0)), status])
+			# Show what the run actually pays with the Hustle stat applied.
+			roundi(int(SupplyManager.delivery.get("cash", 0)) * StatsManager.delivery_multiplier()),
+			status])
 	_shop_label.text = "\n".join(lines)
 
 func _on_cash_changed(new_cash: int) -> void:
@@ -554,6 +583,17 @@ func _refresh_mission() -> void:
 	else:
 		_mission_title_label.text = "Mission: %s" % String(mission.get("title", ""))
 		_mission_objective_label.text = String(objective.get("text", ""))
+
+## Perk chooser (Milestone 17): number keys pick a perk, Esc closes;
+## P falls through to the toggle branch.
+func _handle_perks_input(event: InputEvent) -> bool:
+	if event.is_action_pressed("toggle_mouse"):
+		_perks.visible = false
+		return true
+	for i in MODAL_SLOT_ACTIONS.size():
+		if event.is_action_pressed(MODAL_SLOT_ACTIONS[i]):
+			return _perks.choose_slot(i)
+	return false
 
 ## Blackbook reading mode (Milestone 13): number keys flip pages,
 ## Esc closes; Tab falls through to the toggle branch below.

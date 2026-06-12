@@ -3,6 +3,8 @@
     "districtId": "district_mill_yard",
     "name": "Mill Yard",
     "claimThreshold": 0.5,
-    "claimRepBonus": 150
+    "claimRepBonus": 150,
+    "payoutPerWeight": 0.1,
+    "decayRep": 4
   }
 ]

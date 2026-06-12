@@ -1,0 +1,72 @@
+{
+  "style": [
+    {
+      "perkId": "clean_lines",
+      "name": "Clean Lines",
+      "desc": "All finished work pays +10% rep.",
+      "effects": {"repBonus": 0.1}
+    },
+    {
+      "perkId": "burner_hand",
+      "name": "Burner Hand",
+      "desc": "Pieces, rollers and murals pay +15% rep.",
+      "effects": {"typeRepBonus": {"piece": 0.15, "roller": 0.15, "mural": 0.15}}
+    }
+  ],
+  "stealth": [
+    {
+      "perkId": "soft_steps",
+      "name": "Soft Steps",
+      "desc": "Painting draws 15% less heat.",
+      "effects": {"heatCut": 0.15}
+    },
+    {
+      "perkId": "ghost",
+      "name": "Ghost",
+      "desc": "Security spots you from 10% closer.",
+      "effects": {"spotCut": 0.1}
+    }
+  ],
+  "crew": [
+    {
+      "perkId": "street_respect",
+      "name": "Street Respect",
+      "desc": "Rival crews retaliate 15% less often.",
+      "effects": {"responseDamp": 0.85}
+    },
+    {
+      "perkId": "scout_network",
+      "name": "Scout Network",
+      "desc": "Word travels — rivals retaliate another 15% less often.",
+      "effects": {"responseDamp": 0.85}
+    }
+  ],
+  "territory": [
+    {
+      "perkId": "block_pride",
+      "name": "Block Pride",
+      "desc": "Standing work on your blocks pays 50% more rep over time.",
+      "effects": {"payoutBonus": 0.5}
+    },
+    {
+      "perkId": "deep_roots",
+      "name": "Deep Roots",
+      "desc": "Your name fades half as fast from unattended blocks.",
+      "effects": {"decayCut": 0.5}
+    }
+  ],
+  "supplies": [
+    {
+      "perkId": "connect",
+      "name": "The Connect",
+      "desc": "Lupe's prices drop 10%.",
+      "effects": {"shopCut": 0.1}
+    },
+    {
+      "perkId": "runner",
+      "name": "Runner",
+      "desc": "Delivery runs pay 25% more.",
+      "effects": {"deliveryBonus": 0.25}
+    }
+  ]
+}

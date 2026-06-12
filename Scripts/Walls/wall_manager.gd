@@ -38,6 +38,10 @@ func _ready() -> void:
 		DataLoader.require_fields(styles[type],
 			["label", "baseValue", "paintCost", "heatValue", "fillColor", "outlineColor"],
 			"WallManager: style \"%s\"" % String(type))
+		if styles[type] is Dictionary:
+			# Styles know their own key so consumers holding only the
+			# dict (rep multipliers, typed perks) can identify the type.
+			styles[type]["type"] = type
 
 func spawn_walls(parent: Node3D) -> void:
 	wall_nodes.clear()
@@ -286,10 +290,12 @@ func _refresh_wall_visuals() -> void:
 			wall.show_cross_out(state["crossOut"])
 
 ## Plan.md section 11: base value scaled by visibility and risk
-## multipliers, plus the current heat level — risky painting while the
-## city is watching pays more (Plan.md section 12).
+## multipliers, the current heat level — risky painting while the city
+## is watching pays more (Plan.md section 12) — and the writer's Style
+## stat + perks (Milestone 17, Plan.md section 6).
 func _reputation_for(style: Dictionary, def: Dictionary) -> int:
 	var base := float(style.get("baseValue", 10))
 	var visibility_mult := 1.0 + 0.2 * float(def.get("visibility", 1))
 	var risk_mult := 1.0 + 0.3 * float(def.get("risk", 1))
-	return int(round(base * visibility_mult * risk_mult * HeatManager.rep_multiplier()))
+	return int(round(base * visibility_mult * risk_mult * HeatManager.rep_multiplier()
+		* StatsManager.rep_multiplier(String(style.get("type", "")))))

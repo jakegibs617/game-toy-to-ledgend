@@ -39,6 +39,7 @@ SMOKE_TEST=1 /Applications/Godot.app/Contents/MacOS/Godot --headless --path .
 | 1–6 | Select can: Tag / Throw-up / Piece / Stencil / Roller / Mural (in shop: buy/delivery; in dialogue: choose; in blackbook: flip pages) |
 | C | Cycle fill color after Lupe unlocks colors (also in the freehand canvas) |
 | F | Freehand piece on the focused wall (needs the Piece can): hold LMB to spray, E/Enter commit, Esc bail |
+| P | Perk chooser (spend rank-up perk points; stats level by doing) |
 | F5 | Quick save |
 | F9 | Quick load |
 | Tab | Blackbook (1-4 flip pages: Writer / Styles / Crew / The City) |

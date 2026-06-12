@@ -155,6 +155,7 @@ func _run_smoke_test() -> void:
 	_smoke_blackbook()
 	_smoke_freehand()
 	_smoke_graffiti_types()
+	_smoke_progression()
 	_smoke_history_cap()
 	print("SMOKE: OK")
 	get_tree().quit()
@@ -706,6 +707,81 @@ func _smoke_graffiti_types() -> void:
 	assert(WallManager.wall_states["wall_corner_01"]["state"] == "rival_throwup")
 	saints["responseType"] = saved_response
 	print("SMOKE: rival surface fallback — roller response became a throw-up")
+
+## Assumes: a whole run of painting/deliveries behind us (stats earned
+## XP through use) and four rank-ups (Toy → Block King). Milestone 17
+## (Plan.md §5/§6/§7/§11): stats level by doing and change the math,
+## perks spend rank-up points (max two per tree), standing work pays
+## over time while crossed-out work doesn't, unattended districts cool,
+## and the save schema bumps to v2 with migration.
+func _smoke_progression() -> void:
+	# Stats grew through use, not through a menu.
+	assert(StatsManager.xp_for("style") > 0)
+	assert(StatsManager.xp_for("stealth") > 0)
+	assert(StatsManager.xp_for("hustle") > 0)
+	# A Style level-up raises the rep math.
+	var def := WallManager.wall_def("wall_lot_01")
+	var tag_style: Dictionary = WallManager.styles["tag"]
+	var level_before := StatsManager.level("style")
+	var rep_plain: int = WallManager._reputation_for(tag_style, def)
+	StatsManager.add_xp("style", int(StatsManager.stat_defs["style"]["xpPerLevel"]))
+	assert(StatsManager.level("style") == level_before + 1)
+	assert(WallManager._reputation_for(tag_style, def) > rep_plain)
+	# Four rank-ups banked four perk points; one option per tree.
+	assert(StatsManager.perk_points == 4)
+	var options: Array = StatsManager.choosable_perks()
+	assert(options.size() == 5)
+	# Street Respect dampens rival retaliation.
+	var chance_before := RivalManager.response_chance("wall_mill_02", "buff_kings")
+	assert(StatsManager.choose_perk("street_respect"))
+	assert(RivalManager.response_chance("wall_mill_02", "buff_kings") < chance_before)
+	assert(not StatsManager.choose_perk("street_respect"))  # already owned
+	assert(not StatsManager.choose_perk("burner_hand"))  # tree's first perk unpicked
+	# The Connect cuts Lupe's prices (12 -> 11 on the paint pack).
+	assert(StatsManager.choose_perk("connect"))
+	assert(StatsManager.perk_points == 2)
+	var cash_before: int = GameState.cash
+	assert(SupplyManager.buy("paint_pack")["ok"])
+	assert(cash_before - GameState.cash == 11)
+	# The perks panel reads pure state — drive it off-tree like the
+	# other modal models.
+	var perks_panel = preload("res://Scripts/UI/perks_panel.gd").new()
+	var perks_text: String = perks_panel.page_text()
+	assert(perks_text.contains("Street Respect") and perks_text.contains("The Connect"))
+	assert(perks_text.contains("Style %d" % StatsManager.level("style")))
+	perks_panel.free()
+	# §11 visibility over time: standing work pays a trickle each tick…
+	var district_id := "district_mill_yard"
+	var district: Dictionary = TerritoryManager.districts[district_id]
+	assert(TerritoryManager.standing_player_weight(district_id) > 0.0)
+	var rep_before_tick: int = GameState.reputation
+	TerritoryManager._on_decay_tick()
+	assert(GameState.reputation > rep_before_tick)
+	# …crossed-out work stops paying…
+	var weight_before := TerritoryManager.standing_player_weight(district_id)
+	WallManager.cross_out_wall("wall_lot_01", RivalManager.crews["buff_kings"])
+	assert(TerritoryManager.standing_player_weight(district_id) < weight_before)
+	# …and unattended districts cool (pure decay math, both branches).
+	assert(TerritoryManager.decay_amount(district, 0.1) > 0)
+	assert(TerritoryManager.decay_amount(district, 0.9) == 0)
+	print("SMOKE: stats/perks/decay — style +1 level, 2 perks chosen, block pays")
+
+	# Progression survives save/load, and v1 saves migrate forward.
+	assert(SaveManager.SAVE_VERSION == 2)
+	assert(SaveManager.quick_save())
+	var saved_xp: int = StatsManager.xp_for("style")
+	var saved_points: int = StatsManager.perk_points
+	StatsManager.xp["style"] = 0
+	StatsManager.perk_points = 0
+	StatsManager.perks_owned.clear()
+	assert(SaveManager.quick_load())
+	assert(StatsManager.xp_for("style") == saved_xp)
+	assert(StatsManager.perk_points == saved_points)
+	assert(StatsManager.owns_perk("street_respect") and StatsManager.owns_perk("connect"))
+	var migrated: Dictionary = SaveManager._migrate({"version": 1})
+	assert(int(migrated["version"]) == 2)
+	assert(migrated.has("stats"))
+	print("SMOKE: progression survives save/load; v1 saves migrate to v2")
 
 ## Assumes: nothing beyond a paintable wall. Plan_v2.md §3.5: wall
 ## history is capped — repainting past the cap drops the oldest
