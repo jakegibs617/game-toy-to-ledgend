@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-06-12 — Milestone 24: World Render & Data Hardening (Plan_v2.md)
+
+World hardening pass before adding more districts.
+
+- `district.gd` now reuses cached `StandardMaterial3D` instances for
+  repeated generated world details and common solid/noisy surfaces,
+  reducing one-off material churn from street props, rails, litter,
+  drains, sidewalks, and graybox surfaces without changing visuals.
+- Player fallback interactable selection now checks line of sight with
+  a physics ray before focusing nearby `interactable` group nodes, so
+  pickups/zones are no longer selected through thin geometry.
+- Milestone 22 already landed the data-driven character `visuals`
+  manifests requested by this milestone; this pass keeps that status
+  documented as complete.
+- Smoke test adds `_smoke_world_hardening` for material-cache reuse and
+  occluded interactable LOS.
+
 ## 2026-06-12 — Milestone 23: Presentation Pass (Plan_v2.md)
 
 The demo now opens like a game instead of dropping straight into the

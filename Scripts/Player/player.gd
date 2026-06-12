@@ -288,10 +288,20 @@ func _nearest_interactable() -> Node3D:
 		if not (node is Node3D) or not is_instance_valid(node):
 			continue
 		var dist := global_position.distance_squared_to(node.global_position)
-		if dist <= max_dist_sq and dist < best_dist:
+		if dist <= max_dist_sq and dist < best_dist and _has_line_of_sight(node):
 			best_dist = dist
 			best = node
 	return best
+
+func _has_line_of_sight(node: Node3D) -> bool:
+	var exclude: Array[RID] = [get_rid()]
+	if node is CollisionObject3D:
+		exclude.append((node as CollisionObject3D).get_rid())
+	var query := PhysicsRayQueryParameters3D.create(
+		global_position + Vector3(0, 1.0, 0),
+		node.global_position + Vector3(0, 0.6, 0),
+		0xFFFFFFFF, exclude)
+	return get_world_3d().direct_space_state.intersect_ray(query).is_empty()
 
 func _try_interact() -> void:
 	if _focused == null:

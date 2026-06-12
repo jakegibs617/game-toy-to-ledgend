@@ -100,7 +100,8 @@ static rooster GLB, then the old debug capsule.
 - **Player** (`Scripts/Player/player.gd`) — third-person controller with
   spring-arm camera, raycast wall focusing, and a runtime-loaded
   rooster animation state table for idle/walk/backpedal/run/jump/climb
-  movement.
+  movement. The fallback nearby-interactable search is line-of-sight
+  checked so pickups/zones cannot be focused through walls.
 - **HUD** (`Scripts/UI/hud.gd`) — styled stat/mission/prompt panels,
   feedback messages, rank-up notice, rival event notifications, a
   low-paint warning, and a controls hint (Milestone 8 UI pass).
@@ -220,6 +221,8 @@ static rooster GLB, then the old debug capsule.
   the street decides you sold out. Sales persist in save v5.
 Wall, style, crew, NPC, character-visual manifest, district, climb,
 train, and gallery content is data-driven from `/Data` (agent rule 3).
+Generated world props share cached materials where their look matches,
+keeping the two-district demo cheaper to render as more detail is added.
 
 ## Not built yet (by design — Plan.md §47)
 
@@ -231,6 +234,8 @@ freehand spray painting is in (Milestone 14), rooftop climbing is in
 missions are in (Milestone 21). Crew depth is in (Milestone 22) with
 Caps and Metro, and the presentation pass is in (Milestone 23) with
 alias/title flow, controller bindings, ambience, and rooster idle
-polish; what remains is the rest of that list
+polish. World/data hardening is in (Milestone 24) with cached generated
+materials, JSON character visual manifests, and interactable line of
+sight; what remains is the rest of that list
 (battles, procedural graffiti, crowd reactions) — deliberately out of
 prototype scope per Plan.md §47.

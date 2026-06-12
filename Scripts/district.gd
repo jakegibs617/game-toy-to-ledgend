@@ -9,6 +9,8 @@ const DataLoader := preload("res://Scripts/Data/data_loader.gd")
 const TravelPointScript := preload("res://Scripts/World/travel_point.gd")
 const ClimbZoneScript := preload("res://Scripts/World/climb_zone.gd")
 
+var _material_cache: Dictionary = {}
+
 func _ready() -> void:
 	_build_environment()
 	_add_box(Vector3(0, -0.25, 0), Vector3(80, 0.5, 80), Color("#303236"),
@@ -93,9 +95,7 @@ func _add_street_lamp(pos: Vector3) -> void:
 	pole_mesh.size = Vector3(0.15, 4.2, 0.15)
 	pole.mesh = pole_mesh
 	pole.position = Vector3(0, 2.1, 0)
-	var pole_mat := StandardMaterial3D.new()
-	pole_mat.albedo_color = Color("#2c2c30")
-	pole.material_override = pole_mat
+	pole.material_override = _solid_material(Color("#2c2c30"))
 	lamp.add_child(pole)
 
 	var head := MeshInstance3D.new()
@@ -103,8 +103,7 @@ func _add_street_lamp(pos: Vector3) -> void:
 	head_mesh.size = Vector3(0.45, 0.18, 0.45)
 	head.mesh = head_mesh
 	head.position = Vector3(0, 4.25, 0)
-	var head_mat := StandardMaterial3D.new()
-	head_mat.albedo_color = Color("#ffd9a0")
+	var head_mat := _solid_material(Color("#ffd9a0"), true)
 	head_mat.emission_enabled = true
 	head_mat.emission = Color("#ffc46b")
 	head_mat.emission_energy_multiplier = 2.0
@@ -217,10 +216,7 @@ func _add_manhole(pos: Vector3, suffix: String) -> void:
 	mesh.radial_segments = 36
 	cover.mesh = mesh
 	cover.position = pos
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color("#202328")
-	mat.roughness = 0.65
-	cover.material_override = mat
+	cover.material_override = _solid_material(Color("#202328"), false, 0.65)
 	add_child(cover)
 	for offset in [-0.22, 0.0, 0.22]:
 		_add_flat_box(pos + Vector3(0, 0.018, offset), Vector3(0.72, 0.006, 0.028),
@@ -244,11 +240,7 @@ func _add_oil_stain(pos: Vector3, size: Vector2, rot_degrees: float) -> void:
 	stain.position = pos
 	stain.scale = Vector3(size.x, 1.0, size.y)
 	stain.rotation_degrees.y = rot_degrees
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.03, 0.035, 0.04, 0.48)
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.roughness = 0.18
-	stain.material_override = mat
+	stain.material_override = _solid_material(Color(0.03, 0.035, 0.04, 0.48), false, 0.18)
 	add_child(stain)
 
 func _add_litter_patch(origin_x: float) -> void:
@@ -306,9 +298,7 @@ func _add_box(pos: Vector3, size: Vector3, color: Color, box_name: String,
 	if material != null:
 		mesh.material_override = material
 	else:
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = color
-		mesh.material_override = mat
+		mesh.material_override = _solid_material(color)
 	body.add_child(mesh)
 	var col := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
@@ -325,16 +315,14 @@ func _add_flat_box(pos: Vector3, size: Vector3, color: Color, box_name: String) 
 	box.size = size
 	mesh.mesh = box
 	mesh.position = pos
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = color
-	if color.a < 1.0:
-		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.roughness = 0.88
-	mesh.material_override = mat
+	mesh.material_override = _solid_material(color, false, 0.88)
 	add_child(mesh)
 	return mesh
 
 func _street_material(base: Color, roughness: float, noise_frequency: float) -> StandardMaterial3D:
+	var key := "street:%s:%.2f:%.2f" % [base.to_html(true), roughness, noise_frequency]
+	if _material_cache.has(key):
+		return _material_cache[key]
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = base
 	mat.roughness = roughness
@@ -347,9 +335,13 @@ func _street_material(base: Color, roughness: float, noise_frequency: float) -> 
 	texture.height = 512
 	texture.noise = noise
 	mat.albedo_texture = texture
+	_material_cache[key] = mat
 	return mat
 
 func _wall_material(base: Color, noise_frequency: float, roughness: float) -> StandardMaterial3D:
+	var key := "wall:%s:%.2f:%.2f" % [base.to_html(true), noise_frequency, roughness]
+	if _material_cache.has(key):
+		return _material_cache[key]
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = base
 	mat.roughness = roughness
@@ -362,6 +354,23 @@ func _wall_material(base: Color, noise_frequency: float, roughness: float) -> St
 	texture.height = 512
 	texture.noise = noise
 	mat.albedo_texture = texture
+	_material_cache[key] = mat
+	return mat
+
+func _solid_material(color: Color, emission := false, roughness := 0.7) -> StandardMaterial3D:
+	var key := "solid:%s:%s:%.2f" % [color.to_html(true), str(emission), roughness]
+	if _material_cache.has(key):
+		return _material_cache[key]
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.roughness = roughness
+	if color.a < 1.0:
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	if emission:
+		mat.emission_enabled = true
+		mat.emission = color
+		mat.emission_energy_multiplier = 1.0
+	_material_cache[key] = mat
 	return mat
 
 ## Headless self-check, split per system (Plan_v2.md §3.3): each
@@ -372,6 +381,7 @@ func _wall_material(base: Color, noise_frequency: float, roughness: float) -> St
 ## extends a section.
 func _run_smoke_test() -> void:
 	_smoke_data_validation()
+	_smoke_world_hardening()
 	_smoke_walls_and_rivals()
 	_smoke_missions()
 	_smoke_crew()
@@ -417,6 +427,22 @@ func _smoke_data_validation() -> void:
 			has_controller_can_cycle = true
 	assert(has_controller_can_cycle)
 	print("SMOKE: data validation clean")
+
+func _smoke_world_hardening() -> void:
+	assert(_solid_material(Color("#68635a")) == _solid_material(Color("#68635a")))
+	var player := _smoke_player()
+	var blocker := _add_box(player.global_position + Vector3(0, 0.8, -1.0),
+		Vector3(1.0, 1.6, 0.2), Color("#111111"), "SmokeLOSBlock")
+	var target := Node3D.new()
+	target.name = "SmokeBlockedInteractable"
+	target.position = player.global_position + Vector3(0, 0, -2.2)
+	add_child(target)
+	assert(not player._has_line_of_sight(target))
+	remove_child(target)
+	target.free()
+	remove_child(blocker)
+	blocker.free()
+	print("SMOKE: world hardening — material cache + interactable LOS")
 
 ## Assumes: fresh boot. Paints the first wall (Buff Kings territory,
 ## claimed at startup), checks state/rep/paint, then exercises the

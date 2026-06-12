@@ -16,6 +16,10 @@ so `project.godot` stays minimal. Milestone 23 registers controller
 bindings there too; `Player` reads the right stick for camera look and
 d-pad left/right can cycling.
 
+Generated district details use `district.gd`'s small material cache
+for repeated solid/noisy looks (Milestone 24), so new street detail
+does not create a unique `StandardMaterial3D` for every repeated quad.
+
 `district.gd` also contains the smoke test (`SMOKE_TEST=1` env var):
 per-system `_smoke_*()` functions (Plan_v2.md §3.3), each documenting
 the world state it assumes, run in sequence by `_run_smoke_test` —
@@ -59,6 +63,11 @@ short contextual clips via `Player.play_context_animation` (climbs use
 its path + animation name in `player.gd`, and triggering the state from
 the gameplay event rather than hard-coding animation logic into the
 world object.
+
+`Player._nearest_interactable` is a fallback for nearby group-based
+interactables when the camera ray is not directly on one; Milestone 24
+adds a ray occlusion check so that fallback cannot grab items through
+walls.
 
 Recruitable NPCs and mission actors use the same
 `AnimatedModelSet.build_from_manifest` helper, but their paths and clip
