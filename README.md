@@ -1,6 +1,9 @@
 # Toy to Legend — Prototype
 
-Open-world graffiti RPG prototype. Full design in [Plan.md](Plan.md).
+Open-world graffiti RPG prototype. Original design in [Plan.md](Plan.md);
+current roadmap in [Plan_v2.md](Plan_v2.md); system map in
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); agent/dev workflow in
+[CLAUDE.md](CLAUDE.md).
 
 Engine: **Godot 4.6** (chosen per Plan.md §29 — open source, text-based scenes/scripts, headless CLI testing).
 
