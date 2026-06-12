@@ -6,6 +6,8 @@ extends Node
 signal save_event(message: String)
 
 const SAVE_PATH := "user://toy_to_legend_save.json"
+## Bump whenever any section's shape changes (CLAUDE.md rule), and add
+## the matching step to _migrate so mid-demo saves keep loading.
 const SAVE_VERSION := 1
 
 var _player: Player
@@ -50,6 +52,7 @@ func quick_load() -> bool:
 	if int(data.get("version", 0)) > SAVE_VERSION:
 		save_event.emit("Load failed: save is from a newer prototype.")
 		return false
+	data = _migrate(data)
 	GameState.load_state(data.get("game", {}))
 	WallManager.load_state(data.get("walls", {}))
 	CrewManager.load_state(data.get("crew", {}))
@@ -61,6 +64,15 @@ func quick_load() -> bool:
 	_apply_player_state(data.get("player", {}))
 	save_event.emit("Loaded prototype state.")
 	return true
+
+## Upgrades an older save to the current schema, one version step at a
+## time (Plan_v2.md §3.7). Version 1 is the first shipped schema, so
+## there is nothing to migrate yet — when SAVE_VERSION bumps to N, add
+## an `if version < N:` block here that reshapes the N-1 sections.
+func _migrate(data: Dictionary) -> Dictionary:
+	var version := int(data.get("version", 1))
+	data["version"] = maxi(version, 1)
+	return data
 
 func _player_state() -> Dictionary:
 	if _player == null:

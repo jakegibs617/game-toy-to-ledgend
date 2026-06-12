@@ -9,6 +9,8 @@ extends PanelContainer
 ## autoload managers only, so the smoke test can read pages without a
 ## scene.
 
+const UiKit := preload("res://Scripts/UI/ui_kit.gd")
+
 var page := 0
 var _title_label: Label
 var _content_label: Label
@@ -24,23 +26,12 @@ func _page_defs() -> Array:
 	]
 
 func _ready() -> void:
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.05, 0.05, 0.09, 0.92)
-	style.set_corner_radius_all(6)
-	style.border_color = Color("#b48ee0")
-	style.border_width_left = 3
-	style.content_margin_left = 14.0
-	style.content_margin_right = 14.0
-	style.content_margin_top = 8.0
-	style.content_margin_bottom = 8.0
-	add_theme_stylebox_override("panel", style)
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
-
+	UiKit.apply_panel_style(self, Color("#b48ee0"), 0.92, 14.0, 8.0, true)
 	var box := VBoxContainer.new()
 	box.custom_minimum_size = Vector2(640, 0)
 	add_child(box)
-	_title_label = _make_label(box, 24, Color("#b48ee0"))
-	_content_label = _make_label(box, 17)
+	_title_label = UiKit.make_label(box, 24, Color("#b48ee0"))
+	_content_label = UiKit.make_label(box, 17)
 	refresh()
 
 func set_page(index: int) -> void:
@@ -140,14 +131,3 @@ func _walls_by_owner() -> Dictionary:
 		var owner := String(WallManager.wall_states[wall_id].get("ownerCrewId", ""))
 		counts[owner] = int(counts.get(owner, 0)) + 1
 	return counts
-
-func _make_label(parent: Control, font_size: int, color := Color.WHITE) -> Label:
-	var label := Label.new()
-	var settings := LabelSettings.new()
-	settings.font_size = font_size
-	settings.font_color = color
-	settings.outline_size = 6
-	settings.outline_color = Color(0, 0, 0, 0.85)
-	label.label_settings = settings
-	parent.add_child(label)
-	return label

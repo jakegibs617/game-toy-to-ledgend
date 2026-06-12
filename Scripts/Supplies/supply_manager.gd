@@ -11,6 +11,7 @@ signal supply_event(message: String)
 signal shop_toggled(open: bool)
 
 const SUPPLIES_PATH := "res://Data/supplies.json"
+const DataLoader := preload("res://Scripts/Data/data_loader.gd")
 ## Walking away from Lupe closes the catalog so the number keys go back
 ## to selecting cans.
 const SHOP_CLOSE_DISTANCE := 6.0
@@ -25,10 +26,16 @@ var _shop_anchor: Node3D = null
 var _drop_zone: Area3D = null
 
 func _ready() -> void:
-	var parsed: Variant = _load_json(SUPPLIES_PATH)
+	var parsed: Variant = DataLoader.load_json(SUPPLIES_PATH, "SupplyManager")
 	if parsed is Dictionary:
 		catalog = parsed.get("shop", [])
 		delivery = parsed.get("delivery", {})
+		for item_def in catalog:
+			DataLoader.require_fields(item_def, ["itemId", "name", "desc", "price"],
+				"SupplyManager: item \"%s\"" % String(item_def.get("itemId", "?")))
+		if not delivery.is_empty():
+			DataLoader.require_fields(delivery, ["name", "cash", "heat", "drops"],
+				"SupplyManager: delivery")
 
 func _physics_process(_delta: float) -> void:
 	if _shop_anchor != null:
@@ -197,13 +204,3 @@ func _clear_drop_zone() -> void:
 	if _drop_zone != null and is_instance_valid(_drop_zone):
 		_drop_zone.queue_free()
 	_drop_zone = null
-
-func _load_json(path: String) -> Variant:
-	var file := FileAccess.open(path, FileAccess.READ)
-	if file == null:
-		push_error("SupplyManager: cannot open %s" % path)
-		return null
-	var parsed: Variant = JSON.parse_string(file.get_as_text())
-	if parsed == null:
-		push_error("SupplyManager: invalid JSON in %s" % path)
-	return parsed

@@ -8,6 +8,7 @@ extends Node
 signal rival_event(message: String, wall_id: String)
 
 const CREWS_PATH := "res://Data/crews.json"
+const DataLoader := preload("res://Scripts/Data/data_loader.gd")
 ## One simulation tick = one "in-game hour" (Plan.md section 33).
 const TICK_SECONDS := 12.0
 
@@ -17,9 +18,13 @@ var _claimed_initial := false
 var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
-	var parsed: Variant = _load_json(CREWS_PATH)
+	var parsed: Variant = DataLoader.load_json(CREWS_PATH, "RivalManager")
 	if parsed is Array:
 		for crew in parsed:
+			DataLoader.require_fields(crew,
+				["crewId", "name", "tag", "leaderAlias", "aggression",
+				"responseType", "fillColor", "outlineColor", "crossOutColor", "territory"],
+				"RivalManager: crew \"%s\"" % String(crew.get("crewId", "?")))
 			crews[crew["crewId"]] = crew
 	WallManager.wall_painted.connect(_on_wall_painted)
 	var timer := Timer.new()
@@ -127,12 +132,3 @@ func respond(wall_id: String, crew_id: String) -> void:
 		WallManager.apply_rival_graffiti(wall_id, crew, String(crew.get("responseType", "throwup")))
 		rival_event.emit("%s covered your %s on %s." % [who, type_label, wall_name], wall_id)
 
-func _load_json(path: String) -> Variant:
-	var file := FileAccess.open(path, FileAccess.READ)
-	if file == null:
-		push_error("RivalManager: cannot open %s" % path)
-		return null
-	var parsed: Variant = JSON.parse_string(file.get_as_text())
-	if parsed == null:
-		push_error("RivalManager: invalid JSON in %s" % path)
-	return parsed

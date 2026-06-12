@@ -1,5 +1,46 @@
 # Changelog
 
+## 2026-06-11 — Milestone 15: Engineering Hardening (Plan_v2.md §3)
+
+No new gameplay — all seven findings from Plan_v2.md §3, paid down
+before v2 content multiplies their cost. Identical smoke-test behavior
+plus new assertions; no save schema change.
+
+- **Modal stack (§3.1):** `Hud` now keeps a modal registry — shop,
+  dialogue, blackbook, map, freehand — in input priority order. One
+  `close_modals(except)` powers every opener, the first open modal
+  owns `_unhandled_input`, and Tab/M go through `_toggle_modal`. The
+  hand-ordered if-ladder and the per-modal "close all the others"
+  choreography are gone; a 6th modal is one registry entry. Fixes the
+  latent bug where Tab/M could stack the blackbook/map on top of an
+  open freehand canvas.
+- **UI kit (§3.2):** new `Scripts/UI/ui_kit.gd` (static, preloaded —
+  CLAUDE.md class-cache rule) owns the outlined-label and accent-panel
+  recipes. The four drifting copies in hud/blackbook/freehand/map are
+  deleted.
+- **Smoke test split (§3.3):** `district.gd::_run_smoke_test` is now a
+  sequence of 13 per-system `_smoke_*()` functions, each documenting
+  the world state it assumes. Same `SMOKE_TEST=1` entry point, same
+  assertions, same `SMOKE: OK`.
+- **Unified paint head (§3.4):** `WallManager._begin_player_paint`
+  now owns the unlock check, paint spend, and rep payout (style
+  multiplier + buff-retaliation bonus) for both `paint_wall` and
+  `paint_freehand`. A paint-discount or retaliation perk (Plan.md §7)
+  has exactly one hook point.
+- **Wall history cap (§3.5):** `MAX_WALL_HISTORY := 20` — repainting
+  past the cap drops the oldest entries, so wall history (deep-copied
+  on every quick_save) stays bounded. Smoke test paints past the cap
+  and asserts.
+- **Data validation (§3.6):** new `Scripts/Data/data_loader.gd` —
+  shared `load_json` plus `require_fields`, replacing eight duplicated
+  `_load_json` helpers. Every manager validates its `/Data` file's
+  required fields at autoload; a typo'd entry now `push_error`s at
+  boot instead of silently defaulting. Smoke test asserts shipped data
+  validates clean.
+- **Save migration hook (§3.7):** `SaveManager._migrate(data)` runs on
+  every load — a documented seam for per-version upgrades when v2
+  bumps `SAVE_VERSION`.
+
 ## 2026-06-11 — Freehand Spray Painting (Plan.md §10, §36 Could-Have)
 
 First "Could-Have" feature from Plan.md §36, promoted from §10's

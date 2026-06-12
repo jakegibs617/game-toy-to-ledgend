@@ -12,13 +12,17 @@ signal crew_changed
 signal stage_changed(member_id: String, stage: String)
 
 const NPC_PATH := "res://Data/npc_data.json"
+const DataLoader := preload("res://Scripts/Data/data_loader.gd")
 
 var members: Dictionary = {}  # memberId -> definition + runtime "stage"
 
 func _ready() -> void:
-	var parsed: Variant = _load_json(NPC_PATH)
+	var parsed: Variant = DataLoader.load_json(NPC_PATH, "CrewManager")
 	if parsed is Array:
 		for m in parsed:
+			DataLoader.require_fields(m,
+				["memberId", "name", "alias", "role", "position", "color", "dialogue"],
+				"CrewManager: member \"%s\"" % String(m.get("memberId", "?")))
 			m["stage"] = "not_met"
 			members[m["memberId"]] = m
 
@@ -107,13 +111,3 @@ func status_text(m: Dictionary) -> String:
 		"recruited":
 			return "Recruited — %s" % String(m.get("bonusDescription", ""))
 	return ""
-
-func _load_json(path: String) -> Variant:
-	var file := FileAccess.open(path, FileAccess.READ)
-	if file == null:
-		push_error("CrewManager: cannot open %s" % path)
-		return null
-	var parsed: Variant = JSON.parse_string(file.get_as_text())
-	if parsed == null:
-		push_error("CrewManager: invalid JSON in %s" % path)
-	return parsed

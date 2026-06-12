@@ -11,6 +11,8 @@ extends PanelContainer
 signal committed(image: Image, colors_used: int, coverage: float)
 signal cancelled
 
+const UiKit := preload("res://Scripts/UI/ui_kit.gd")
+
 ## Pixels per meter of wall face; canvas resolution follows wall size.
 const PIXELS_PER_METER := 96
 const MAX_CANVAS := Vector2i(720, 440)
@@ -34,25 +36,15 @@ var _footer_label: Label
 var _dirty := false
 
 func _ready() -> void:
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.05, 0.05, 0.09, 0.92)
-	style.set_corner_radius_all(6)
-	style.border_color = Color("#ff4f79")
-	style.border_width_left = 3
-	style.content_margin_left = 12.0
-	style.content_margin_right = 12.0
-	style.content_margin_top = 8.0
-	style.content_margin_bottom = 8.0
-	add_theme_stylebox_override("panel", style)
-
+	UiKit.apply_panel_style(self, Color("#ff4f79"), 0.92, 12.0, 8.0)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
 	add_child(box)
-	_title_label = _make_label(box, 20, Color("#ff4f79"))
+	_title_label = UiKit.make_label(box, 20, Color("#ff4f79"))
 	_canvas = TextureRect.new()
 	_canvas.stretch_mode = TextureRect.STRETCH_KEEP
 	box.add_child(_canvas)
-	_footer_label = _make_label(box, 15, Color(1, 1, 1, 0.8))
+	_footer_label = UiKit.make_label(box, 15, Color(1, 1, 1, 0.8))
 	_refresh_ui()
 
 ## Starts a fresh piece sized to `wall`'s face. Safe off-tree.
@@ -155,14 +147,3 @@ func _refresh_ui() -> void:
 		color_text += "  [C] next color"
 	_footer_label.text = "Hold LMB: spray   ·   Color: %s   ·   [E/Enter] commit   ·   [Esc] bail" % color_text
 	_footer_label.label_settings.font_color = Color(GameState.current_fill_color())
-
-func _make_label(parent: Control, font_size: int, color := Color.WHITE) -> Label:
-	var label := Label.new()
-	var settings := LabelSettings.new()
-	settings.font_size = font_size
-	settings.font_color = color
-	settings.outline_size = 6
-	settings.outline_color = Color(0, 0, 0, 0.85)
-	label.label_settings = settings
-	parent.add_child(label)
-	return label

@@ -20,7 +20,8 @@ Scenes:
 - `Scenes/PrototypeDistrict.tscn` — main scene: graybox Mill Yard district.
 - `Scenes/Test_GraffitiWall.tscn` — single test wall in an empty room (Plan.md agent rule 9).
 
-Headless smoke test (paints a wall in code and asserts state/rep/paint):
+Headless smoke test (per-system `_smoke_*()` checks in
+`Scripts/district.gd` drive the full system chain and print `SMOKE: OK`):
 
 ```sh
 SMOKE_TEST=1 /Applications/Godot.app/Contents/MacOS/Godot --headless --path .

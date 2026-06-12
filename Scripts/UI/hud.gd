@@ -14,6 +14,7 @@ const MODAL_SLOT_ACTIONS := ["graffiti_tag", "graffiti_throwup", "graffiti_piece
 ## isn't rebuilt on fresh headless runs, so class_name lookups can fail.
 const BlackbookPanelScript := preload("res://Scripts/UI/blackbook_panel.gd")
 const FreehandPanelScript := preload("res://Scripts/UI/freehand_panel.gd")
+const UiKit := preload("res://Scripts/UI/ui_kit.gd")
 const HEAT_COLORS := {
 	"Cold": Color.WHITE,
 	"Low": Color("#ffd23f"),
@@ -46,6 +47,10 @@ var _map_panel: MapPanel
 var _freehand_wall: PaintableWall = null
 var _focused: Node3D = null
 var _rank_index := 0
+## The modal registry (Plan_v2.md §3.1): one entry per modal, in input
+## priority order. The first open modal owns input; opening any modal
+## closes the rest, so two can never fight over the number keys.
+var _modals: Array[Dictionary] = []
 
 func _ready() -> void:
 	var root := Control.new()
@@ -58,23 +63,23 @@ func _ready() -> void:
 	left.add_theme_constant_override("separation", 8)
 	root.add_child(left)
 
-	var stats_panel := _make_panel(Color("#46d9c7"))
+	var stats_panel := UiKit.make_panel(Color("#46d9c7"))
 	left.add_child(stats_panel)
 	var stats := VBoxContainer.new()
 	stats_panel.add_child(stats)
-	_rank_label = _make_label(stats, 22, ACCENT)
-	_rep_label = _make_label(stats, 18)
-	_paint_label = _make_label(stats, 18)
-	_cash_label = _make_label(stats, 18)
-	_heat_label = _make_label(stats, 18)
-	_type_label = _make_label(stats, 18)
+	_rank_label = UiKit.make_label(stats, 22, ACCENT)
+	_rep_label = UiKit.make_label(stats, 18)
+	_paint_label = UiKit.make_label(stats, 18)
+	_cash_label = UiKit.make_label(stats, 18)
+	_heat_label = UiKit.make_label(stats, 18)
+	_type_label = UiKit.make_label(stats, 18)
 
-	_mission_panel = _make_panel(ACCENT)
+	_mission_panel = UiKit.make_panel(ACCENT)
 	left.add_child(_mission_panel)
 	var mission_box := VBoxContainer.new()
 	_mission_panel.add_child(mission_box)
-	_mission_title_label = _make_label(mission_box, 18, ACCENT)
-	_mission_objective_label = _make_label(mission_box, 16)
+	_mission_title_label = UiKit.make_label(mission_box, 18, ACCENT)
+	_mission_objective_label = UiKit.make_label(mission_box, 16)
 
 	var bottom := VBoxContainer.new()
 	bottom.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
@@ -82,18 +87,18 @@ func _ready() -> void:
 	bottom.offset_bottom = -30.0
 	bottom.add_theme_constant_override("separation", 8)
 	root.add_child(bottom)
-	_message_label = _make_label(bottom, 22)
+	_message_label = UiKit.make_label(bottom, 22)
 	_message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var prompt_center := CenterContainer.new()
 	prompt_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bottom.add_child(prompt_center)
-	_prompt_panel = _make_panel(Color("#3aa0c8"))
+	_prompt_panel = UiKit.make_panel(Color("#3aa0c8"))
 	_prompt_panel.visible = false
 	prompt_center.add_child(_prompt_panel)
-	_prompt_label = _make_label(_prompt_panel, 17)
+	_prompt_label = UiKit.make_label(_prompt_panel, 17)
 	_prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
-	var hint := _make_label(root, 13, Color(1, 1, 1, 0.55))
+	var hint := UiKit.make_label(root, 13, Color(1, 1, 1, 0.55))
 	hint.text = "WASD move · Shift run · Space jump · E interact · 1/2/3 can · C color · F freehand · Tab blackbook · M map · F5 save · F9 load"
 	hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, 10)
 	hint.grow_horizontal = Control.GROW_DIRECTION_BEGIN
@@ -117,31 +122,33 @@ func _ready() -> void:
 	_freehand.cancelled.connect(_close_freehand)
 	root.add_child(_freehand)
 
-	_shop_panel = _make_panel(Color("#e0a030"))
+	_shop_panel = UiKit.make_panel(Color("#e0a030"))
 	_shop_panel.set_anchors_preset(Control.PRESET_CENTER)
 	_shop_panel.visible = false
 	root.add_child(_shop_panel)
 	var shop_box := VBoxContainer.new()
 	shop_box.custom_minimum_size = Vector2(560, 0)
 	_shop_panel.add_child(shop_box)
-	var shop_title := _make_label(shop_box, 24, Color("#e0a030"))
+	var shop_title := UiKit.make_label(shop_box, 24, Color("#e0a030"))
 	shop_title.text = "LUPE'S SUPPLIES   —   [E] close"
-	_shop_label = _make_label(shop_box, 17)
+	_shop_label = UiKit.make_label(shop_box, 17)
 
-	_dialogue_panel = _make_panel(Color("#8a9a5b"))
+	_dialogue_panel = UiKit.make_panel(Color("#8a9a5b"))
 	_dialogue_panel.set_anchors_preset(Control.PRESET_CENTER)
 	_dialogue_panel.visible = false
 	root.add_child(_dialogue_panel)
 	var dialogue_box := VBoxContainer.new()
 	dialogue_box.custom_minimum_size = Vector2(620, 0)
 	_dialogue_panel.add_child(dialogue_box)
-	_dialogue_speaker_label = _make_label(dialogue_box, 24, Color("#8a9a5b"))
-	_dialogue_label = _make_label(dialogue_box, 17)
+	_dialogue_speaker_label = UiKit.make_label(dialogue_box, 24, Color("#8a9a5b"))
+	_dialogue_label = UiKit.make_label(dialogue_box, 17)
 	_dialogue_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
 	_map_panel = MapPanel.new()
 	_map_panel.set_anchors_preset(Control.PRESET_CENTER)
 	root.add_child(_map_panel)
+
+	_register_modals()
 
 	GameState.reputation_changed.connect(_on_rep_changed)
 	GameState.rank_changed.connect(_on_rank_changed)
@@ -182,35 +189,87 @@ func bind_player(player: Player) -> void:
 	player.freehand_requested.connect(_on_freehand_requested)
 	_map_panel.bind_player(player)
 
+## The modal registry (Plan_v2.md §3.1). Each entry: is_open/close
+## callables plus an input handler (returns true when consumed); modals
+## the HUD opens itself (blackbook, map) also carry an open callable.
+## Shop, dialogue, and freehand open through their own flows.
+func _register_modals() -> void:
+	_modals = [
+		{"name": "freehand",
+			"is_open": func() -> bool: return _freehand.visible,
+			"close": _close_freehand,
+			"input": _freehand.handle_input},
+		{"name": "dialogue",
+			"is_open": DialogueManager.is_active,
+			"close": DialogueManager.end_dialogue,
+			"input": _handle_dialogue_input},
+		{"name": "shop",
+			"is_open": SupplyManager.is_shop_open,
+			"close": SupplyManager.close_shop,
+			"input": _handle_shop_input},
+		{"name": "blackbook",
+			"is_open": func() -> bool: return _blackbook.visible,
+			"close": func() -> void: _blackbook.visible = false,
+			"open": _open_blackbook,
+			"input": _handle_blackbook_input},
+		{"name": "map",
+			"is_open": func() -> bool: return _map_panel.visible,
+			"close": func() -> void: _map_panel.visible = false,
+			"open": func() -> void: _map_panel.visible = true,
+			"input": func(_event: InputEvent) -> bool: return false},
+	]
+
+func _open_blackbook() -> void:
+	_blackbook.visible = true
+	_blackbook.refresh()
+
+## Closes every open modal except `except` — the one call every
+## opener routes through, so two modals can never stay open together.
+func close_modals(except := "") -> void:
+	for modal in _modals:
+		if String(modal["name"]) != except and modal["is_open"].call():
+			modal["close"].call()
+
+func open_modal(name: String) -> void:
+	close_modals(name)
+	var modal := _find_modal(name)
+	if modal.has("open") and not modal["is_open"].call():
+		modal["open"].call()
+
+func _toggle_modal(name: String) -> void:
+	var modal := _find_modal(name)
+	if modal.is_empty():
+		return
+	if modal["is_open"].call():
+		modal["close"].call()
+	else:
+		open_modal(name)
+
+func _find_modal(name: String) -> Dictionary:
+	for modal in _modals:
+		if String(modal["name"]) == name:
+			return modal
+	return {}
+
+## The first open modal in priority order, or {} when the world has input.
+func _active_modal() -> Dictionary:
+	for modal in _modals:
+		if modal["is_open"].call():
+			return modal
+	return {}
+
 func _unhandled_input(event: InputEvent) -> void:
-	# While a conversation or the shop is open, the number keys answer
-	# or buy instead of switching cans, so consume everything those
-	# modals handle before the player controller sees the event.
-	if _freehand.visible and _freehand.handle_input(event):
-		get_viewport().set_input_as_handled()
-		return
-	if DialogueManager.is_active() and _handle_dialogue_input(event):
-		get_viewport().set_input_as_handled()
-		return
-	if SupplyManager.is_shop_open() and _handle_shop_input(event):
-		get_viewport().set_input_as_handled()
-		return
-	if _blackbook.visible and _handle_blackbook_input(event):
+	# While a modal is open the number keys answer/buy/flip pages
+	# instead of switching cans, so the open modal sees (and consumes)
+	# events before the player controller does.
+	var active := _active_modal()
+	if not active.is_empty() and active["input"].call(event):
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("crew_menu"):
-		SupplyManager.close_shop()
-		DialogueManager.end_dialogue()
-		_blackbook.visible = not _blackbook.visible
-		if _blackbook.visible:
-			_map_panel.visible = false
-			_blackbook.refresh()
+		_toggle_modal("blackbook")
 	elif event.is_action_pressed("map"):
-		SupplyManager.close_shop()
-		DialogueManager.end_dialogue()
-		_map_panel.visible = not _map_panel.visible
-		if _map_panel.visible:
-			_blackbook.visible = false
+		_toggle_modal("map")
 	elif event.is_action_pressed("quick_save"):
 		SaveManager.quick_save()
 	elif event.is_action_pressed("quick_load"):
@@ -248,8 +307,7 @@ func _on_dialogue_changed() -> void:
 	if node.is_empty():
 		_dialogue_panel.visible = false
 		return
-	_blackbook.visible = false
-	_map_panel.visible = false
+	close_modals("dialogue")
 	_dialogue_panel.visible = true
 	_dialogue_speaker_label.text = "%s   —   [E] walk away" % String(node.get("speaker", "?"))
 	var lines: PackedStringArray = [String(node.get("text", "")), ""]
@@ -312,8 +370,7 @@ func _on_cash_changed(new_cash: int) -> void:
 func _on_shop_toggled(open: bool) -> void:
 	_shop_panel.visible = open
 	if open:
-		_blackbook.visible = false
-		_map_panel.visible = false
+		close_modals("shop")
 		_refresh_shop()
 
 func _on_supply_event(message: String) -> void:
@@ -360,10 +417,7 @@ func _on_freehand_requested(wall: PaintableWall) -> void:
 		Sfx.play("denied")
 		_show_message("Not enough paint.")
 		return
-	SupplyManager.close_shop()
-	DialogueManager.end_dialogue()
-	_blackbook.visible = false
-	_map_panel.visible = false
+	close_modals("freehand")
 	_freehand.begin(wall)
 	_freehand.visible = true
 	_freehand_wall = wall
@@ -503,29 +557,3 @@ func _handle_blackbook_input(event: InputEvent) -> bool:
 func _show_message(text: String, duration := 2.5) -> void:
 	_message_label.text = text
 	_message_timer.start(duration)
-
-func _make_label(parent: Control, font_size: int, color := Color.WHITE) -> Label:
-	var label := Label.new()
-	var settings := LabelSettings.new()
-	settings.font_size = font_size
-	settings.font_color = color
-	settings.outline_size = 6
-	settings.outline_color = Color(0, 0, 0, 0.85)
-	label.label_settings = settings
-	parent.add_child(label)
-	return label
-
-func _make_panel(accent: Color) -> PanelContainer:
-	var panel := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.05, 0.05, 0.09, 0.82)
-	style.set_corner_radius_all(6)
-	style.border_color = accent
-	style.border_width_left = 3
-	style.content_margin_left = 12.0
-	style.content_margin_right = 12.0
-	style.content_margin_top = 6.0
-	style.content_margin_bottom = 6.0
-	panel.add_theme_stylebox_override("panel", style)
-	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return panel

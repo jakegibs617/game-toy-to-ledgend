@@ -6,6 +6,7 @@ extends PanelContainer
 ## NPC locations and the player. The footer shows district influence
 ## from TerritoryManager.
 
+const UiKit := preload("res://Scripts/UI/ui_kit.gd")
 const MAP_SIZE := Vector2(400, 400)
 const WORLD_MIN := Vector2(-30.0, -25.0)  # world x/z box mapped onto the panel
 const WORLD_MAX := Vector2(30.0, 35.0)
@@ -24,7 +25,7 @@ func _ready() -> void:
 	visible = false
 	var box := VBoxContainer.new()
 	add_child(box)
-	var title := _make_label(box, 24)
+	var title := UiKit.make_label(box, 24)
 	var district: Dictionary = TerritoryManager.districts.values()[0] \
 		if not TerritoryManager.districts.is_empty() else {}
 	title.text = "%s   —   [M] close" % String(district.get("name", "DISTRICT")).to_upper()
@@ -32,7 +33,7 @@ func _ready() -> void:
 	_canvas.custom_minimum_size = MAP_SIZE
 	_canvas.draw.connect(_draw_map)
 	box.add_child(_canvas)
-	_legend = _make_label(box, 16)
+	_legend = UiKit.make_label(box, 16)
 	TerritoryManager.territory_changed.connect(
 		func(_district_id: String) -> void: _refresh_legend())
 	visibility_changed.connect(func() -> void:
@@ -93,13 +94,3 @@ func _to_map(world_xz: Vector2) -> Vector2:
 
 func _scale() -> float:
 	return _canvas.size.x / (WORLD_MAX.x - WORLD_MIN.x)
-
-func _make_label(parent: Control, font_size: int) -> Label:
-	var label := Label.new()
-	var settings := LabelSettings.new()
-	settings.font_size = font_size
-	settings.outline_size = 6
-	settings.outline_color = Color(0, 0, 0, 0.85)
-	label.label_settings = settings
-	parent.add_child(label)
-	return label

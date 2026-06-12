@@ -12,6 +12,7 @@ signal player_spotted(guard: PatrolGuard)
 signal player_caught(guard: PatrolGuard)
 
 const PATROLS_PATH := "res://Data/patrols.json"
+const DataLoader := preload("res://Scripts/Data/data_loader.gd")
 const WARN_COOLDOWN_MS := 10000
 
 var config: Dictionary = {}
@@ -22,10 +23,14 @@ var _player: Player = null
 var _last_warn_ms := -WARN_COOLDOWN_MS
 
 func _ready() -> void:
-	var parsed: Variant = _load_json(PATROLS_PATH)
+	var parsed: Variant = DataLoader.load_json(PATROLS_PATH, "PatrolManager")
 	if parsed is Dictionary:
 		config = parsed
 		_routes = config.get("routes", [])
+		DataLoader.require_fields(config, ["guardsPerLevel", "routes"], "PatrolManager: config")
+		for route in _routes:
+			DataLoader.require_fields(route, ["routeId", "speed", "waypoints"],
+				"PatrolManager: route \"%s\"" % String(route.get("routeId", "?")))
 	WallManager.wall_painted.connect(_on_wall_painted)
 	HeatManager.heat_changed.connect(func(_heat: float, _gained: float) -> void:
 		_sync_guard_count())
@@ -129,13 +134,3 @@ func _removable_guard_index() -> int:
 		if not _guards[i].is_chasing():
 			return i
 	return -1
-
-func _load_json(path: String) -> Variant:
-	var file := FileAccess.open(path, FileAccess.READ)
-	if file == null:
-		push_error("PatrolManager: cannot open %s" % path)
-		return null
-	var parsed: Variant = JSON.parse_string(file.get_as_text())
-	if parsed == null:
-		push_error("PatrolManager: invalid JSON in %s" % path)
-	return parsed

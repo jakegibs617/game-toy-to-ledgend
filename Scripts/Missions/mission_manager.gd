@@ -15,6 +15,7 @@ signal chain_completed
 signal mission_event(message: String)
 
 const MISSIONS_PATH := "res://Data/missions.json"
+const DataLoader := preload("res://Scripts/Data/data_loader.gd")
 const STAGE_ORDER := ["not_met", "mission_active", "item_recovered", "recruited"]
 const MissionZoneScene := preload("res://Scripts/Missions/mission_zone.gd")
 const MissionActorScene := preload("res://Scripts/Missions/mission_actor.gd")
@@ -28,10 +29,19 @@ var chain_done := false
 var _began := false
 
 func _ready() -> void:
-	var parsed: Variant = _load_json(MISSIONS_PATH)
+	var parsed: Variant = DataLoader.load_json(MISSIONS_PATH, "MissionManager")
 	if parsed is Dictionary:
 		actor_defs = parsed.get("actors", [])
 		missions = parsed.get("missions", [])
+		for def in actor_defs:
+			DataLoader.require_fields(def, ["actorId", "position"],
+				"MissionManager: actor \"%s\"" % String(def.get("actorId", "?")))
+		for mission in missions:
+			DataLoader.require_fields(mission, ["missionId", "title", "objectives"],
+				"MissionManager: mission \"%s\"" % String(mission.get("missionId", "?")))
+			for obj in mission.get("objectives", []):
+				DataLoader.require_fields(obj, ["type", "text"],
+					"MissionManager: objective in \"%s\"" % String(mission.get("missionId", "?")))
 	WallManager.wall_painted.connect(_on_wall_painted)
 	CrewManager.stage_changed.connect(_on_stage_changed)
 	TerritoryManager.district_claimed.connect(_on_district_claimed)
@@ -340,13 +350,3 @@ func _add_zone_dressing(parent: Node3D, def: Dictionary) -> void:
 		label.position = Vector3(lp[0], float(lp[1]) + 1.6, float(lp[2]) - 0.2)
 		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		parent.add_child(label)
-
-func _load_json(path: String) -> Variant:
-	var file := FileAccess.open(path, FileAccess.READ)
-	if file == null:
-		push_error("MissionManager: cannot open %s" % path)
-		return null
-	var parsed: Variant = JSON.parse_string(file.get_as_text())
-	if parsed == null:
-		push_error("MissionManager: invalid JSON in %s" % path)
-	return parsed

@@ -10,15 +10,19 @@ signal territory_changed(district_id: String)
 signal district_claimed(district_id: String, district: Dictionary)
 
 const DISTRICTS_PATH := "res://Data/districts.json"
+const DataLoader := preload("res://Scripts/Data/data_loader.gd")
 ## Disrespected (crossed-out) work holds only half its weight.
 const CROSSED_OUT_FACTOR := 0.5
 
 var districts: Dictionary = {}  # districtId -> definition + runtime "claimed"
 
 func _ready() -> void:
-	var parsed: Variant = _load_json(DISTRICTS_PATH)
+	var parsed: Variant = DataLoader.load_json(DISTRICTS_PATH, "TerritoryManager")
 	if parsed is Array:
 		for d in parsed:
+			DataLoader.require_fields(d,
+				["districtId", "name", "claimThreshold", "claimRepBonus"],
+				"TerritoryManager: district \"%s\"" % String(d.get("districtId", "?")))
 			d["claimed"] = false
 			districts[d["districtId"]] = d
 	WallManager.wall_painted.connect(
@@ -99,13 +103,3 @@ func _on_wall_changed(wall_id: String) -> void:
 		district["claimed"] = true
 		GameState.add_reputation(int(district.get("claimRepBonus", 100)))
 		district_claimed.emit(district_id, district)
-
-func _load_json(path: String) -> Variant:
-	var file := FileAccess.open(path, FileAccess.READ)
-	if file == null:
-		push_error("TerritoryManager: cannot open %s" % path)
-		return null
-	var parsed: Variant = JSON.parse_string(file.get_as_text())
-	if parsed == null:
-		push_error("TerritoryManager: invalid JSON in %s" % path)
-	return parsed
