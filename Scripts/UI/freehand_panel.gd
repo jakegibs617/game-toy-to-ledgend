@@ -50,12 +50,17 @@ func _ready() -> void:
 ## Starts a fresh piece sized to `wall`'s face. Safe off-tree.
 func begin(wall: PaintableWall) -> void:
 	var size: Array = wall.def.get("size", [4, 3, 0.3])
+	begin_canvas(wall.display_name(), Vector2(float(size[0]), float(size[1])))
+
+## Starts a fresh canvas of `size_meters` with no wall behind it — the
+## gallery commission path (Milestone 21). Safe off-tree.
+func begin_canvas(title: String, size_meters: Vector2) -> void:
 	var px := Vector2i(
-		clampi(int(float(size[0]) * PIXELS_PER_METER), 64, MAX_CANVAS.x),
-		clampi(int(float(size[1]) * PIXELS_PER_METER), 64, MAX_CANVAS.y))
+		clampi(int(size_meters.x * PIXELS_PER_METER), 64, MAX_CANVAS.x),
+		clampi(int(size_meters.y * PIXELS_PER_METER), 64, MAX_CANVAS.y))
 	image = Image.create(px.x, px.y, false, Image.FORMAT_RGBA8)
 	image.fill(Color(0, 0, 0, 0))
-	_wall_name = wall.display_name()
+	_wall_name = title
 	_colors_used.clear()
 	_covered.clear()
 	_spraying = false

@@ -4,6 +4,9 @@ extends Node
 ## runtime so project.godot stays minimal (see Plan.md section 37).
 
 signal reputation_changed(new_rep: int, gained: int)
+## Milestone 21 (§11 public/crew split, minimal form): standing with
+## your own people. Crew-backed work raises it; gallery sales spend it.
+signal crew_rep_changed(new_crew_rep: int, change: int)
 signal rank_changed(new_rank: String)
 signal paint_changed(new_paint: int)
 signal cash_changed(new_cash: int)
@@ -40,6 +43,7 @@ const FILL_COLORS := [
 var alias := "NOVA"
 var alias_chosen := true
 var reputation := 0
+var crew_rep := 0
 var rank := "Toy"
 var paint := 20
 var cash := 25
@@ -58,6 +62,7 @@ func save_state() -> Dictionary:
 		"alias": alias,
 		"alias_chosen": alias_chosen,
 		"reputation": reputation,
+		"crew_rep": crew_rep,
 		"rank": rank,
 		"paint": paint,
 		"cash": cash,
@@ -74,6 +79,7 @@ func load_state(data: Dictionary) -> void:
 	alias = String(data.get("alias", alias))
 	alias_chosen = bool(data.get("alias_chosen", alias_chosen))
 	reputation = int(data.get("reputation", reputation))
+	crew_rep = int(data.get("crew_rep", crew_rep))
 	rank = String(data.get("rank", _rank_for(reputation)))
 	paint = int(data.get("paint", paint))
 	cash = int(data.get("cash", cash))
@@ -87,6 +93,7 @@ func load_state(data: Dictionary) -> void:
 	# SaveManager re-announces the district once the full load is done.
 	current_district_id = String(data.get("current_district_id", current_district_id))
 	reputation_changed.emit(reputation, 0)
+	crew_rep_changed.emit(crew_rep, 0)
 	if rank != old_rank:  # otherwise every quick-load announces "RANK UP"
 		rank_changed.emit(rank)
 	paint_changed.emit(paint)
@@ -101,6 +108,15 @@ func add_reputation(amount: int) -> void:
 	if new_rank != rank:
 		rank = new_rank
 		rank_changed.emit(rank)
+
+## Crew standing moves separately from public rep (§11 split): murals
+## and recruits build it, selling canvases to the gallery spends it.
+## It can go negative — the street remembers who cashed out.
+func add_crew_rep(amount: int) -> void:
+	if amount == 0:
+		return
+	crew_rep += amount
+	crew_rep_changed.emit(crew_rep, amount)
 
 func try_spend_paint(cost: int) -> bool:
 	if paint < cost:

@@ -59,6 +59,9 @@ func _ready() -> void:
 	GameState.fill_color_changed.connect(_on_color_chosen)
 	GameState.district_changed.connect(func(_district_id: String) -> void:
 		_maybe_start_next_chain())
+	# Rank-triggered chains (Milestone 21's gallery debut at Known).
+	GameState.rank_changed.connect(func(_rank: String) -> void:
+		_maybe_start_next_chain())
 
 ## Spawns mission actors (safehouse zone + dressing, Lupe) into a scene.
 func spawn_actors(parent: Node3D) -> void:
@@ -110,7 +113,8 @@ func _activate_chain(index: int) -> void:
 
 ## Chains run strictly in order: the next starts once the previous is
 ## done and its trigger fires (enter_district checks the player's
-## current block; no trigger means it starts immediately).
+## current block, rank checks the ladder; no trigger means it starts
+## immediately).
 func _maybe_start_next_chain() -> void:
 	var next := chain_index + 1
 	if next <= 0 or next >= chains.size():
@@ -118,8 +122,12 @@ func _maybe_start_next_chain() -> void:
 	if not bool(chains[chain_index].get("done", false)):
 		return
 	var trigger: Dictionary = chains[next].get("trigger", {})
-	if String(trigger.get("type", "")) == "enter_district" \
+	var trigger_type := String(trigger.get("type", ""))
+	if trigger_type == "enter_district" \
 			and GameState.current_district_id != String(trigger.get("districtId", "")):
+		return
+	if trigger_type == "rank" and GameState.rank_index(GameState.rank) \
+			< GameState.rank_index(String(trigger.get("minRank", ""))):
 		return
 	_activate_chain(next)
 
@@ -186,6 +194,11 @@ func notify_actor(actor_id: String) -> bool:
 ## The HUD intro panel reports the chosen alias here.
 func notify_alias_chosen() -> void:
 	if _active_type() == "choose_alias":
+		_complete_objective()
+
+## GalleryManager reports an accepted canvas here (Milestone 21).
+func notify_gallery_sale() -> void:
+	if _active_type() == "gallery_sale":
 		_complete_objective()
 
 func _start_mission(index: int) -> void:

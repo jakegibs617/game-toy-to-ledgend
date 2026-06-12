@@ -44,6 +44,10 @@ func _ready() -> void:
 	SaveManager.save_event.connect(func(_msg: String) -> void: play("ui"))
 	TrainManager.train_painted.connect(func(_id: String, _g: Dictionary) -> void: play("spray"))
 	TrainManager.train_passed.connect(func(_id: String, _d: String, _rep: int) -> void: play("ui"))
+	GalleryManager.gallery_event.connect(func(_msg: String) -> void: play("ui"))
+	GalleryManager.commission_resolved.connect(func(result: Dictionary) -> void:
+		if result.get("accepted", false):
+			play("claim"))
 
 ## Active playbacks keep stream references alive inside the audio
 ## server; stop them so quitting doesn't report leaked instances.

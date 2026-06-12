@@ -22,6 +22,7 @@ SupplyManager="*res://Scripts/Supplies/supply_manager.gd"
 DialogueManager="*res://Scripts/Dialogue/dialogue_manager.gd"
 StatsManager="*res://Scripts/Stats/stats_manager.gd"
 TrainManager="*res://Scripts/Trains/train_manager.gd"
+GalleryManager="*res://Scripts/Gallery/gallery_manager.gd"
 SaveManager="*res://Scripts/SaveSystem/save_manager.gd"
 Sfx="*res://Scripts/Audio/sfx.gd"
 

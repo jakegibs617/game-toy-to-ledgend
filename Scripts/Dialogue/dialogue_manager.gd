@@ -110,6 +110,9 @@ func choose(index: int) -> bool:
 		"start_delivery":
 			end_dialogue()
 			SupplyManager.start_delivery()
+		"start_gallery":
+			end_dialogue()
+			GalleryManager.start_commission()
 		_:
 			# A choice with neither action nor next is a data mistake —
 			# end cleanly instead of silently looping the same node.

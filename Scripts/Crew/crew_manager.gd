@@ -13,6 +13,9 @@ signal stage_changed(member_id: String, stage: String)
 
 const NPC_PATH := "res://Data/npc_data.json"
 const DataLoader := preload("res://Scripts/Data/data_loader.gd")
+## Bringing somebody into the crew is the loudest pro-street move there
+## is (§11 crew rep, Milestone 21).
+const RECRUIT_CREW_REP := 10
 
 var members: Dictionary = {}  # memberId -> definition + runtime "stage"
 var _parent: Node3D = null
@@ -53,6 +56,7 @@ func interact(member_id: String) -> void:
 		"item_recovered":
 			m["stage"] = "recruited"
 			stage_changed.emit(member_id, String(m["stage"]))
+			GameState.add_crew_rep(RECRUIT_CREW_REP)
 			crew_event.emit("%s joined your crew — %s! %s" % [
 				m["alias"], String(m.get("roleLabel", m["role"])),
 				String(m.get("bonusDescription", ""))])

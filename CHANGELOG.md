@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026-06-12 — Milestone 21: Gallery Missions (Plan_v2.md)
+
+Selling out is now a real decision (the last §46 success criterion).
+
+- New `GalleryManager` autoload (`Scripts/Gallery/gallery_manager.gd`)
+  and `Data/gallery.json`: Vesper the gallery scout buys freehand
+  canvases. The Milestone 14 canvas is the gameplay — `freehand_panel`
+  gained `begin_canvas` for wall-less commissions — and the freehand
+  style multiplier is the judge's score. Canvases under the accept
+  score are refused: paint spent, nothing paid.
+- Public/crew rep split (Plan.md §11, minimal form):
+  `GameState.crew_rep` is the one tracked value. Accepted sales pay
+  cash (Hustle-scaled) + public rep and cost crew rep; recruiting
+  (+10) and crew-backed murals (+2) build it back. Shown in the HUD
+  stats panel and the blackbook Writer page; City page logs sales.
+- Vesper is a rank-gated mission actor (`minRank` on actor defs hides
+  the NPC and its collision until the rank is reached — §43 "appears
+  at rank Known") with a dialogue tree routing into the commission
+  (`start_gallery` action).
+- Third mission chain `gallery_debut` (m9 White Walls) with the new
+  `rank` chain trigger and `gallery_sale` objective type.
+- Save schema bumped to v5 (gallery sales log + crew_rep) with
+  migration; smoke test covers the rank gate, refusal and sale
+  branches, payout math, crew-rep ledger, blackbook text, and v4→v5
+  migration.
+
 ## 2026-06-12 — Milestone 20: Train Painting (Plan_v2.md)
 
 The signature demo moment has its first playable slice: your name

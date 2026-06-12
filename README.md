@@ -56,6 +56,9 @@ slip risk shown) up to the rooftop roller spots — security won't follow
 you up, but a fall costs rep. At Canal Side's east-edge train siding,
 paint a stopped car with E before it rolls out; painted cars pass
 through both districts on the schedule and keep paying visibility rep.
+Once you're Known, Vesper the gallery scout appears by the Canal Side
+dry dock: sell her freehand canvases for cash and public rep — and
+watch your crew rep pay the price.
 
 The player character is the Kronako Iconz neon rooster. `player.gd`
 prefers the animated action set in `Assets/Characters/`: idle, walk,
@@ -191,8 +194,19 @@ static rooster GLB, then the old debug capsule.
   pays rep every time it passes through Canal Side and Mill Yard. The
   blackbook's City page logs painted cars and pass counts, and train
   state persists in save v4.
+- **GalleryManager** (`Scripts/Gallery/gallery_manager.gd`,
+  Milestone 21) — gallery commissions (Plan.md §18, §43) from
+  `Data/gallery.json`. Once you're Known, Vesper the gallery scout
+  appears by the Canal Side dry dock: take a commission and the
+  freehand canvas opens with no wall behind it. The freehand style
+  multiplier is the judge's score — weak canvases get refused (paint
+  spent, nothing paid); accepted ones pay cash (scaled by Hustle) and
+  public rep but cost **crew rep**, the public/crew split from Plan.md
+  §11 in minimal form. Crew rep shows in the HUD and blackbook, builds
+  through recruiting and crew-backed murals, and goes negative when
+  the street decides you sold out. Sales persist in save v5.
 
-Wall, style, crew, NPC, district, climb, and train content is
+Wall, style, crew, NPC, district, climb, train, and gallery content is
 data-driven from `/Data` (agent rule 3).
 
 ## Not built yet (by design — Plan.md §47)
@@ -201,7 +215,7 @@ All Plan.md §35 milestones are in, and the §36 "Should-Have" list is
 complete: Heat/City Cleanup, security patrols, supply economy,
 dialogue, and the blackbook UI. From the §36 "Could-Have" list,
 freehand spray painting is in (Milestone 14), rooftop climbing is in
-(Milestone 19), and train painting is in (Milestone 20); what remains
-is the rest of that list (battles, gallery missions, procedural
-graffiti, crowd reactions) — deliberately out of prototype scope per
-Plan.md §47.
+(Milestone 19), train painting is in (Milestone 20), and gallery
+missions are in (Milestone 21); what remains is the rest of that list
+(battles, procedural graffiti, crowd reactions) — deliberately out of
+prototype scope per Plan.md §47.
