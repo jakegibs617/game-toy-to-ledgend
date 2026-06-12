@@ -57,6 +57,7 @@ func quick_load() -> bool:
 		save_event.emit("Load failed: save is from a newer prototype.")
 		return false
 	data = _migrate(data)
+	var district_before := GameState.current_district_id
 	GameState.load_state(data.get("game", {}))
 	WallManager.load_state(data.get("walls", {}))
 	CrewManager.load_state(data.get("crew", {}))
@@ -67,6 +68,10 @@ func quick_load() -> bool:
 	MissionManager.load_state(data.get("missions", {}))
 	StatsManager.load_state(data.get("stats", {}))
 	_apply_player_state(data.get("player", {}))
+	# Every manager is restored — now it's safe for district listeners
+	# (chain triggers, patrol respawns, HUD) to react to where we are.
+	if GameState.current_district_id != district_before:
+		GameState.district_changed.emit(GameState.current_district_id)
 	save_event.emit("Loaded prototype state.")
 	return true
 

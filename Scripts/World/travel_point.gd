@@ -51,8 +51,11 @@ func prompt_text() -> String:
 
 ## Player raycast interaction (same protocol as Npc/PickupItem).
 func interact() -> void:
-	var player: Node3D = get_tree().get_first_node_in_group("player")
 	var district: Dictionary = TerritoryManager.districts.get(_to_district_id, {})
+	if district.is_empty():
+		push_error("TravelPoint: unknown destination district \"%s\"" % _to_district_id)
+		return
+	var player: Node3D = get_tree().get_first_node_in_group("player")
 	if player != null:
 		var arrival: Array = district.get("arrival", [0, 0.5, 0])
 		player.global_position = Vector3(arrival[0], arrival[1], arrival[2])

@@ -79,7 +79,10 @@ func load_state(data: Dictionary) -> void:
 	colors_unlocked = bool(data.get("colors_unlocked", colors_unlocked))
 	extra_fill_colors = data.get("extra_fill_colors", extra_fill_colors).duplicate(true)
 	fill_color_index = clampi(int(data.get("fill_color_index", fill_color_index)), 0, fill_palette().size() - 1)
-	set_district(String(data.get("current_district_id", current_district_id)))
+	# Silent on purpose: district_changed listeners (chain triggers,
+	# patrol respawns) must not react against half-restored state.
+	# SaveManager re-announces the district once the full load is done.
+	current_district_id = String(data.get("current_district_id", current_district_id))
 	reputation_changed.emit(reputation, 0)
 	if rank != old_rank:  # otherwise every quick-load announces "RANK UP"
 		rank_changed.emit(rank)
