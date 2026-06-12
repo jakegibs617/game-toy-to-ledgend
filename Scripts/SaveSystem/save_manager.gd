@@ -11,7 +11,8 @@ const SAVE_PATH := "user://toy_to_legend_save.json"
 ## v2 (Milestone 17): adds the "stats" section (xp, perk points, perks).
 ## v3 (Milestone 18): per-district heat dict; mission chains (chain
 ## index/flags, painted-objective keys gain a chain prefix).
-const SAVE_VERSION := 3
+## v4 (Milestone 20): painted train-car service state.
+const SAVE_VERSION := 4
 
 var _player: Player
 
@@ -34,6 +35,7 @@ func quick_save() -> bool:
 		"dialogue": DialogueManager.save_state(),
 		"missions": MissionManager.save_state(),
 		"stats": StatsManager.save_state(),
+		"trains": TrainManager.save_state(),
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file == null:
@@ -67,6 +69,7 @@ func quick_load() -> bool:
 	DialogueManager.load_state(data.get("dialogue", {}))
 	MissionManager.load_state(data.get("missions", {}))
 	StatsManager.load_state(data.get("stats", {}))
+	TrainManager.load_state(data.get("trains", {}))
 	_apply_player_state(data.get("player", {}))
 	# Every manager is restored — now it's safe for district listeners
 	# (chain triggers, patrol respawns, HUD) to react to where we are.
@@ -107,6 +110,9 @@ func _migrate(data: Dictionary) -> Dictionary:
 		missions["painted_objectives"] = rekeyed
 		data["missions"] = missions
 		version = 3
+	if version < 4:
+		data["trains"] = {}
+		version = 4
 	data["version"] = version
 	return data
 

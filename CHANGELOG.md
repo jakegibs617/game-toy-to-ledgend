@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-06-12 — Milestone 20: Train Painting (Plan_v2.md)
+
+The signature demo moment has its first playable slice: your name
+moves without you.
+
+- New `TrainManager` autoload (`Scripts/Trains/train_manager.gd`) and
+  `Data/trains.json`: scheduled train cars have stopped/travel phases,
+  a short yard painting window, paint/heat costs, pass-through rep, and
+  service districts.
+- Added the first Canal Side train siding and runtime `TrainCar`
+  interaction target. Painting a stopped car spends paint, creates a
+  persisted train graffiti record, adds high heat in Canal Side, and
+  sends HUD events as it enters service.
+- Painted cars now pay visibility-over-time rep each time they roll
+  through Canal Side and Mill Yard, making Plan.md §11's moving fame
+  loop tangible.
+- Blackbook City page logs painted train cars, aliases, phases, and
+  pass counts.
+- Save schema bumped to v4 with train-state migration; smoke test now
+  covers train painting, pass-through payouts, blackbook logging, and
+  save/load.
+
 ## 2026-06-12 — Player animation action set
 
 The rooster is now animated across the core movement verbs.

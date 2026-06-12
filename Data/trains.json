@@ -1,0 +1,17 @@
+[
+  {
+    "trainId": "canal_ghost_local",
+    "label": "Ghost Local",
+    "districtId": "district_canal_side",
+    "yardPosition": [148, 1.1, -3],
+    "rotationY": 0.0,
+    "size": [7.5, 2.2, 2.4],
+    "stopTicks": 2,
+    "travelTicks": 3,
+    "paintCost": 8,
+    "paintRep": 90,
+    "passRep": 24,
+    "heatValue": 22,
+    "serviceDistricts": ["district_canal_side", "district_mill_yard"]
+  }
+]

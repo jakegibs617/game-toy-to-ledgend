@@ -3,10 +3,23 @@ extends CharacterBody3D
 ## Security patrol NPC (Plan.md sections 12, 18, 25). Walks a fixed
 ## waypoint route back and forth; when PatrolManager decides a guard
 ## witnessed the player painting, it gives chase. Catching the player
-## hands the incident back to PatrolManager. Placeholder body: navy
-## capsule with a flashlight showing its facing.
+## hands the incident back to PatrolManager.
 
 enum State {PATROL, CHASE, RETURN}
+
+const IDLE_MODEL_PATH := "res://Assets/Characters/security_bull_idle.glb"
+const WALK_MODEL_PATH := "res://Assets/Characters/security_bull_walking.glb"
+const RUN_MODEL_PATH := "res://Assets/Characters/security_bull_running.glb"
+const ALERT_MODEL_PATH := "res://Assets/Characters/security_bull_alert.glb"
+const LOOK_AROUND_MODEL_PATH := "res://Assets/Characters/security_bull_look_around.glb"
+const LADDER_CLIMB_MODEL_PATH := "res://Assets/Characters/security_bull_ladder_climb.glb"
+const MODEL_SOURCE_HEIGHT := 1.7
+const IDLE_ANIMATION_NAME := "Armature|clip0|baselayer"
+const WALK_ANIMATION_NAME := "Armature|walking_man|baselayer"
+const RUN_ANIMATION_NAME := "Armature|running|baselayer"
+const ALERT_ANIMATION_NAME := "Armature|Alert|baselayer"
+const LOOK_AROUND_ANIMATION_NAME := "Armature|Look_Around_Dumbfounded|baselayer"
+const LADDER_CLIMB_ANIMATION_NAME := "Armature|Fast_Ladder_Climb|baselayer"
 
 var state := State.PATROL
 
@@ -22,6 +35,12 @@ var _wp_dir := 1  # routes are walked ping-pong, not looped
 var _target: Node3D = null
 var _chase_time := 0.0
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
+var _visual_models: Dictionary = {}
+var _visual_animation_players: Dictionary = {}
+var _visual_animation_names: Dictionary = {}
+var _active_visual_state := ""
+var _action_visual_state := ""
+var _action_visual_time_left := 0.0
 
 func setup(route: Dictionary, config: Dictionary) -> void:
 	name = "PatrolGuard_%s" % String(route.get("routeId", "route"))
@@ -44,10 +63,12 @@ func start_chase(target: Node3D) -> void:
 	_target = target
 	_chase_time = 0.0
 	state = State.CHASE
+	play_context_animation("alert", 0.8)
 
 func end_chase() -> void:
 	if state == State.CHASE:
 		state = State.RETURN
+		play_context_animation("look_around", 1.2)
 
 ## True if the target is in range, inside the forward vision cone, and
 ## not blocked by level geometry. The player's Stealth stat shrinks
@@ -78,6 +99,8 @@ func _clear_line_to(target: CollisionObject3D) -> bool:
 	return get_world_3d().direct_space_state.intersect_ray(query).is_empty()
 
 func _physics_process(delta: float) -> void:
+	if _action_visual_time_left > 0.0:
+		_action_visual_time_left = maxf(_action_visual_time_left - delta, 0.0)
 	if not is_on_floor():
 		velocity.y -= _gravity * delta
 	match state:
@@ -88,6 +111,7 @@ func _physics_process(delta: float) -> void:
 				state = State.PATROL
 		State.CHASE:
 			_chase(delta)
+	_update_visual_animation()
 	move_and_slide()
 
 func _walk_route() -> void:
@@ -137,16 +161,8 @@ func _walk_toward(point: Vector3, speed: float) -> bool:
 	return false
 
 func _build_body() -> void:
-	var mesh := MeshInstance3D.new()
-	var capsule := CapsuleMesh.new()
-	capsule.height = 1.8
-	capsule.radius = 0.34
-	mesh.mesh = capsule
-	mesh.position = Vector3(0, 0.9, 0)
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color("#27324f")
-	mesh.material_override = mat
-	add_child(mesh)
+	if not _try_build_animated_visual():
+		_build_capsule_fallback()
 
 	var col := CollisionShape3D.new()
 	var shape := CapsuleShape3D.new()
@@ -174,3 +190,128 @@ func _build_body() -> void:
 	flashlight.spot_range = _spot_range
 	flashlight.spot_angle = 28.0
 	add_child(flashlight)
+
+func _try_build_animated_visual() -> bool:
+	if not ResourceLoader.exists(WALK_MODEL_PATH) and not ResourceLoader.exists(RUN_MODEL_PATH):
+		return false
+	var container := Node3D.new()
+	container.name = "SecurityBullModel"
+	_apply_visual_transform(container)
+	var built := false
+	built = _add_animated_model(
+		container, IDLE_MODEL_PATH, "idle", IDLE_ANIMATION_NAME) or built
+	built = _add_animated_model(
+		container, WALK_MODEL_PATH, "walk", WALK_ANIMATION_NAME) or built
+	built = _add_animated_model(
+		container, RUN_MODEL_PATH, "run", RUN_ANIMATION_NAME) or built
+	built = _add_animated_model(
+		container, ALERT_MODEL_PATH, "alert", ALERT_ANIMATION_NAME) or built
+	built = _add_animated_model(
+		container, LOOK_AROUND_MODEL_PATH, "look_around", LOOK_AROUND_ANIMATION_NAME) or built
+	built = _add_animated_model(
+		container, LADDER_CLIMB_MODEL_PATH, "climb", LADDER_CLIMB_ANIMATION_NAME) or built
+	if not built:
+		return false
+	add_child(container)
+	_set_visual_state("idle")
+	return true
+
+func _add_animated_model(container: Node3D, path: String,
+		visual_state: String, preferred_animation: String) -> bool:
+	if not ResourceLoader.exists(path):
+		return false
+	var packed: PackedScene = load(path)
+	if packed == null:
+		return false
+	var model := packed.instantiate()
+	model.name = "%sModel" % visual_state.capitalize()
+	model.visible = false
+	container.add_child(model)
+	var player := _find_animation_player(model)
+	if player == null:
+		return false
+	var names := player.get_animation_list()
+	if names.is_empty():
+		return false
+	var chosen := String(names[0])
+	for animation_name in names:
+		if String(animation_name) == preferred_animation:
+			chosen = String(animation_name)
+			break
+	_visual_models[visual_state] = model
+	_visual_animation_players[visual_state] = player
+	_visual_animation_names[visual_state] = StringName(chosen)
+	player.play(StringName(chosen))
+	player.pause()
+	player.seek(0.0, true)
+	return true
+
+func _apply_visual_transform(model: Node3D) -> void:
+	var s := 1.8 / MODEL_SOURCE_HEIGHT
+	model.scale = Vector3.ONE * s
+	model.position = Vector3.ZERO
+	model.rotation.y = PI
+
+func _find_animation_player(root: Node) -> AnimationPlayer:
+	if root is AnimationPlayer:
+		return root
+	for child in root.get_children():
+		var found := _find_animation_player(child)
+		if found != null:
+			return found
+	return null
+
+func _update_visual_animation() -> void:
+	if _visual_animation_players.is_empty():
+		return
+	if _action_visual_time_left > 0.0 and _visual_models.has(_action_visual_state):
+		_set_visual_state(_action_visual_state)
+		return
+	var horizontal_speed := Vector2(velocity.x, velocity.z).length()
+	if horizontal_speed < 0.1:
+		_set_visual_state("idle")
+	elif state == State.CHASE and _visual_models.has("run"):
+		_set_visual_state("run")
+	else:
+		_set_visual_state("walk")
+
+func _set_visual_state(visual_state: String) -> void:
+	var target := visual_state
+	if target == "idle":
+		target = "idle" if _visual_models.has("idle") else ("walk" if _visual_models.has("walk") else "run")
+	if not _visual_models.has(target):
+		return
+	if _active_visual_state != target:
+		for key in _visual_models:
+			_visual_models[key].visible = String(key) == target
+		_active_visual_state = target
+	var player: AnimationPlayer = _visual_animation_players[target]
+	var animation: StringName = _visual_animation_names[target]
+	if visual_state == "idle":
+		if player.is_playing():
+			player.pause()
+		player.seek(0.0, true)
+		return
+	player.speed_scale = 1.0
+	if not player.is_playing() or String(player.current_animation) != String(animation):
+		player.play(animation)
+
+func play_context_animation(visual_state: String, duration := 0.75) -> void:
+	if not _visual_models.has(visual_state):
+		return
+	_action_visual_state = visual_state
+	_action_visual_time_left = duration
+	_set_visual_state(visual_state)
+
+func _build_capsule_fallback() -> void:
+	var mesh := MeshInstance3D.new()
+	mesh.name = "CapsuleFallback"
+	var capsule := CapsuleMesh.new()
+	capsule.height = 1.8
+	capsule.radius = 0.34
+	mesh.mesh = capsule
+	mesh.position = Vector3(0, 0.9, 0)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color("#27324f")
+	mesh.material_override = mat
+	add_child(mesh)
