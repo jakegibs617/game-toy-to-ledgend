@@ -297,5 +297,6 @@ func _reputation_for(style: Dictionary, def: Dictionary) -> int:
 	var base := float(style.get("baseValue", 10))
 	var visibility_mult := 1.0 + 0.2 * float(def.get("visibility", 1))
 	var risk_mult := 1.0 + 0.3 * float(def.get("risk", 1))
-	return int(round(base * visibility_mult * risk_mult * HeatManager.rep_multiplier()
+	return int(round(base * visibility_mult * risk_mult
+		* HeatManager.rep_multiplier(String(def.get("districtId", "")))
 		* StatsManager.rep_multiplier(String(style.get("type", "")))))

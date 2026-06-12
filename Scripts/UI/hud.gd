@@ -186,6 +186,7 @@ func _ready() -> void:
 			String(StatsManager.stat_defs.get(stat, {}).get("label", stat)), new_level], 4.0))
 	StatsManager.perk_chosen.connect(func(perk: Dictionary) -> void:
 		_show_message("Perk learned: %s — %s" % [String(perk["name"]), String(perk["desc"])], 5.0))
+	GameState.district_changed.connect(_on_district_changed)
 	MissionManager.mission_started.connect(_on_mission_started)
 	MissionManager.objective_changed.connect(_on_objective_changed)
 	MissionManager.mission_completed.connect(_on_mission_completed)
@@ -545,6 +546,14 @@ func _on_district_claimed(_district_id: String, district: Dictionary) -> void:
 		String(district.get("name", "The district")),
 		int(district.get("claimRepBonus", 0))], 6.0)
 
+## Crossing the footbridge (Milestone 18): announce the block and snap
+## the heat display to it.
+func _on_district_changed(district_id: String) -> void:
+	var district: Dictionary = TerritoryManager.districts.get(district_id, {})
+	_show_message("Now entering %s — heat here: %s." % [
+		String(district.get("name", district_id)), HeatManager.level_name()], 4.0)
+	_refresh_stats()
+
 func _on_crew_event(message: String) -> void:
 	_show_message(message, 4.0)
 	if _blackbook.visible:
@@ -559,9 +568,9 @@ func _on_objective_changed(_mission: Dictionary, _objective: Dictionary) -> void
 func _on_mission_completed(_mission: Dictionary) -> void:
 	_refresh_mission()
 
-func _on_chain_completed() -> void:
+func _on_chain_completed(chain: Dictionary) -> void:
 	_refresh_mission()
-	_show_message("PROTOTYPE COMPLETE — you are Known in the Mill Yard.", 7.0)
+	_show_message(String(chain.get("completeMessage", "CHAIN COMPLETE.")), 7.0)
 
 func _on_mission_event(message: String) -> void:
 	_show_message(message, 5.0)
@@ -574,8 +583,10 @@ func _refresh_mission() -> void:
 	var objective := MissionManager.current_objective()
 	_mission_panel.visible = true
 	if MissionManager.chain_done:
-		_mission_title_label.text = "Mission: Prototype Complete"
-		_mission_objective_label.text = "Mill Yard knows your name."
+		_mission_title_label.text = "Demo Complete" if MissionManager.all_chains_done() \
+			else "Chain Complete"
+		_mission_objective_label.text = String(
+			MissionManager.current_chain().get("completeMessage", ""))
 	elif mission.is_empty() or objective.is_empty():
 		_mission_panel.visible = false
 		_mission_title_label.text = ""

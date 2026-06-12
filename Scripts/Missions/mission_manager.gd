@@ -1,17 +1,19 @@
 extends Node
-## Vertical-slice mission chain (Plan.md sections 15, 16, and 35 —
-## Milestone 7). Loads Data/missions.json and runs the five missions as
-## a linear chain of sequential objectives. Objectives complete off the
-## signals the existing systems already emit (WallManager, CrewManager,
-## TerritoryManager, GameState), so missions stay data-driven glue
-## rather than bespoke logic. Also owns the mission-only world actors:
-## the safehouse zone and Lupe the supply contact. Autoloaded as
-## MissionManager.
+## Mission chains (Plan.md sections 15, 16, and 35 — Milestone 7;
+## multi-chain since Milestone 18). Loads Data/missions.json: an array
+## of chains, each a linear run of missions with sequential objectives.
+## Chains activate in order — the next one starts when the previous is
+## done and its trigger (e.g. entering a district) fires. Objectives
+## complete off the signals the existing systems already emit
+## (WallManager, CrewManager, TerritoryManager, GameState), so missions
+## stay data-driven glue rather than bespoke logic. Also owns the
+## mission-only world actors: the safehouse zone and Lupe the supply
+## contact. Autoloaded as MissionManager.
 
 signal mission_started(mission: Dictionary)
 signal objective_changed(mission: Dictionary, objective: Dictionary)
 signal mission_completed(mission: Dictionary)
-signal chain_completed
+signal chain_completed(chain: Dictionary)
 signal mission_event(message: String)
 
 const MISSIONS_PATH := "res://Data/missions.json"
@@ -21,10 +23,14 @@ const MissionZoneScene := preload("res://Scripts/Missions/mission_zone.gd")
 const MissionActorScene := preload("res://Scripts/Missions/mission_actor.gd")
 
 var actor_defs: Array = []
-var missions: Array = []
+var chains: Array = []          # chain defs + runtime "started"/"done"
+var chain_index := -1           # the active (or last activated) chain
+var missions: Array = []        # the active chain's missions
 var mission_index := -1
 var objective_index := -1
-var remembered: Dictionary = {}  # "@keys" recorded by objectives, e.g. first_tag_wall
+var remembered: Dictionary = {} # "@keys" recorded by objectives, e.g. first_tag_wall
+## True while no chain is mid-run — i.e. the active chain finished and
+## the next one hasn't triggered yet (or none are left).
 var chain_done := false
 var _began := false
 
@@ -32,20 +38,27 @@ func _ready() -> void:
 	var parsed: Variant = DataLoader.load_json(MISSIONS_PATH, "MissionManager")
 	if parsed is Dictionary:
 		actor_defs = parsed.get("actors", [])
-		missions = parsed.get("missions", [])
+		chains = parsed.get("chains", [])
 		for def in actor_defs:
 			DataLoader.require_fields(def, ["actorId", "position"],
 				"MissionManager: actor \"%s\"" % String(def.get("actorId", "?")))
-		for mission in missions:
-			DataLoader.require_fields(mission, ["missionId", "title", "objectives"],
-				"MissionManager: mission \"%s\"" % String(mission.get("missionId", "?")))
-			for obj in mission.get("objectives", []):
-				DataLoader.require_fields(obj, ["type", "text"],
-					"MissionManager: objective in \"%s\"" % String(mission.get("missionId", "?")))
+		for chain in chains:
+			DataLoader.require_fields(chain, ["chainId", "missions"],
+				"MissionManager: chain \"%s\"" % String(chain.get("chainId", "?")))
+			chain["started"] = false
+			chain["done"] = false
+			for mission in chain.get("missions", []):
+				DataLoader.require_fields(mission, ["missionId", "title", "objectives"],
+					"MissionManager: mission \"%s\"" % String(mission.get("missionId", "?")))
+				for obj in mission.get("objectives", []):
+					DataLoader.require_fields(obj, ["type", "text"],
+						"MissionManager: objective in \"%s\"" % String(mission.get("missionId", "?")))
 	WallManager.wall_painted.connect(_on_wall_painted)
 	CrewManager.stage_changed.connect(_on_stage_changed)
 	TerritoryManager.district_claimed.connect(_on_district_claimed)
 	GameState.fill_color_changed.connect(_on_color_chosen)
+	GameState.district_changed.connect(func(_district_id: String) -> void:
+		_maybe_start_next_chain())
 
 ## Spawns mission actors (safehouse zone + dressing, Lupe) into a scene.
 func spawn_actors(parent: Node3D) -> void:
@@ -68,10 +81,47 @@ func spawn_actors(parent: Node3D) -> void:
 		_spawn_reach_zone(current_objective())
 
 func begin_chain() -> void:
-	if _began:
+	if _began or chains.is_empty():
 		return
 	_began = true
+	_activate_chain(0)
+
+func current_chain() -> Dictionary:
+	if chain_index < 0 or chain_index >= chains.size():
+		return {}
+	return chains[chain_index]
+
+## True once every defined chain has run to completion.
+func all_chains_done() -> bool:
+	for chain in chains:
+		if not chain.get("done", false):
+			return false
+	return true
+
+func _activate_chain(index: int) -> void:
+	chain_index = index
+	var chain: Dictionary = chains[index]
+	chain["started"] = true
+	missions = chain.get("missions", [])
+	mission_index = -1
+	objective_index = -1
+	chain_done = false
 	_start_mission(0)
+
+## Chains run strictly in order: the next starts once the previous is
+## done and its trigger fires (enter_district checks the player's
+## current block; no trigger means it starts immediately).
+func _maybe_start_next_chain() -> void:
+	var next := chain_index + 1
+	if next <= 0 or next >= chains.size():
+		return
+	if not bool(chains[chain_index].get("done", false)):
+		return
+	var trigger: Dictionary = chains[next].get("trigger", {})
+	if String(trigger.get("type", "")) == "enter_district" \
+			and GameState.current_district_id != String(trigger.get("districtId", "")):
+		return
+	_activate_chain(next)
 
 func current_mission() -> Dictionary:
 	if mission_index < 0 or mission_index >= missions.size():
@@ -85,7 +135,13 @@ func current_objective() -> Dictionary:
 	return objectives[objective_index]
 
 func save_state() -> Dictionary:
+	var flags: Array = []
+	for chain in chains:
+		flags.append({"started": bool(chain.get("started", false)),
+			"done": bool(chain.get("done", false))})
 	return {
+		"chain_index": chain_index,
+		"chain_flags": flags,
 		"mission_index": mission_index,
 		"objective_index": objective_index,
 		"remembered": remembered.duplicate(true),
@@ -95,6 +151,12 @@ func save_state() -> Dictionary:
 	}
 
 func load_state(data: Dictionary) -> void:
+	var flags: Array = data.get("chain_flags", [])
+	for i in mini(flags.size(), chains.size()):
+		chains[i]["started"] = bool(flags[i].get("started", false))
+		chains[i]["done"] = bool(flags[i].get("done", false))
+	chain_index = clampi(int(data.get("chain_index", chain_index)), -1, chains.size() - 1)
+	missions = chains[chain_index].get("missions", []) if chain_index >= 0 else []
 	mission_index = int(data.get("mission_index", mission_index))
 	objective_index = int(data.get("objective_index", objective_index))
 	remembered = data.get("remembered", {}).duplicate(true)
@@ -110,7 +172,7 @@ func load_state(data: Dictionary) -> void:
 		if String(objective.get("type", "")) == "reach_wall":
 			_spawn_reach_zone(objective)
 	if chain_done:
-		chain_completed.emit()
+		chain_completed.emit(current_chain())
 
 ## Zones and mission NPCs report the player here. Returns true if it
 ## advanced the active objective, so actors can fall back to idle lines.
@@ -181,7 +243,10 @@ func _complete_mission() -> void:
 		_start_mission(mission_index + 1)
 	else:
 		chain_done = true
-		chain_completed.emit()
+		var chain := current_chain()
+		chain["done"] = true
+		chain_completed.emit(chain)
+		_maybe_start_next_chain()
 
 ## Mission/objective reward and scripted-event blocks from missions.json.
 func _apply_effects(effects: Dictionary) -> void:
@@ -237,6 +302,12 @@ func _on_wall_painted(wall_id: String, graffiti: Dictionary) -> void:
 			var types: Array = obj.get("graffitiTypes", [])
 			if not types.is_empty() and String(graffiti["type"]) not in types:
 				return
+			# Milestone 18: a paint objective can be district-scoped
+			# ("put your name on 2 Canal Side walls").
+			var required_district := String(obj.get("districtId", ""))
+			if required_district != "" and String(WallManager.wall_def(wall_id).get(
+					"districtId", "")) != required_district:
+				return
 			var required_wall := _resolve_wall(String(obj.get("wall", "")))
 			if required_wall != "" and wall_id != required_wall:
 				return
@@ -275,24 +346,30 @@ func _active_type() -> String:
 
 func _painted_objective_state() -> Dictionary:
 	var state := {}
-	for i in range(missions.size()):
-		var objectives: Array = missions[i].get("objectives", [])
-		for j in range(objectives.size()):
-			var obj: Dictionary = objectives[j]
-			if obj.has("_painted"):
-				state["%d:%d" % [i, j]] = obj["_painted"].duplicate(true)
+	for c in range(chains.size()):
+		var chain_missions: Array = chains[c].get("missions", [])
+		for i in range(chain_missions.size()):
+			var objectives: Array = chain_missions[i].get("objectives", [])
+			for j in range(objectives.size()):
+				var obj: Dictionary = objectives[j]
+				if obj.has("_painted"):
+					state["%d:%d:%d" % [c, i, j]] = obj["_painted"].duplicate(true)
 	return state
 
 func _restore_painted_objectives(state: Dictionary) -> void:
 	for key in state:
 		var parts := String(key).split(":")
-		if parts.size() != 2:
+		if parts.size() != 3:
 			continue
-		var mi := int(parts[0])
-		var oi := int(parts[1])
-		if mi < 0 or mi >= missions.size():
+		var c := int(parts[0])
+		if c < 0 or c >= chains.size():
 			continue
-		var objectives: Array = missions[mi].get("objectives", [])
+		var chain_missions: Array = chains[c].get("missions", [])
+		var mi := int(parts[1])
+		var oi := int(parts[2])
+		if mi < 0 or mi >= chain_missions.size():
+			continue
+		var objectives: Array = chain_missions[mi].get("objectives", [])
 		if oi < 0 or oi >= objectives.size():
 			continue
 		objectives[oi]["_painted"] = state[key].duplicate(true)

@@ -1,15 +1,14 @@
 class_name MapPanel
 extends PanelContainer
-## District map (Plan.md section 24, Milestone 6). Toggled with M from
-## the HUD. Draws every paintable wall top-down — line length is wall
-## width, thickness is visibility, color is current owner — plus crew
-## NPC locations and the player. The footer shows district influence
-## from TerritoryManager.
+## City map (Plan.md section 24, Milestone 6; multi-district since
+## Milestone 18). Toggled with M from the HUD. Draws every paintable
+## wall top-down — line length is wall width, thickness is visibility,
+## color is current owner — plus crew NPC locations and the player.
+## The footer shows each district's influence from TerritoryManager.
 
 const UiKit := preload("res://Scripts/UI/ui_kit.gd")
-const MAP_SIZE := Vector2(400, 400)
-const WORLD_MIN := Vector2(-30.0, -25.0)  # world x/z box mapped onto the panel
-const WORLD_MAX := Vector2(30.0, 35.0)
+const MAP_SIZE := Vector2(640, 380)
+const WORLD_MARGIN := 10.0
 const BG_COLOR := Color(0.07, 0.07, 0.1, 0.95)
 const PLAYER_COLOR := Color("#7be05a")
 const BLANK_COLOR := Color("#6a6a72")
@@ -20,15 +19,16 @@ const GUARD_COLOR := Color("#ff9f43")
 var _player: Node3D
 var _canvas: Control
 var _legend: Label
+var _world_min := Vector2(-30.0, -25.0)
+var _world_max := Vector2(30.0, 35.0)
 
 func _ready() -> void:
 	visible = false
+	_fit_world_bounds()
 	var box := VBoxContainer.new()
 	add_child(box)
 	var title := UiKit.make_label(box, 24)
-	var district: Dictionary = TerritoryManager.districts.values()[0] \
-		if not TerritoryManager.districts.is_empty() else {}
-	title.text = "%s   —   [M] close" % String(district.get("name", "DISTRICT")).to_upper()
+	title.text = "THE CITY   —   [M] close"
 	_canvas = Control.new()
 	_canvas.custom_minimum_size = MAP_SIZE
 	_canvas.draw.connect(_draw_map)
@@ -40,6 +40,21 @@ func _ready() -> void:
 		if visible:
 			_refresh_legend())
 
+## The map covers every wall in every district (Milestone 18), with a
+## margin so edge walls don't sit on the border.
+func _fit_world_bounds() -> void:
+	if WallManager.wall_defs.is_empty():
+		return
+	var first: Array = WallManager.wall_defs[0]["position"]
+	_world_min = Vector2(first[0], first[2])
+	_world_max = _world_min
+	for def in WallManager.wall_defs:
+		var pos: Array = def["position"]
+		_world_min = _world_min.min(Vector2(pos[0], pos[2]))
+		_world_max = _world_max.max(Vector2(pos[0], pos[2]))
+	_world_min -= Vector2(WORLD_MARGIN, WORLD_MARGIN)
+	_world_max += Vector2(WORLD_MARGIN, WORLD_MARGIN)
+
 func bind_player(player: Node3D) -> void:
 	_player = player
 
@@ -48,9 +63,12 @@ func _process(_delta: float) -> void:
 		_canvas.queue_redraw()  # follow the player marker
 
 func _refresh_legend() -> void:
-	if TerritoryManager.districts.is_empty():
-		return
-	_legend.text = TerritoryManager.summary_text(TerritoryManager.districts.keys()[0])
+	var lines: PackedStringArray = []
+	for district_id in TerritoryManager.districts:
+		lines.append("%s:  %s" % [
+			String(TerritoryManager.districts[district_id].get("name", district_id)),
+			TerritoryManager.summary_text(String(district_id))])
+	_legend.text = "\n".join(lines)
 
 func _draw_map() -> void:
 	_canvas.draw_rect(Rect2(Vector2.ZERO, _canvas.size), BG_COLOR)
@@ -90,7 +108,7 @@ func _owner_color(state: Dictionary) -> Color:
 	return Color(String(RivalManager.crews.get(owner, {}).get("fillColor", "#aaaaaa")))
 
 func _to_map(world_xz: Vector2) -> Vector2:
-	return (world_xz - WORLD_MIN) / (WORLD_MAX - WORLD_MIN) * _canvas.size
+	return (world_xz - _world_min) / (_world_max - _world_min) * _canvas.size
 
 func _scale() -> float:
-	return _canvas.size.x / (WORLD_MAX.x - WORLD_MIN.x)
+	return _canvas.size.x / (_world_max.x - _world_min.x)

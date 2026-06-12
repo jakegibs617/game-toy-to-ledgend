@@ -1,5 +1,42 @@
 # Changelog
 
+## 2026-06-12 — Milestone 18: Second District — Canal Side (Plan.md §45, §12)
+
+The city grows east across the water. Two blocks, two stories.
+
+- **Canal Side**: 8 new walls (`walls.json`) on a new graybox block —
+  lock house, towpath, pump station, dry dock, the Grain Silo
+  landmark — plus the canal itself and a footbridge. Ghost Line's
+  home turf: their stencils claim three canal walls at boot
+  (`crews.json` territory).
+- **Travel points** (`Scripts/World/travel_point.gd`): footbridge
+  gates defined per district in `districts.json` (`travel` +
+  `arrival`). E crosses; `GameState.current_district_id` +
+  `district_changed` drive everything downstream.
+- **Mission chains**: `missions.json` is now an array of chains;
+  chains activate in order when the previous is done and their
+  trigger fires (`enter_district`). The Canal Side chain (m6 New
+  Waters → m7 Ghosts in the Water → m8 Canal King) starts the first
+  time you cross after claiming the Mill Yard. Paint objectives can
+  be district-scoped (`districtId`).
+- **Per-district heat** (§12): `HeatManager.heat_by_district` — paint
+  heats the block the wall is on; the bare `heat` property reads the
+  player's current block, so every old call site still works. Blocks
+  the player left cool at **double rate** per tick: leaving the block
+  is laying low. Cleanup pressure and the rep formula use the wall's
+  own district heat.
+- **Patrols per block**: routes carry `districtId` (3 mill + 3
+  canal); crossing the bridge swaps the active guard set.
+- Map becomes a city map: bounds fit every wall, one influence line
+  per district. HUD announces the block you enter and its heat.
+- Save schema **v3**: per-district heat dict, chain index/flags,
+  chain-prefixed painted-objective keys; v2 saves migrate (heat into
+  Mill Yard, painted keys gain the `0:` chain prefix).
+- Smoke test: `_smoke_canal_side` — footbridge travel, chain trigger,
+  Ghost Line's scripted cross-out + the full m6–m8 run, heat
+  isolation between districts, double-rate absent cooling, v3
+  round-trip, v2→v3 migration.
+
 ## 2026-06-12 — Milestone 17: Progression Depth (Plan.md §5, §6, §7, §11)
 
 Choosing what kind of writer you are. New `StatsManager` autoload

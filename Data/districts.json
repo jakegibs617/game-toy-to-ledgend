@@ -5,6 +5,26 @@
     "claimThreshold": 0.5,
     "claimRepBonus": 150,
     "payoutPerWeight": 0.1,
-    "decayRep": 4
+    "decayRep": 4,
+    "arrival": [34, 0.5, 0],
+    "travel": {
+      "position": [38, 0.6, 0],
+      "label": "CANAL\nFOOTBRIDGE",
+      "to": "district_canal_side"
+    }
+  },
+  {
+    "districtId": "district_canal_side",
+    "name": "Canal Side",
+    "claimThreshold": 0.5,
+    "claimRepBonus": 200,
+    "payoutPerWeight": 0.1,
+    "decayRep": 4,
+    "arrival": [86, 0.5, 0],
+    "travel": {
+      "position": [82, 0.6, 0],
+      "label": "MILL\nFOOTBRIDGE",
+      "to": "district_mill_yard"
+    }
   }
 ]

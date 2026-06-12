@@ -13,18 +13,39 @@
 	"routes": [
 		{
 			"routeId": "street_sweep",
+			"districtId": "district_mill_yard",
 			"speed": 2.2,
 			"waypoints": [[-20, 0, -5], [20, 0, -5], [20, 0, 5], [-20, 0, 5]]
 		},
 		{
 			"routeId": "north_alley",
+			"districtId": "district_mill_yard",
 			"speed": 1.8,
 			"waypoints": [[1, 0, -10], [1, 0, -18]]
 		},
 		{
 			"routeId": "bodega_side",
+			"districtId": "district_mill_yard",
 			"speed": 2.0,
 			"waypoints": [[14, 0, 6], [0, 0, 6], [0, 0, 16]]
+		},
+		{
+			"routeId": "towpath_walk",
+			"districtId": "district_canal_side",
+			"speed": 2.0,
+			"waypoints": [[100, 0, 20], [100, 0, -2], [140, 0, -2]]
+		},
+		{
+			"routeId": "silo_yard",
+			"districtId": "district_canal_side",
+			"speed": 1.8,
+			"waypoints": [[140, 0, 20], [112, 0, 20]]
+		},
+		{
+			"routeId": "lock_house_loop",
+			"districtId": "district_canal_side",
+			"speed": 2.2,
+			"waypoints": [[96, 0, -18], [140, 0, -18]]
 		}
 	]
 }

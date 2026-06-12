@@ -47,7 +47,11 @@ SMOKE_TEST=1 /Applications/Godot.app/Contents/MacOS/Godot --headless --path .
 | Esc | Toggle mouse capture |
 
 Walk up to a wall panel (the lighter slabs on building faces) until the
-prompt appears at the bottom of the screen, then press E.
+prompt appears at the bottom of the screen, then press E. Once the Mill
+Yard is claimed, cross the canal footbridge east (E at the gate) into
+Canal Side — Ghost Line turf with its own mission chain, walls, patrols,
+and heat: each block heats and cools on its own, and a block you leave
+cools twice as fast.
 
 ## Systems implemented (First Agent Task, Plan.md §47)
 
