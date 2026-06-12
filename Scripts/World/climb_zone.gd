@@ -69,6 +69,8 @@ func resolve(success: bool) -> void:
 		player.global_position = Vector3(top[0], top[1], top[2])
 		if player is CharacterBody3D:
 			player.velocity = Vector3.ZERO
+		if player.has_method("play_context_animation"):
+			player.play_context_animation("climb", 0.85)
 		GameState.player_event.emit("You made the climb. The block looks small from up here.")
 	else:
 		# The caught-equivalent fine (Plan_v2.md Milestone 19): the

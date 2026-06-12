@@ -55,11 +55,16 @@ cools twice as fast. Glowing drainpipes mark climb routes (E to climb,
 slip risk shown) up to the rooftop roller spots — security won't follow
 you up, but a fall costs rep.
 
-The player character is the Kronako Iconz neon rooster
-(`Assets/Characters/neon_rooster.glb`). The GLB needs Godot's asset
-import to have run once (opening the editor, or
-`Godot --headless --path . --import`); until then the game falls back
-to the old debug capsule.
+The player character is the Kronako Iconz neon rooster. `player.gd`
+prefers the animated action set in `Assets/Characters/`: idle, walk,
+walk backward, run-fast, jump, ladder climb, and vault. Normal WASD
+movement walks, S without Shift uses the backward walk, Shift+WASD
+runs, Space plays the jump clip while airborne, and successful climb
+interactions briefly play the ladder climb. The vault clip is imported
+for future use but has no gameplay trigger yet. If Godot asset import
+has not run once (opening the editor, or
+`Godot --headless --path . --import`), the game falls back to the
+static rooster GLB, then the old debug capsule.
 
 ## Systems implemented (First Agent Task, Plan.md §47)
 
@@ -79,7 +84,9 @@ to the old debug capsule.
   per graffiti type) with a per-graffiti tilt, paint drips, fill panels for
   throw-ups/pieces, and a strike bar on cross-outs (Milestone 8 art pass).
 - **Player** (`Scripts/Player/player.gd`) — third-person controller with
-  spring-arm camera and raycast wall focusing.
+  spring-arm camera, raycast wall focusing, and a runtime-loaded
+  rooster animation state table for idle/walk/backpedal/run/jump/climb
+  movement.
 - **HUD** (`Scripts/UI/hud.gd`) — styled stat/mission/prompt panels,
   feedback messages, rank-up notice, rival event notifications, a
   low-paint warning, and a controls hint (Milestone 8 UI pass).

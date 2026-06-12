@@ -966,14 +966,17 @@ func _smoke_history_cap() -> void:
 	print("SMOKE: wall history capped at %d entries" % WallManager.MAX_WALL_HISTORY)
 
 ## Assumes: player exists. The Kronako Iconz rooster GLB replaces the
-## debug capsule; player.gd falls back to the capsule when the import
-## is unavailable (fresh checkouts before an editor/--import run), so
+## debug capsule; player.gd prefers the animated action GLBs
+## and falls back to the static GLB/capsule when imports are unavailable, so
 ## assert the visual that the import state implies.
 func _smoke_player_model() -> void:
 	var player := _smoke_player()
 	var has_model := player.get_node_or_null("CharacterModel") != null
 	var has_capsule := player.get_node_or_null("CapsuleFallback") != null
 	assert(has_model != has_capsule)  # exactly one visual
-	if ResourceLoader.exists(Player.MODEL_PATH):
+	if ResourceLoader.exists(Player.WALK_MODEL_PATH) and ResourceLoader.exists(Player.RUN_MODEL_PATH):
 		assert(has_model)
-	print("SMOKE: player visual = %s" % ("rooster model" if has_model else "capsule fallback"))
+		for state in ["idle", "walk", "walk_back", "run", "run_fast", "jump", "climb", "vault"]:
+			assert(player._visual_animation_players.has(state))
+			assert(String(player._visual_animation_names[state]) != "")
+	print("SMOKE: player visual = %s" % ("animated rooster action set" if has_model else "capsule fallback"))

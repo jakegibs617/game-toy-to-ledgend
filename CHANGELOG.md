@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-06-12 — Player animation action set
+
+The rooster is now animated across the core movement verbs.
+
+- Added skinned GLB action clips under `Assets/Characters/`:
+  idle/rest, walk, walk backward, run-fast, jump, ladder climb, and
+  vault. Godot import extracts one texture per clip.
+- `player.gd` builds a single `CharacterModel` container and loads the
+  available action clips into a state table. The active clip swaps by
+  movement context: idle, normal movement, backward movement, Shift
+  run, airborne jump, and contextual climb.
+- `climb_zone.gd` now asks the player to play the ladder-climb context
+  animation on successful climbs.
+- Vault is imported and bound for the future, but no gameplay trigger
+  exists yet.
+- Smoke test: `_smoke_player_model` now asserts the full animated
+  action set is imported and bound. No save schema change; collision
+  and movement numbers are unchanged.
+
 ## 2026-06-12 — Player character: Kronako Iconz rooster
 
 First real character art replaces the debug capsule.

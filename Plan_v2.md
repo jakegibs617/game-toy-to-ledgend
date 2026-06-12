@@ -21,9 +21,11 @@ paint, get crossed out, resupply, recruit, reclaim, claim the block.
 
 v2 is now partly built. Milestones 15–19 are complete (PRs #9–#13):
 engineering hardening, the full graffiti type set, stats/perks/rep
-decay, Canal Side, and rooftop climbing. PR #14 adds the first real
-player character art, the Kronako Iconz neon rooster GLB, without
-changing gameplay or save data.
+decay, Canal Side, and rooftop climbing. The first real player
+character art is in: the Kronako Iconz neon rooster now has a runtime
+animation action set for idle, walking, backpedaling, running, jumping,
+and ladder climbing. The vault clip is imported and bound but awaits a
+gameplay trigger.
 
 The playable loop is currently: start in Mill Yard, learn the core
 mission chain, recruit Moth, unlock throw-ups/pieces/stencils/rollers/
@@ -49,7 +51,7 @@ high ground.
 | Alias selection / main menu | §38, §40 | Hardcoded "NOVA", boots straight into the district |
 | Controller support | §37 | Keyboard/mouse only |
 | Gallery contact / art-world faction | §18, §43 | None |
-| Player presentation | §28, §40 | Neon rooster GLB replaces the debug capsule; animation still placeholder |
+| Player presentation | §28, §40 | Animated rooster action set is in; turn/vault/presentation polish remains |
 
 ## Remaining v1 Could-Have list
 
@@ -216,9 +218,27 @@ penalties, and guards giving up from below. Rooftop Row remains future.
 ## Current Non-Milestone Presentation Update — Complete
 
 The debug capsule has been replaced by the Kronako Iconz neon rooster
-GLB. `player.gd` loads it at runtime, keeps the existing movement and
-collision, and falls back to the capsule if Godot import metadata has
-not been generated yet.
+GLB action set. `player.gd` loads separate skinned clips at runtime,
+keeps the existing movement and collision, and falls back to the static
+rooster/capsule if Godot import metadata has not been generated yet.
+Current triggers: idle, walk, backpedal, Shift-run, jump while
+airborne, and ladder climb on successful climb-zone interactions.
+Imported-but-untriggered clips (vault, turn variants, sprint-stop,
+stand-up) should become gameplay event hooks rather than passive
+movement guesses.
+
+## Recommended Next Steps
+
+* **Animation polish pass (small, before Milestone 20 if desired):**
+  add event hooks for vault/turn/stop clips only where gameplay
+  supports them; avoid swapping clips on every tiny input change until
+  blend/cooldown rules exist.
+* **Milestone 20 remains the next system milestone:** train painting
+  is still the signature demo moment and should drive the next gameplay
+  branch.
+* **Keep presentation changes non-schema:** animation/model work should
+  continue without save-version bumps unless player state gains new
+  persisted fields.
 
 ## Milestone 20: Train Painting (Could-Have — the signature moment) — Next
 

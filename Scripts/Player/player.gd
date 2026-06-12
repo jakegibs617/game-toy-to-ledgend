@@ -7,8 +7,24 @@ signal focus_changed(node: Node3D)
 signal painted(result: Dictionary)
 signal freehand_requested(wall: PaintableWall)
 
-const MODEL_PATH := "res://Assets/Characters/neon_rooster.glb"
+const WALK_MODEL_PATH := "res://Assets/Characters/neon_rooster_walking.glb"
+const RUN_MODEL_PATH := "res://Assets/Characters/neon_rooster_running.glb"
+const IDLE_MODEL_PATH := "res://Assets/Characters/neon_rooster_character_output.glb"
+const WALK_BACK_MODEL_PATH := "res://Assets/Characters/neon_rooster_walk_backward.glb"
+const RUN_FAST_MODEL_PATH := "res://Assets/Characters/neon_rooster_run_fast.glb"
+const JUMP_MODEL_PATH := "res://Assets/Characters/neon_rooster_jump.glb"
+const CLIMB_MODEL_PATH := "res://Assets/Characters/neon_rooster_ladder_climb.glb"
+const VAULT_MODEL_PATH := "res://Assets/Characters/neon_rooster_vault.glb"
+const STATIC_MODEL_PATH := "res://Assets/Characters/neon_rooster.glb"
 const MODEL_SOURCE_HEIGHT := 1.913  # GLB bounds, origin-centered
+const IDLE_ANIMATION_NAME := "Armature|clip0|baselayer"
+const WALK_ANIMATION_NAME := "Armature|walking_man|baselayer"
+const WALK_BACK_ANIMATION_NAME := "Armature|Walk_Backward_inplace|baselayer"
+const RUN_ANIMATION_NAME := "Armature|running|baselayer"
+const RUN_FAST_ANIMATION_NAME := "Armature|RunFast|baselayer"
+const JUMP_ANIMATION_NAME := "Armature|Regular_Jump|baselayer"
+const CLIMB_ANIMATION_NAME := "Armature|Fast_Ladder_Climb|baselayer"
+const VAULT_ANIMATION_NAME := "Armature|Parkour_Vault_2|baselayer"
 
 const WALK_SPEED := 4.0
 const RUN_SPEED := 7.5
@@ -22,6 +38,12 @@ var _camera: Camera3D
 var _ray: RayCast3D
 var _focused: Node3D = null
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
+var _visual_models: Dictionary = {}
+var _visual_animation_players: Dictionary = {}
+var _visual_animation_names: Dictionary = {}
+var _active_visual_state := ""
+var _action_visual_state := ""
+var _action_visual_time_left := 0.0
 
 func _ready() -> void:
 	name = "Player"
@@ -55,21 +77,14 @@ func _ready() -> void:
 
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
-## Kronako Iconz rooster model, scaled to the 1.8 m capsule. Falls back
-## to the old debug capsule when the GLB import is unavailable (fresh
-## headless runs never import assets).
+## Kronako Iconz rooster model, scaled to the 1.8 m capsule. The
+## animated action GLBs are preferred; the static GLB and old debug
+## capsule are fallbacks when imports are unavailable.
 func _build_visual() -> void:
-	if ResourceLoader.exists(MODEL_PATH):
-		var packed: PackedScene = load(MODEL_PATH)
-		if packed != null:
-			var model := packed.instantiate()
-			model.name = "CharacterModel"
-			var s := 1.8 / MODEL_SOURCE_HEIGHT
-			model.scale = Vector3.ONE * s
-			model.position = Vector3(0, MODEL_SOURCE_HEIGHT * 0.5 * s, 0)
-			model.rotation.y = PI  # glTF forward is +Z; Godot's is -Z
-			add_child(model)
-			return
+	if _try_build_animated_visual():
+		return
+	if _try_build_static_visual(STATIC_MODEL_PATH):
+		return
 	var mesh := MeshInstance3D.new()
 	mesh.name = "CapsuleFallback"
 	var capsule_mesh := CapsuleMesh.new()
@@ -81,6 +96,140 @@ func _build_visual() -> void:
 	mat.albedo_color = Color("#3aa0c8")
 	mesh.material_override = mat
 	add_child(mesh)
+
+func _try_build_animated_visual() -> bool:
+	if not ResourceLoader.exists(WALK_MODEL_PATH) and not ResourceLoader.exists(RUN_MODEL_PATH):
+		return false
+	var container := Node3D.new()
+	container.name = "CharacterModel"
+	_apply_visual_transform(container)
+	var built := false
+	built = _add_animated_model(
+		container, IDLE_MODEL_PATH, "idle", IDLE_ANIMATION_NAME) or built
+	built = _add_animated_model(
+		container, WALK_MODEL_PATH, "walk", WALK_ANIMATION_NAME) or built
+	built = _add_animated_model(
+		container, WALK_BACK_MODEL_PATH, "walk_back", WALK_BACK_ANIMATION_NAME) or built
+	built = _add_animated_model(
+		container, RUN_MODEL_PATH, "run", RUN_ANIMATION_NAME) or built
+	built = _add_animated_model(
+		container, RUN_FAST_MODEL_PATH, "run_fast", RUN_FAST_ANIMATION_NAME) or built
+	built = _add_animated_model(
+		container, JUMP_MODEL_PATH, "jump", JUMP_ANIMATION_NAME) or built
+	built = _add_animated_model(
+		container, CLIMB_MODEL_PATH, "climb", CLIMB_ANIMATION_NAME) or built
+	built = _add_animated_model(
+		container, VAULT_MODEL_PATH, "vault", VAULT_ANIMATION_NAME) or built
+	if not built:
+		return false
+	add_child(container)
+	_set_visual_state("idle")
+	return true
+
+func _add_animated_model(container: Node3D, path: String,
+		state: String, preferred_animation: String) -> bool:
+	if not ResourceLoader.exists(path):
+		return false
+	var packed: PackedScene = load(path)
+	if packed == null:
+		return false
+	var model := packed.instantiate()
+	model.name = "%sModel" % state.capitalize()
+	model.visible = false
+	container.add_child(model)
+	var player := _find_animation_player(model)
+	if player == null:
+		return false
+	var names := player.get_animation_list()
+	if names.is_empty():
+		return false
+	var chosen := String(names[0])
+	for name in names:
+		if String(name) == preferred_animation:
+			chosen = String(name)
+			break
+	_visual_models[state] = model
+	_visual_animation_players[state] = player
+	_visual_animation_names[state] = StringName(chosen)
+	player.play(StringName(chosen))
+	player.pause()
+	player.seek(0.0, true)
+	return true
+
+func _try_build_static_visual(path: String) -> bool:
+	if not ResourceLoader.exists(path):
+		return false
+	var packed: PackedScene = load(path)
+	if packed == null:
+		return false
+	var model := packed.instantiate()
+	model.name = "CharacterModel"
+	_apply_visual_transform(model)
+	add_child(model)
+	return true
+
+func _apply_visual_transform(model: Node3D) -> void:
+	var s := 1.8 / MODEL_SOURCE_HEIGHT
+	model.scale = Vector3.ONE * s
+	model.position = Vector3(0, MODEL_SOURCE_HEIGHT * 0.5 * s, 0)
+	model.rotation.y = PI  # glTF forward is +Z; Godot's is -Z
+
+func _find_animation_player(root: Node) -> AnimationPlayer:
+	if root is AnimationPlayer:
+		return root
+	for child in root.get_children():
+		var found := _find_animation_player(child)
+		if found != null:
+			return found
+	return null
+
+func _update_visual_animation(is_moving: bool, is_running: bool) -> void:
+	if _visual_animation_players.is_empty():
+		return
+	if _action_visual_time_left > 0.0 and _visual_models.has(_action_visual_state):
+		_set_visual_state(_action_visual_state)
+		return
+	if not is_on_floor() and _visual_models.has("jump"):
+		_set_visual_state("jump")
+		return
+	if is_moving:
+		var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+		if input_dir.y > 0.35 and _visual_models.has("walk_back") and not is_running:
+			_set_visual_state("walk_back")
+		elif is_running:
+			_set_visual_state("run_fast" if _visual_models.has("run_fast") else "run")
+		else:
+			_set_visual_state("walk")
+	else:
+		_set_visual_state("idle")
+
+func _set_visual_state(state: String) -> void:
+	var target := state
+	if target == "idle":
+		target = "idle" if _visual_models.has("idle") else ("walk" if _visual_models.has("walk") else "run")
+	if not _visual_models.has(target):
+		return
+	if _active_visual_state != target:
+		for key in _visual_models:
+			_visual_models[key].visible = String(key) == target
+		_active_visual_state = target
+	var player: AnimationPlayer = _visual_animation_players[target]
+	var animation: StringName = _visual_animation_names[target]
+	if state == "idle":
+		if player.is_playing():
+			player.pause()
+		player.seek(0.0, true)
+		return
+	player.speed_scale = 1.0
+	if not player.is_playing() or String(player.current_animation) != String(animation):
+		player.play(animation)
+
+func play_context_animation(state: String, duration := 0.75) -> void:
+	if not _visual_models.has(state):
+		return
+	_action_visual_state = state
+	_action_visual_time_left = duration
+	_set_visual_state(state)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
@@ -109,6 +258,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				return
 
 func _physics_process(delta: float) -> void:
+	if _action_visual_time_left > 0.0:
+		_action_visual_time_left = maxf(_action_visual_time_left - delta, 0.0)
 	if not is_on_floor():
 		velocity.y -= _gravity * delta
 	elif Input.is_action_just_pressed("jump"):
@@ -116,13 +267,15 @@ func _physics_process(delta: float) -> void:
 
 	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var direction := (transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
-	var speed := RUN_SPEED if Input.is_action_pressed("run") else WALK_SPEED
+	var is_running := Input.is_action_pressed("run")
+	var speed := RUN_SPEED if is_running else WALK_SPEED
 	if direction != Vector3.ZERO:
 		velocity.x = direction.x * speed
 		velocity.z = direction.z * speed
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, speed)
 		velocity.z = move_toward(velocity.z, 0.0, speed)
+	_update_visual_animation(direction != Vector3.ZERO, is_running)
 	move_and_slide()
 	_update_focus()
 

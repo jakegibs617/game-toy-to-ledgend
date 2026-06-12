@@ -39,9 +39,21 @@ extends a section.
 | Sfx | Scripts/Audio/sfx.gd | Synthesized placeholder sounds; **must load after the managers** (connects to their signals); self-disables headless |
 
 Non-autoload actors: `Player` (Scripts/Player/player.gd, builds its own
-camera rig/raycast), `PaintableWall` (Scripts/Walls/paintable_wall.gd,
-renders graffiti/cross-outs/buffs), `PatrolGuard`, `Npc`, `PickupItem`,
-and the UI panels under Scripts/UI/.
+camera rig/raycast and runtime rooster animation state table),
+`PaintableWall` (Scripts/Walls/paintable_wall.gd, renders
+graffiti/cross-outs/buffs), `PatrolGuard`, `Npc`, `PickupItem`, and
+the UI panels under Scripts/UI/.
+
+Player animation clips live as separate skinned GLB scenes in
+`Assets/Characters/`. `Player._try_build_animated_visual` loads each
+available action into a `CharacterModel` container and records:
+state name → model node, animation player, animation name. Movement
+selects idle/walk/backpedal/run/jump; world interactions can request
+short contextual clips via `Player.play_context_animation` (climbs use
+`"climb"` today). Add future actions by importing a GLB, registering
+its path + animation name in `player.gd`, and triggering the state from
+the gameplay event rather than hard-coding animation logic into the
+world object.
 
 ## The signal hub: `WallManager.wall_painted`
 
