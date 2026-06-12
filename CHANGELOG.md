@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-06-12 — Milestone 19: Rooftop Climbing (Plan_v2.md Should-Have)
+
+The high ground opens up — and the risk moves into the climb.
+
+- **Climb zones** (`Data/climbs.json` → `Scripts/World/climb_zone.gd`):
+  drainpipe/ladder spots at the foot of the Mill West block and the
+  Grain Silo. E attempts the climb: make it and you're on the roof at
+  the Milestone 16 roller spots; slip (`fallChance`) and you take the
+  caught-equivalent fine (`fallRepPenalty` rep) — Plan_v2.md's "risk
+  shifts to the climb itself". `resolve(success)` is deterministic for
+  tests; `interact()` rolls.
+- **Security won't climb**: a chasing guard gives up the moment the
+  player holds the high ground (>2.5 m above them) — and that counts
+  as an escaped chase (Stealth XP).
+- New `GameState.player_event` signal: world-object outcomes (climbs,
+  future trains) toast on the HUD without each needing a manager.
+- Smoke test: `_smoke_rooftop_climbing` — fall fine math, climb to the
+  parapet + roller paint from the roof, grounded-guard give-up.
+- No save schema change.
+
 ## 2026-06-12 — Milestone 18: Second District — Canal Side (Plan.md §45, §12)
 
 The city grows east across the water. Two blocks, two stories.

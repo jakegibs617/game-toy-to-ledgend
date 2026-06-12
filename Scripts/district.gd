@@ -4,8 +4,10 @@ extends Node3D
 ## player, and HUD. Set SMOKE_TEST=1 to run a headless self-check.
 
 const PLAYER_SPAWN := Vector3(0, 0.5, 4)
+const CLIMBS_PATH := "res://Data/climbs.json"
 const DataLoader := preload("res://Scripts/Data/data_loader.gd")
 const TravelPointScript := preload("res://Scripts/World/travel_point.gd")
+const ClimbZoneScript := preload("res://Scripts/World/climb_zone.gd")
 
 func _ready() -> void:
 	_build_environment()
@@ -13,6 +15,7 @@ func _ready() -> void:
 	_build_buildings()
 	_build_canal_side()
 	_spawn_travel_points()
+	_spawn_climb_zones()
 	WallManager.spawn_walls(self)
 	RivalManager.claim_initial_territory()
 	CrewManager.spawn_npcs(self)
@@ -134,6 +137,20 @@ func _build_canal_side() -> void:
 			Vector3(100, 0, -6.5), Vector3(118, 0, 6.5), Vector3(134, 0, -6.5)]:
 		_add_street_lamp(lamp_pos)
 
+## Climb routes up the graybox buildings (Milestone 19, Data/climbs.json).
+func _spawn_climb_zones() -> void:
+	var parsed: Variant = DataLoader.load_json(CLIMBS_PATH, "District")
+	if not (parsed is Array):
+		return
+	for def in parsed:
+		if not DataLoader.require_fields(def,
+				["climbId", "label", "position", "top", "fallChance", "fallRepPenalty"],
+				"District: climb \"%s\"" % String(def.get("climbId", "?"))):
+			continue
+		var zone := ClimbZoneScript.new()
+		zone.setup(def)
+		add_child(zone)
+
 ## One gate per district that has a travel def (districts.json).
 func _spawn_travel_points() -> void:
 	for district_id in TerritoryManager.districts:
@@ -187,6 +204,7 @@ func _run_smoke_test() -> void:
 	_smoke_graffiti_types()
 	_smoke_progression()
 	_smoke_canal_side()
+	_smoke_rooftop_climbing()
 	_smoke_history_cap()
 	print("SMOKE: OK")
 	get_tree().quit()
@@ -896,6 +914,41 @@ func _smoke_canal_side() -> void:
 	assert(is_equal_approx(float(migrated["heat"]["by_district"]["district_mill_yard"]), 33.0))
 	assert(migrated["missions"]["painted_objectives"].has("0:1:0"))
 	print("SMOKE: v3 save round-trips; v2 saves migrate forward")
+
+## Assumes: the player is back in Mill Yard with the roller unlocked
+## and at least one guard on the block. Milestone 19: the climb is the
+## risk — a fall takes the caught-equivalent rep fine, a clean climb
+## reaches the Milestone 16 rooftop roller spot, and a chasing guard
+## gives up when the writer holds the high ground.
+func _smoke_rooftop_climbing() -> void:
+	var player := _smoke_player()
+	var climb := get_node_or_null("ClimbZone_climb_mill_west")
+	assert(climb != null)
+	# A slip costs rep — the street saw you eat it.
+	var rep_before: int = GameState.reputation
+	climb.resolve(false)
+	assert(GameState.reputation == rep_before - mini(20, rep_before))
+	# A clean climb puts the writer on the Mill West roof…
+	climb.resolve(true)
+	assert(player.global_position.distance_to(Vector3(-9, 10.6, -9.5)) < 1.0)
+	# …at the rooftop parapet, in roller range.
+	GameState.add_paint(20)
+	var result: Dictionary = WallManager.paint_wall(
+		WallManager.wall_nodes["wall_roof_mill_01"], "roller")
+	assert(result["ok"])
+	# Security won't climb: a chasing guard gives up on the spot.
+	assert(PatrolManager.guard_count() >= 1)
+	var guard: PatrolGuard = PatrolManager.guards()[0]
+	guard.start_chase(player)
+	assert(guard.is_chasing())
+	var escaped := [false]
+	PatrolManager.chase_escaped.connect(func() -> void: escaped[0] = true)
+	guard._chase(0.016)
+	assert(not guard.is_chasing())
+	assert(escaped[0])
+	print("SMOKE: rooftop climbing — fall fine, roller from the roof, guards stay grounded")
+	# Back to street level for the sections that follow.
+	player.global_position = PLAYER_SPAWN
 
 ## Assumes: nothing beyond a paintable wall. Plan_v2.md §3.5: wall
 ## history is capped — repainting past the cap drops the oldest

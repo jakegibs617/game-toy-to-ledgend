@@ -12,6 +12,9 @@ signal fill_color_changed(color_name: String)
 ## Milestone 18: which block the writer is standing in. Travel points
 ## set it; HeatManager, PatrolManager, and the HUD read it.
 signal district_changed(district_id: String)
+## World-object outcomes that want a HUD toast (climbs, future trains)
+## without each one needing its own manager.
+signal player_event(message: String)
 
 const RANKS := [
 	{"name": "Toy", "min_rep": 0},

@@ -106,6 +106,12 @@ func _chase(delta: float) -> void:
 	if _target == null or not is_instance_valid(_target):
 		state = State.RETURN
 		return
+	# Security won't climb (Milestone 19): once the writer holds the
+	# high ground, the chase is over.
+	if _target.global_position.y - global_position.y > 2.5:
+		state = State.RETURN
+		PatrolManager.guard_gave_up(self)
+		return
 	_chase_time += delta
 	var dist := global_position.distance_to(_target.global_position)
 	if dist <= _catch_radius:
