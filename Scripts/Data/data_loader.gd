@@ -13,22 +13,29 @@ static var error_count := 0
 static func load_json(path: String, context: String) -> Variant:
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
-		error_count += 1
-		push_error("%s: cannot open %s" % [context, path])
+		report("%s: cannot open %s" % [context, path])
 		return null
 	var parsed: Variant = JSON.parse_string(file.get_as_text())
 	if parsed == null:
-		error_count += 1
-		push_error("%s: invalid JSON in %s" % [context, path])
+		report("%s: invalid JSON in %s" % [context, path])
 	return parsed
 
+## Counts and reports one validation failure.
+static func report(message: String) -> void:
+	error_count += 1
+	push_error(message)
+
 ## push_errors every missing required field on `entry`. Returns true
-## when the entry is complete.
-static func require_fields(entry: Dictionary, fields: Array, context: String) -> bool:
+## when the entry is complete. Accepts Variant so a malformed entry
+## (e.g. a bare string in a defs array) is reported like any other
+## validation failure instead of crashing the validator.
+static func require_fields(entry: Variant, fields: Array, context: String) -> bool:
+	if not (entry is Dictionary):
+		report("%s: expected an object, got %s" % [context, type_string(typeof(entry))])
+		return false
 	var ok := true
 	for field in fields:
 		if not entry.has(field):
 			ok = false
-			error_count += 1
-			push_error("%s: missing required field \"%s\"" % [context, field])
+			report("%s: missing required field \"%s\"" % [context, field])
 	return ok

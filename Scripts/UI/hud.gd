@@ -232,19 +232,24 @@ func close_modals(except := "") -> void:
 
 func open_modal(name: String) -> void:
 	close_modals(name)
-	for modal in _modals:
-		if String(modal["name"]) == name and modal.has("open") \
-				and not modal["is_open"].call():
-			modal["open"].call()
+	var modal := _find_modal(name)
+	if modal.has("open") and not modal["is_open"].call():
+		modal["open"].call()
 
 func _toggle_modal(name: String) -> void:
+	var modal := _find_modal(name)
+	if modal.is_empty():
+		return
+	if modal["is_open"].call():
+		modal["close"].call()
+	else:
+		open_modal(name)
+
+func _find_modal(name: String) -> Dictionary:
 	for modal in _modals:
 		if String(modal["name"]) == name:
-			if modal["is_open"].call():
-				modal["close"].call()
-			else:
-				open_modal(name)
-			return
+			return modal
+	return {}
 
 ## The first open modal in priority order, or {} when the world has input.
 func _active_modal() -> Dictionary:

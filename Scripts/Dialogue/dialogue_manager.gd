@@ -29,9 +29,12 @@ func _ready() -> void:
 	if parsed is Dictionary:
 		trees = parsed
 		for tree_id in trees:
-			var tree: Dictionary = trees[tree_id]
+			var tree: Variant = trees[tree_id]
 			if not DataLoader.require_fields(tree, ["start", "nodes"],
 					"DialogueManager: tree \"%s\"" % String(tree_id)):
+				continue
+			if not (tree["nodes"] is Dictionary):
+				DataLoader.report("DialogueManager: nodes of \"%s\" must be an object" % String(tree_id))
 				continue
 			for node_id in tree["nodes"]:
 				DataLoader.require_fields(tree["nodes"][node_id], ["speaker", "text"],
