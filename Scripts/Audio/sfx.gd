@@ -9,9 +9,12 @@ const POOL_SIZE := 6
 
 var _sounds: Dictionary = {}  # name -> {"stream": AudioStreamWAV, "db": float}
 var _players: Array[AudioStreamPlayer] = []
+var _music_player: AudioStreamPlayer
+var _ambience_player: AudioStreamPlayer
 # The headless dummy audio driver never mixes, so playbacks started
 # there linger and get reported as leaked instances at exit.
 var _enabled := DisplayServer.get_name() != "headless"
+var _continuous_started := false
 var _rank_index := 0
 
 func _ready() -> void:
@@ -29,14 +32,24 @@ func _ready() -> void:
 		var player := AudioStreamPlayer.new()
 		add_child(player)
 		_players.append(player)
+	if _enabled:
+		_music_player = AudioStreamPlayer.new()
+		_music_player.volume_db = -24.0
+		add_child(_music_player)
+		_ambience_player = AudioStreamPlayer.new()
+		_ambience_player.volume_db = -28.0
+		add_child(_ambience_player)
 
 	WallManager.wall_painted.connect(_on_wall_painted)
 	_rank_index = GameState.rank_index(GameState.rank)
 	GameState.rank_changed.connect(_on_rank_changed)
+	GameState.alias_changed.connect(func(_alias: String) -> void:
+		_start_continuous_audio())
 	PatrolManager.player_spotted.connect(func(_g: PatrolGuard) -> void: play("whistle"))
 	PatrolManager.player_caught.connect(func(_g: PatrolGuard) -> void: play("denied"))
 	RivalManager.rival_event.connect(func(_msg: String, _wall: String) -> void: play("rival"))
 	HeatManager.cleanup_event.connect(func(_msg: String, _wall: String) -> void: play("buff"))
+	GameState.district_changed.connect(_set_ambience)
 	TerritoryManager.district_claimed.connect(func(_id: String, _d: Dictionary) -> void: play("claim"))
 	CrewManager.crew_event.connect(func(_msg: String) -> void: play("ui"))
 	SupplyManager.supply_event.connect(func(_msg: String) -> void: play("ui"))
@@ -54,6 +67,13 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	for player in _players:
 		player.stop()
+		player.stream = null
+	if _music_player != null:
+		_music_player.stop()
+		_music_player.stream = null
+	if _ambience_player != null:
+		_ambience_player.stop()
+		_ambience_player.stream = null
 
 func play(sound_name: String) -> void:
 	if not _enabled:
@@ -67,6 +87,22 @@ func play(sound_name: String) -> void:
 			player.volume_db = float(sound["db"])
 			player.play()
 			return
+
+func _set_ambience(district_id: String) -> void:
+	if not _enabled or not _continuous_started or _ambience_player == null:
+		return
+	_ambience_player.stop()
+	var base := 72.0 if district_id == "district_canal_side" else 58.0
+	_ambience_player.stream = _loop(_ambience_bed(base))
+	_ambience_player.play()
+
+func _start_continuous_audio() -> void:
+	if not _enabled or _continuous_started or _music_player == null:
+		return
+	_continuous_started = true
+	_music_player.stream = _loop(_music_bed())
+	_music_player.play()
+	_set_ambience(GameState.current_district_id)
 
 ## Rising sting only for actual rank-ups — a patrol catch can demote.
 func _on_rank_changed(rank: String) -> void:
@@ -155,6 +191,38 @@ func _rival_buzz() -> AudioStreamWAV:
 		var square := 1.0 if fmod(phase, 1.0) < 0.5 else -1.0
 		samples[i] = square * (1.0 - t) * 0.45
 	return _to_wav(samples)
+
+func _music_bed() -> AudioStreamWAV:
+	var count := int(8.0 * MIX_RATE)
+	var samples := PackedFloat32Array()
+	samples.resize(count)
+	var notes: Array[float] = [55.0, 65.41, 73.42, 82.41]
+	for i in count:
+		var beat := int(float(i) / MIX_RATE * 2.0) % notes.size()
+		var freq: float = notes[beat]
+		var t := float(i) / MIX_RATE
+		samples[i] = (sin(TAU * freq * t) * 0.25
+			+ sin(TAU * freq * 2.0 * t) * 0.08) * 0.55
+	return _to_wav(samples)
+
+func _ambience_bed(base_freq: float) -> AudioStreamWAV:
+	var count := int(6.0 * MIX_RATE)
+	var samples := PackedFloat32Array()
+	samples.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(base_freq * 100.0)
+	var filtered := 0.0
+	for i in count:
+		var t := float(i) / MIX_RATE
+		filtered = filtered * 0.985 + rng.randf_range(-1.0, 1.0) * 0.015
+		samples[i] = filtered * 0.45 + sin(TAU * base_freq * 0.25 * t) * 0.08
+	return _to_wav(samples)
+
+func _loop(stream: AudioStreamWAV) -> AudioStreamWAV:
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_begin = 0
+	stream.loop_end = stream.data.size() / 2
+	return stream
 
 func _to_wav(samples: PackedFloat32Array) -> AudioStreamWAV:
 	var bytes := PackedByteArray()

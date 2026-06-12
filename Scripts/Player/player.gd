@@ -32,6 +32,8 @@ const WALK_SPEED := 4.0
 const RUN_SPEED := 7.5
 const JUMP_VELOCITY := 4.5
 const MOUSE_SENSITIVITY := 0.0025
+const JOY_LOOK_SENSITIVITY := 2.4
+const JOY_LOOK_DEADZONE := 0.18
 const INTERACT_RANGE := 3.5
 const CAMERA_DISTANCE := 3.5
 
@@ -190,12 +192,7 @@ func _set_visual_state(state: String) -> void:
 		_active_visual_state = target
 	var player: AnimationPlayer = _visual_animation_players[target]
 	var animation: StringName = _visual_animation_names[target]
-	if state == "idle":
-		if player.is_playing():
-			player.pause()
-		player.seek(0.0, true)
-		return
-	player.speed_scale = 1.0
+	player.speed_scale = 0.65 if state == "idle" else 1.0
 	if not player.is_playing() or String(player.current_animation) != String(animation):
 		player.play(animation)
 
@@ -224,6 +221,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			freehand_requested.emit(_focused)
 	elif event.is_action_pressed("cycle_color"):
 		GameState.cycle_fill_color()
+	elif event.is_action_pressed("can_prev"):
+		GameState.cycle_graffiti_type(-1)
+	elif event.is_action_pressed("can_next"):
+		GameState.cycle_graffiti_type(1)
 	else:
 		# Number keys select cans by style order (modals consume these
 		# first via Hud, so this only fires with the world in focus).
@@ -235,6 +236,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _physics_process(delta: float) -> void:
 	if _action_visual_time_left > 0.0:
 		_action_visual_time_left = maxf(_action_visual_time_left - delta, 0.0)
+	_apply_controller_look(delta)
 	if not is_on_floor():
 		velocity.y -= _gravity * delta
 	elif Input.is_action_just_pressed("jump"):
@@ -253,6 +255,17 @@ func _physics_process(delta: float) -> void:
 	_update_visual_animation(direction != Vector3.ZERO, is_running)
 	move_and_slide()
 	_update_focus()
+
+func _apply_controller_look(delta: float) -> void:
+	var look := Vector2(
+		Input.get_joy_axis(0, JOY_AXIS_RIGHT_X),
+		Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y))
+	if look.length() < JOY_LOOK_DEADZONE:
+		return
+	rotate_y(-look.x * JOY_LOOK_SENSITIVITY * delta)
+	_pivot.rotation.x = clampf(
+		_pivot.rotation.x - look.y * JOY_LOOK_SENSITIVITY * delta,
+		deg_to_rad(-70.0), deg_to_rad(35.0))
 
 func _update_focus() -> void:
 	var focus: Node3D = null

@@ -33,10 +33,12 @@ SMOKE_TEST=1 /Applications/Godot.app/Contents/MacOS/Godot --headless --path .
 |---|---|
 | WASD | Move |
 | Mouse | Look |
+| Controller left/right stick | Move / look |
 | Shift | Run |
 | Space | Jump |
 | E | Paint focused wall / talk / shop / pick up (in a conversation: walk away) |
 | 1–6 | Select can: Tag / Throw-up / Piece / Stencil / Roller / Mural (in shop: buy/delivery; in dialogue: choose; in blackbook: flip pages) |
+| [ / ] | Previous / next unlocked can |
 | C | Cycle fill color after Lupe unlocks colors (also in the freehand canvas) |
 | F | Freehand piece on the focused wall (needs the Piece can): hold LMB to spray, E/Enter commit, Esc bail |
 | P | Perk chooser (spend rank-up perk points; stats level by doing) |
@@ -46,7 +48,13 @@ SMOKE_TEST=1 /Applications/Godot.app/Contents/MacOS/Godot --headless --path .
 | M | District map |
 | Esc | Toggle mouse capture |
 
-Walk up to a wall panel (the lighter slabs on building faces) until the
+Controller: left shoulder runs, A jumps, X interacts, Y cycles color,
+right shoulder opens freehand, Back opens the blackbook, d-pad up opens
+perks, d-pad down opens the map, d-pad left/right cycles cans, Start
+toggles mouse capture.
+
+New games open on the title/alias panel. Pick a writer name, then walk
+up to a wall panel (the lighter slabs on building faces) until the
 prompt appears at the bottom of the screen, then press E. Once the Mill
 Yard is claimed, cross the canal footbridge east (E at the gate) into
 Canal Side — Ghost Line turf with its own mission chain, walls, patrols,
@@ -65,10 +73,10 @@ The player character is the Kronako Iconz neon rooster. `player.gd`
 prefers the animated action set in `Assets/Characters/`: idle, walk,
 walk backward, run-fast, jump, ladder climb, and vault. Normal WASD
 movement walks, S without Shift uses the backward walk, Shift+WASD
-runs, Space plays the jump clip while airborne, and successful climb
-interactions briefly play the ladder climb. The vault clip is imported
-for future use but has no gameplay trigger yet. If Godot asset import
-has not run once (opening the editor, or
+runs, Space plays the jump clip while airborne, idle breathes instead
+of freezing, and successful climb interactions briefly play the ladder
+climb. The vault clip is imported for future use but has no gameplay
+trigger yet. If Godot asset import has not run once (opening the editor, or
 `Godot --headless --path . --import`), the game falls back to the
 static rooster GLB, then the old debug capsule.
 
@@ -76,7 +84,7 @@ static rooster GLB, then the old debug capsule.
 
 - **GameState** (autoload, `Scripts/Data/game_state.gd`) — alias, reputation,
   rank progression (Toy → Block King), paint supply, selected graffiti type.
-  Also registers the input map at runtime.
+  Also registers the keyboard/controller input map at runtime.
 - **WallManager** (autoload, `Scripts/Walls/wall_manager.gd`) — loads
   `Data/walls.json` and `Data/graffiti_styles.json`, spawns walls, applies
   graffiti, computes reputation (base × visibility × risk multipliers,
@@ -98,8 +106,9 @@ static rooster GLB, then the old debug capsule.
   low-paint warning, and a controls hint (Milestone 8 UI pass).
 - **Sfx** (autoload, `Scripts/Audio/sfx.gd`, Milestone 8) — placeholder
   sound effects synthesized at startup (no audio assets): spray hiss on
-  painting, denied blip, rank-up/block-claim stings, rival buzz, and UI
-  blips for crew/save events.
+  painting, denied blip, rank-up/block-claim stings, rival buzz, UI
+  blips for crew/save events, a low music bed, and per-district
+  ambience. Headless runs self-disable audio playback.
 - **RivalManager** (autoload, `Scripts/Rivals/rival_manager.gd`,
   Milestone 4) — loads `Data/crews.json` (The Buff Kings, Ghost Line,
   Chrome Saints). Crews claim their home walls at session start. When
@@ -209,7 +218,6 @@ static rooster GLB, then the old debug capsule.
   §11 in minimal form. Crew rep shows in the HUD and blackbook, builds
   through recruiting and crew-backed murals, and goes negative when
   the street decides you sold out. Sales persist in save v5.
-
 Wall, style, crew, NPC, character-visual manifest, district, climb,
 train, and gallery content is data-driven from `/Data` (agent rule 3).
 
@@ -221,6 +229,8 @@ dialogue, and the blackbook UI. From the §36 "Could-Have" list,
 freehand spray painting is in (Milestone 14), rooftop climbing is in
 (Milestone 19), train painting is in (Milestone 20), and gallery
 missions are in (Milestone 21). Crew depth is in (Milestone 22) with
-Caps and Metro; what remains is the rest of that list
+Caps and Metro, and the presentation pass is in (Milestone 23) with
+alias/title flow, controller bindings, ambience, and rooster idle
+polish; what remains is the rest of that list
 (battles, procedural graffiti, crowd reactions) — deliberately out of
 prototype scope per Plan.md §47.

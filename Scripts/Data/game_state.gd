@@ -10,6 +10,7 @@ signal crew_rep_changed(new_crew_rep: int, change: int)
 signal rank_changed(new_rank: String)
 signal paint_changed(new_paint: int)
 signal cash_changed(new_cash: int)
+signal alias_changed(new_alias: String)
 signal graffiti_type_changed(new_type: String)
 signal fill_color_changed(color_name: String)
 ## Milestone 18: which block the writer is standing in. Travel points
@@ -42,7 +43,7 @@ const FILL_COLORS := [
 ]
 
 var alias := "NOVA"
-var alias_chosen := true
+var alias_chosen := false
 var reputation := 0
 var crew_rep := 0
 var rank := "Toy"
@@ -101,6 +102,7 @@ func load_state(data: Dictionary) -> void:
 	cash_changed.emit(cash)
 	graffiti_type_changed.emit(selected_graffiti_type)
 	fill_color_changed.emit(current_fill_color_name())
+	alias_changed.emit(alias)
 
 func add_reputation(amount: int) -> void:
 	reputation += amount
@@ -141,6 +143,15 @@ func add_cash(amount: int) -> void:
 	cash += amount
 	cash_changed.emit(cash)
 
+func choose_alias(raw_alias: String) -> void:
+	var chosen := raw_alias.strip_edges().to_upper()
+	if chosen == "":
+		chosen = "NOVA"
+	alias = chosen.substr(0, 12)
+	alias_chosen = true
+	alias_changed.emit(alias)
+	MissionManager.notify_alias_chosen()
+
 func select_graffiti_type(type: String) -> void:
 	if not is_type_unlocked(type):
 		return
@@ -153,6 +164,17 @@ func select_type_slot(index: int) -> void:
 	var order: Array = WallManager.styles.keys()
 	if index >= 0 and index < order.size():
 		select_graffiti_type(String(order[index]))
+
+func cycle_graffiti_type(step: int) -> void:
+	var order: Array = WallManager.styles.keys()
+	if order.is_empty():
+		return
+	var current := maxi(order.find(selected_graffiti_type), 0)
+	for offset in range(1, order.size() + 1):
+		var index := wrapi(current + step * offset, 0, order.size())
+		if is_type_unlocked(String(order[index])):
+			select_graffiti_type(String(order[index]))
+			return
 
 func unlock_type(type: String) -> void:
 	unlocked_types[type] = true
@@ -217,6 +239,13 @@ func _setup_input_actions() -> void:
 	_add_key_action("run", KEY_SHIFT)
 	_add_key_action("jump", KEY_SPACE)
 	_add_key_action("interact", KEY_E)
+	_add_joy_axis_action("move_forward", JOY_AXIS_LEFT_Y, -1.0)
+	_add_joy_axis_action("move_back", JOY_AXIS_LEFT_Y, 1.0)
+	_add_joy_axis_action("move_left", JOY_AXIS_LEFT_X, -1.0)
+	_add_joy_axis_action("move_right", JOY_AXIS_LEFT_X, 1.0)
+	_add_joy_button_action("run", JOY_BUTTON_LEFT_SHOULDER)
+	_add_joy_button_action("jump", JOY_BUTTON_A)
+	_add_joy_button_action("interact", JOY_BUTTON_X)
 	# Generic number-key slots (Milestone 16): in the world they select
 	# cans by style order; in a modal they pick that modal's slots
 	# (shop rows, dialogue choices, blackbook pages).
@@ -230,11 +259,37 @@ func _setup_input_actions() -> void:
 	_add_key_action("crew_menu", KEY_TAB)
 	_add_key_action("map", KEY_M)
 	_add_key_action("toggle_mouse", KEY_ESCAPE)
+	_add_key_action("can_prev", KEY_BRACKETLEFT)
+	_add_key_action("can_next", KEY_BRACKETRIGHT)
+	_add_joy_button_action("cycle_color", JOY_BUTTON_Y)
+	_add_joy_button_action("freehand_paint", JOY_BUTTON_RIGHT_SHOULDER)
+	_add_joy_button_action("perks", JOY_BUTTON_DPAD_UP)
+	_add_joy_button_action("crew_menu", JOY_BUTTON_BACK)
+	_add_joy_button_action("map", JOY_BUTTON_DPAD_DOWN)
+	_add_joy_button_action("toggle_mouse", JOY_BUTTON_START)
+	_add_joy_button_action("can_prev", JOY_BUTTON_DPAD_LEFT)
+	_add_joy_button_action("can_next", JOY_BUTTON_DPAD_RIGHT)
 
 func _add_key_action(action: String, keycode: Key) -> void:
 	if InputMap.has_action(action):
-		return
-	InputMap.add_action(action)
+		pass
+	else:
+		InputMap.add_action(action)
 	var ev := InputEventKey.new()
 	ev.physical_keycode = keycode
+	InputMap.action_add_event(action, ev)
+
+func _add_joy_button_action(action: String, button: JoyButton) -> void:
+	if not InputMap.has_action(action):
+		InputMap.add_action(action)
+	var ev := InputEventJoypadButton.new()
+	ev.button_index = button
+	InputMap.action_add_event(action, ev)
+
+func _add_joy_axis_action(action: String, axis: JoyAxis, axis_value: float) -> void:
+	if not InputMap.has_action(action):
+		InputMap.add_action(action)
+	var ev := InputEventJoypadMotion.new()
+	ev.axis = axis
+	ev.axis_value = axis_value
 	InputMap.action_add_event(action, ev)
