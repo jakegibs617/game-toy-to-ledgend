@@ -187,6 +187,8 @@ func _ready() -> void:
 	StatsManager.perk_chosen.connect(func(perk: Dictionary) -> void:
 		_show_message("Perk learned: %s — %s" % [String(perk["name"]), String(perk["desc"])], 5.0))
 	GameState.district_changed.connect(_on_district_changed)
+	GameState.player_event.connect(func(message: String) -> void:
+		_show_message(message, 4.0))
 	MissionManager.mission_started.connect(_on_mission_started)
 	MissionManager.objective_changed.connect(_on_objective_changed)
 	MissionManager.mission_completed.connect(_on_mission_completed)

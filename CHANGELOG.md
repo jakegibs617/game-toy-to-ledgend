@@ -1,5 +1,40 @@
 # Changelog
 
+## 2026-06-12 — Player character: Kronako Iconz rooster
+
+First real character art replaces the debug capsule.
+
+- **Neon rooster GLB** (`Assets/Characters/neon_rooster.glb`, ~10k
+  tris, textured): instantiated at runtime in `player.gd`
+  (`_build_visual`), scaled to the 1.8 m capsule collider, rotated
+  180° (glTF +Z forward → Godot -Z).
+- Falls back to the old debug capsule when the GLB import is
+  unavailable (fresh checkouts before an editor / `--import` run), so
+  headless smoke runs never hard-fail on a missing import.
+- Smoke test: `_smoke_player_model` — exactly one visual child, and
+  the rooster whenever the import resolves.
+- No save schema change; collision/movement untouched.
+
+## 2026-06-12 — Milestone 19: Rooftop Climbing (Plan_v2.md Should-Have)
+
+The high ground opens up — and the risk moves into the climb.
+
+- **Climb zones** (`Data/climbs.json` → `Scripts/World/climb_zone.gd`):
+  drainpipe/ladder spots at the foot of the Mill West block and the
+  Grain Silo. E attempts the climb: make it and you're on the roof at
+  the Milestone 16 roller spots; slip (`fallChance`) and you take the
+  caught-equivalent fine (`fallRepPenalty` rep) — Plan_v2.md's "risk
+  shifts to the climb itself". `resolve(success)` is deterministic for
+  tests; `interact()` rolls.
+- **Security won't climb**: a chasing guard gives up the moment the
+  player holds the high ground (>2.5 m above them) — and that counts
+  as an escaped chase (Stealth XP).
+- New `GameState.player_event` signal: world-object outcomes (climbs,
+  future trains) toast on the HUD without each needing a manager.
+- Smoke test: `_smoke_rooftop_climbing` — fall fine math, climb to the
+  parapet + roller paint from the roof, grounded-guard give-up.
+- No save schema change.
+
 ## 2026-06-12 — Milestone 18: Second District — Canal Side (Plan.md §45, §12)
 
 The city grows east across the water. Two blocks, two stories.

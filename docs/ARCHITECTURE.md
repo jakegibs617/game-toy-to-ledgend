@@ -106,6 +106,7 @@ fields `push_error` at startup, and the smoke test asserts
 | npc_data.json | recruitable NPCs (Moth) | CrewManager |
 | stats.json | stat defs (xpPerLevel, maxLevel, per-level effect coefficients) | StatsManager |
 | perks.json | tree → perk list (perkId, name, desc, effects dict) | StatsManager |
+| climbs.json | climb routes (climbId, label, position, top, fallChance, fallRepPenalty) | district.gd (spawns ClimbZone) |
 
 ## UI layer
 

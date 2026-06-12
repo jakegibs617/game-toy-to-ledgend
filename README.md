@@ -51,7 +51,15 @@ prompt appears at the bottom of the screen, then press E. Once the Mill
 Yard is claimed, cross the canal footbridge east (E at the gate) into
 Canal Side — Ghost Line turf with its own mission chain, walls, patrols,
 and heat: each block heats and cools on its own, and a block you leave
-cools twice as fast.
+cools twice as fast. Glowing drainpipes mark climb routes (E to climb,
+slip risk shown) up to the rooftop roller spots — security won't follow
+you up, but a fall costs rep.
+
+The player character is the Kronako Iconz neon rooster
+(`Assets/Characters/neon_rooster.glb`). The GLB needs Godot's asset
+import to have run once (opening the editor, or
+`Godot --headless --path . --import`); until then the game falls back
+to the old debug capsule.
 
 ## Systems implemented (First Agent Task, Plan.md §47)
 
@@ -177,8 +185,7 @@ All wall, style, crew, and NPC content is data-driven from `/Data`
 All Plan.md §35 milestones are in, and the §36 "Should-Have" list is
 complete: Heat/City Cleanup, security patrols, supply economy,
 dialogue, and the blackbook UI. From the §36 "Could-Have" list,
-freehand spray painting is in (Milestone 14); what remains is the rest
-of that list (battles, train painting, rooftop climbing, gallery
-missions, procedural graffiti, crowd reactions) — deliberately out of
-prototype scope per Plan.md §47.
-# game-toy-to-ledgend
+freehand spray painting is in (Milestone 14) and rooftop climbing is
+in (Milestone 19); what remains is the rest of that list (battles,
+train painting, gallery missions, procedural graffiti, crowd reactions)
+— deliberately out of prototype scope per Plan.md §47.

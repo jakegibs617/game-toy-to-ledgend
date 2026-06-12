@@ -1,0 +1,18 @@
+[
+  {
+    "climbId": "climb_mill_west",
+    "label": "MILL\nDRAINPIPE",
+    "position": [-7, 0.5, -7.5],
+    "top": [-9, 10.6, -9.5],
+    "fallChance": 0.15,
+    "fallRepPenalty": 20
+  },
+  {
+    "climbId": "climb_grain_silo",
+    "label": "SILO\nLADDER",
+    "position": [128, 0.5, 7.5],
+    "top": [126, 14.6, 9.5],
+    "fallChance": 0.2,
+    "fallRepPenalty": 25
+  }
+]
