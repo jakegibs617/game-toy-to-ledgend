@@ -4,6 +4,7 @@ extends Node3D
 ## player, and HUD. Set SMOKE_TEST=1 to run a headless self-check.
 
 const PLAYER_SPAWN := Vector3(0, 0.5, 4)
+const DataLoader := preload("res://Scripts/Data/data_loader.gd")
 
 func _ready() -> void:
 	_build_environment()
@@ -134,15 +135,50 @@ func _add_box(pos: Vector3, size: Vector3, color: Color, box_name: String) -> St
 	add_child(body)
 	return body
 
-## Headless verification of the core loop: paint a wall, check state,
-## reputation, and paint supply, then exercise the Milestone 4 rival
-## reaction (initial territory claim, retaliation queue, "TOY"
-## cross-out) and quit.
+## Headless self-check, split per system (Plan_v2.md §3.3): each
+## _smoke_* function documents the state it assumes and asserts one
+## system's behavior. The sequence matters — later sections build on
+## the world the earlier ones left behind — but each function is
+## readable (and extendable) on its own. Every milestone adds or
+## extends a section.
 func _run_smoke_test() -> void:
+	_smoke_data_validation()
+	_smoke_walls_and_rivals()
+	_smoke_missions()
+	_smoke_crew()
+	_smoke_territory()
+	_smoke_heat_and_cleanup()
+	_smoke_patrols()
+	_smoke_save_load()
+	_smoke_supplies()
+	_smoke_dialogue()
+	_smoke_blackbook()
+	_smoke_freehand()
+	_smoke_history_cap()
+	print("SMOKE: OK")
+	get_tree().quit()
+
+func _smoke_player() -> Player:
+	return get_node("Player") as Player
+
+func _first_wall_id() -> String:
+	return String(WallManager.wall_defs[0]["wallId"])
+
+## Plan_v2.md §3.6: every manager validates its /Data file at autoload
+## time; shipped data must produce zero validation errors.
+func _smoke_data_validation() -> void:
+	assert(DataLoader.error_count == 0)
+	assert(not WallManager.wall_defs.is_empty())
+	assert(not WallManager.styles.is_empty())
+	print("SMOKE: data validation clean")
+
+## Assumes: fresh boot. Paints the first wall (Buff Kings territory,
+## claimed at startup), checks state/rep/paint, then exercises the
+## Milestone 4 rival reaction: retaliation queue and "TOY" cross-out.
+func _smoke_walls_and_rivals() -> void:
 	print("SMOKE: walls spawned = %d" % WallManager.wall_nodes.size())
 	assert(WallManager.wall_nodes.size() == WallManager.wall_defs.size())
-	var first_id: String = WallManager.wall_defs[0]["wallId"]
-	# Milestone 4: wall_mill_01 is Buff Kings territory, claimed at startup.
+	var first_id := _first_wall_id()
 	var state: Dictionary = WallManager.wall_states[first_id]
 	assert(state["ownerCrewId"] == "buff_kings")
 	assert(state["state"] == "rival_throwup")
@@ -171,8 +207,13 @@ func _run_smoke_test() -> void:
 	assert(events.size() == 1 and events[0][1] == first_id)
 	print("SMOKE: rival event = %s" % events[0][0])
 
-	# Milestone 7: drive the first two mission beats through the same
-	# objective notifications the world actors/zones use.
+## Assumes: the first wall is crossed out and mission 1 is active.
+## Drives the first mission beats (Milestone 7) through the same
+## objective notifications the world actors/zones use, repainting the
+## crossed-out wall along the way.
+func _smoke_missions() -> void:
+	var first_id := _first_wall_id()
+	var state: Dictionary = WallManager.wall_states[first_id]
 	assert(MissionManager.current_mission()["missionId"] == "m1_first_mark")
 	assert(MissionManager.current_objective()["type"] == "reach")
 	assert(MissionManager.notify_actor("safehouse"))
@@ -181,7 +222,7 @@ func _run_smoke_test() -> void:
 	assert(MissionManager.notify_actor("reach_%s" % first_id))
 
 	# The player can paint back over the cross-out and reclaim the wall.
-	result = WallManager.paint_wall(wall, "throwup")
+	var result: Dictionary = WallManager.paint_wall(WallManager.wall_nodes[first_id], "throwup")
 	assert(result["ok"])
 	assert(state["state"] == "player_throwup")
 	assert(not state.has("crossOut"))
@@ -193,8 +234,11 @@ func _run_smoke_test() -> void:
 	GameState.cycle_fill_color()
 	assert(MissionManager.current_mission()["missionId"] == "m4_find_a_lookout")
 
-	# Milestone 5: recruit Mina "Moth" (Plan.md section 14) and check
-	# her lookout bonus dampens rival responses.
+## Assumes: mission 4 just started and one retaliation (the first
+## wall's) is pending. Recruits Mina "Moth" (Milestone 5, Plan.md
+## section 14) and checks her lookout bonus dampens rival responses
+## and warns when a new retaliation is queued.
+func _smoke_crew() -> void:
 	assert(CrewManager.members.has("npc_mina_moth"))
 	var mina: Dictionary = CrewManager.members["npc_mina_moth"]
 	assert(mina["stage"] == "not_met")
@@ -211,15 +255,20 @@ func _run_smoke_test() -> void:
 	print("SMOKE: lookout bonus %.2f -> %.2f" % [chance_before, chance_after])
 
 	# The recruited lookout warns when a new retaliation is queued.
-	var events_before := events.size()
-	result = WallManager.paint_wall(WallManager.wall_nodes["wall_mill_02"], "tag")
+	var events: Array = []
+	RivalManager.rival_event.connect(func(msg: String, wid: String) -> void:
+		events.append([msg, wid]))
+	var result: Dictionary = WallManager.paint_wall(WallManager.wall_nodes["wall_mill_02"], "tag")
 	assert(result["ok"])
 	assert(RivalManager._pending.size() == 2)
-	assert(events.size() == events_before + 1)
+	assert(events.size() == 1)
 	print("SMOKE: lookout warning = %s" % events[-1][0])
 
-	# Milestone 6: district influence reflects wall ownership, and
-	# painting enough key walls claims the block once for a rep bonus.
+## Assumes: the player holds the two mill walls; the landmark is still
+## Buff Kings'. District influence reflects wall ownership (Milestone
+## 6); painting the key walls claims the block once for a rep bonus and
+## finishes the mission chain.
+func _smoke_territory() -> void:
 	var district_id := "district_mill_yard"
 	assert(not TerritoryManager.is_claimed(district_id))
 	var shares: Dictionary = TerritoryManager.influence(district_id)
@@ -231,6 +280,7 @@ func _run_smoke_test() -> void:
 	TerritoryManager.district_claimed.connect(
 		func(did: String, _d: Dictionary) -> void: claims.append(did))
 	var rep_before: int = GameState.reputation
+	var result: Dictionary
 	for wall_id in ["wall_landmark_01", "wall_bodega_01", "wall_median_01"]:
 		result = WallManager.paint_wall(WallManager.wall_nodes[wall_id], "tag")
 		assert(result["ok"])
@@ -252,8 +302,12 @@ func _run_smoke_test() -> void:
 	assert(MissionManager.chain_done)
 	print("SMOKE: mission chain complete")
 
-	# Heat system (Plan.md section 12): all that painting built heat,
-	# which raises the rep payout for further risky work.
+## Assumes: the mission chain's painting built heat. Heat raises the
+## rep payout (Plan.md section 12); city cleanup buffs a wall into
+## history (section 33) and repainting it pays the retaliation bonus
+## (section 15); heat decays on the simulation tick.
+func _smoke_heat_and_cleanup() -> void:
+	var district_id := "district_mill_yard"
 	assert(HeatManager.heat > 0.0)
 	assert(HeatManager.rep_multiplier() > 1.0)
 	print("SMOKE: heat=%.1f (%s)" % [HeatManager.heat, HeatManager.level_name()])
@@ -261,7 +315,7 @@ func _run_smoke_test() -> void:
 	HeatManager.cleanup_event.connect(func(_msg: String, wid: String) -> void:
 		cleanup_walls.append(wid))
 	var buff_id := "wall_lot_01"
-	result = WallManager.paint_wall(WallManager.wall_nodes[buff_id], "tag")
+	var result: Dictionary = WallManager.paint_wall(WallManager.wall_nodes[buff_id], "tag")
 	assert(result["ok"])
 	var buff_state: Dictionary = WallManager.wall_states[buff_id]
 	var history_before: int = buff_state["history"].size()
@@ -288,9 +342,11 @@ func _run_smoke_test() -> void:
 	print("SMOKE: buff + retaliation bonus OK, heat decays %.1f -> %.1f" % [
 		heat_before_tick, HeatManager.heat])
 
-	# Milestone 10: security patrols (Plan.md sections 12, 18, 25).
-	# Patrol presence follows the heat level — more heat, more guards.
-	var player := get_node("Player") as Player
+## Assumes: a recruited lookout and moderate heat. Patrol presence
+## follows the heat level (Milestone 10, Plan.md sections 12/18/25):
+## lookout callouts, line-of-sight spotting, chases, and the catch.
+func _smoke_patrols() -> void:
+	var player := _smoke_player()
 	assert(PatrolManager.guard_count() ==
 		PatrolManager.guards_for_level(HeatManager.level_name()))
 	var patrol_events: Array = []
@@ -303,7 +359,7 @@ func _run_smoke_test() -> void:
 	# (Plan.md section 14: warns player of cops) when nobody saw it land.
 	var guard: PatrolGuard = PatrolManager.guards()[0]
 	guard.global_position = player.global_position + Vector3(10, 0, 0)
-	result = WallManager.paint_wall(WallManager.wall_nodes["wall_lot_01"], "tag")
+	var result: Dictionary = WallManager.paint_wall(WallManager.wall_nodes["wall_lot_01"], "tag")
 	assert(result["ok"])
 	assert(not patrol_events.is_empty() and patrol_events[-1].contains("Moth"))
 	print("SMOKE: lookout patrol warning = %s" % patrol_events[-1])
@@ -345,8 +401,12 @@ func _run_smoke_test() -> void:
 		rep_before_catch, GameState.reputation, paint_before_catch,
 		GameState.paint, HeatManager.heat, PatrolManager.guard_count()])
 
-	# Milestone 8: save to disk, mutate important runtime state, then
-	# load and prove the saved wall/progression/player state comes back.
+## Assumes: a played world (rep, painted walls, recruited crew). Saves
+## to disk, mutates important runtime state, then loads and proves the
+## saved wall/progression/player state comes back (Milestone 8).
+func _smoke_save_load() -> void:
+	var player := _smoke_player()
+	var first_id := _first_wall_id()
 	var saved_rep := GameState.reputation
 	var saved_paint := GameState.paint
 	var saved_rank := GameState.rank
@@ -372,8 +432,11 @@ func _run_smoke_test() -> void:
 	assert(WallManager.wall_states[first_id]["currentGraffiti"]["graffitiId"] == saved_wall_state["currentGraffiti"]["graffitiId"])
 	print("SMOKE: save/load restored wall, player, and progression state")
 
-	# Milestone 11: supply economy (Plan.md section 21). Mission payouts
-	# funded the wallet: $25 starting + $15 (m1) + $15 (m4) + $50 (m5).
+## Assumes: the full mission chain paid out exactly $25 starting + $15
+## (m1) + $15 (m4) + $50 (m5) = $105 and nothing else spent cash.
+## Exercises Lupe's shop, the fat cap discount, rare colors, the
+## delivery run, and the supply save/load round trip (Milestone 11).
+func _smoke_supplies() -> void:
 	assert(GameState.cash == 105)
 	var cash_now: int = GameState.cash
 	var paint_now: int = GameState.paint
@@ -394,7 +457,7 @@ func _run_smoke_test() -> void:
 	assert(GameState.current_fill_color_name() == "Burner Chrome")
 	# Painting actually spends the discounted cost.
 	paint_now = GameState.paint
-	result = WallManager.paint_wall(WallManager.wall_nodes["wall_median_01"], "piece")
+	var result: Dictionary = WallManager.paint_wall(WallManager.wall_nodes["wall_median_01"], "piece")
 	assert(result["ok"])
 	assert(GameState.paint == paint_now - 5)
 	# Broke writers get turned away.
@@ -430,8 +493,11 @@ func _run_smoke_test() -> void:
 	assert(SupplyManager.is_owned("fat_cap"))
 	print("SMOKE: supply state survives save/load")
 
-	# Milestone 12: dialogue (Plan.md section 26). Prime's lesson gates
-	# behind a rank check and pays exactly once.
+## Assumes: rank is at least Known (the chain finished) and Moth is
+## recruited. Milestone 12 dialogue: rank-gated one-time lessons,
+## Lupe's routes into the shop/delivery systems, and flag persistence.
+func _smoke_dialogue() -> void:
+	var player := _smoke_player()
 	assert(DialogueManager.start("prime"))
 	assert(DialogueManager.is_active())
 	assert(DialogueManager.current_node()["speaker"] == "Prime")
@@ -483,8 +549,10 @@ func _run_smoke_test() -> void:
 	assert(DialogueManager.flags.get("prime_lesson", false))
 	print("SMOKE: dialogue flags survive save/load")
 
-	# Milestone 13: blackbook (Plan.md section 23). Page text builds
-	# purely from the managers, so read it without touching the HUD.
+## Assumes: a played world (Burner Chrome bought, Moth recruited, walls
+## held). Milestone 13: blackbook page text builds purely from the
+## managers, so read it without touching the HUD.
+func _smoke_blackbook() -> void:
 	var blackbook = preload("res://Scripts/UI/blackbook_panel.gd").new()
 	var writer_page: String = blackbook.page_text(0)
 	assert(writer_page.contains(GameState.alias))
@@ -501,9 +569,11 @@ func _run_smoke_test() -> void:
 	blackbook.free()
 	print("SMOKE: blackbook pages — writer/styles/crew/city all read")
 
-	# Milestone 14: freehand spray painting (Plan.md sections 10 and 36
-	# Could-Have). The canvas model works off-tree: spray it in code,
-	# commit through WallManager, and prove the image survives save/load.
+## Assumes: the piece can is unlocked and at least two fill colors are
+## owned. Milestone 14 freehand: the canvas model works off-tree, the
+## style multiplier prices the work, the image survives save/load, and
+## repaints archive the metadata without the image payload.
+func _smoke_freehand() -> void:
 	var freehand = preload("res://Scripts/UI/freehand_panel.gd").new()
 	var fh_wall: PaintableWall = WallManager.wall_nodes["wall_bodega_01"]
 	freehand.begin(fh_wall)
@@ -551,11 +621,23 @@ func _run_smoke_test() -> void:
 	assert(decoded.get_width() == canvas.get_width())
 	# Repainting archives the freehand work without its image payload —
 	# walls remember (Plan.md section 9), saves don't bloat.
-	result = WallManager.paint_wall(WallManager.wall_nodes["wall_bodega_01"], "tag")
+	var result: Dictionary = WallManager.paint_wall(WallManager.wall_nodes["wall_bodega_01"], "tag")
 	assert(result["ok"])
 	assert(fh_state["history"][-1].get("freehand", false))
 	assert(not fh_state["history"][-1].has("image"))
 	print("SMOKE: freehand piece — style x%.2f, +%d rep, image survives save/load" % [
 		style_mult, int(fh_result["rep"])])
-	print("SMOKE: OK")
-	get_tree().quit()
+
+## Assumes: nothing beyond a paintable wall. Plan_v2.md §3.5: wall
+## history is capped — repainting past the cap drops the oldest
+## entries instead of growing the save forever.
+func _smoke_history_cap() -> void:
+	var wall_id := "wall_lot_01"
+	var wall: PaintableWall = WallManager.wall_nodes[wall_id]
+	var state: Dictionary = WallManager.wall_states[wall_id]
+	GameState.add_paint(WallManager.MAX_WALL_HISTORY + 5)
+	for i in WallManager.MAX_WALL_HISTORY + 5:
+		assert(WallManager.paint_wall(wall, "tag")["ok"])
+	assert(state["history"].size() == WallManager.MAX_WALL_HISTORY)
+	assert(state["history"][-1]["type"] == "tag")  # newest entry survived
+	print("SMOKE: wall history capped at %d entries" % WallManager.MAX_WALL_HISTORY)

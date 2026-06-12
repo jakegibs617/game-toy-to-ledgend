@@ -10,9 +10,13 @@ signal wall_buffed(wall_id: String)
 
 const WALLS_PATH := "res://Data/walls.json"
 const STYLES_PATH := "res://Data/graffiti_styles.json"
+const DataLoader := preload("res://Scripts/Data/data_loader.gd")
 ## Plan.md section 15 "Cleanup Retaliation": repainting a wall the city
 ## buffed pays extra — taking the spot back is part of the fantasy.
 const BUFF_RETALIATION_BONUS := 1.25
+## Walls remember (Plan.md section 9) — but not forever. History is
+## deep-copied on every quick_save, so it stays bounded (Plan_v2.md §3.5).
+const MAX_WALL_HISTORY := 20
 
 var wall_defs: Array = []
 var styles: Dictionary = {}
@@ -21,8 +25,19 @@ var wall_nodes: Dictionary = {}   # wall_id -> PaintableWall node
 var _next_graffiti_id := 1
 
 func _ready() -> void:
-	wall_defs = _load_json(WALLS_PATH)
-	styles = _load_json(STYLES_PATH)
+	var parsed_walls: Variant = DataLoader.load_json(WALLS_PATH, "WallManager")
+	wall_defs = parsed_walls if parsed_walls is Array else []
+	for def in wall_defs:
+		DataLoader.require_fields(def,
+			["wallId", "name", "districtId", "position", "rotationY", "size",
+			"visibility", "risk", "color"],
+			"WallManager: wall \"%s\"" % String(def.get("wallId", "?")))
+	var parsed_styles: Variant = DataLoader.load_json(STYLES_PATH, "WallManager")
+	styles = parsed_styles if parsed_styles is Dictionary else {}
+	for type in styles:
+		DataLoader.require_fields(styles[type],
+			["label", "baseValue", "paintCost", "heatValue", "fillColor", "outlineColor"],
+			"WallManager: style \"%s\"" % String(type))
 
 func spawn_walls(parent: Node3D) -> void:
 	wall_nodes.clear()
@@ -60,23 +75,12 @@ func wall_def(wall_id: String) -> Dictionary:
 ## Attempts to paint `type` graffiti on `wall` as the player.
 ## Returns {ok, rep, graffiti} on success or {ok: false, reason} on failure.
 func paint_wall(wall: PaintableWall, type: String) -> Dictionary:
-	if not GameState.is_type_unlocked(type):
-		var label: String = styles.get(type, {}).get("label", type)
-		return {"ok": false, "reason": "%s is not unlocked yet." % label}
-	var style: Dictionary = styles.get(type, {})
-	if style.is_empty():
-		return {"ok": false, "reason": "Unknown graffiti type."}
-	var cost := SupplyManager.paint_cost(style)
-	if not GameState.try_spend_paint(cost):
-		return {"ok": false, "reason": "Not enough paint."}
-	var def := wall.def
-	var state: Dictionary = wall_states[def["wallId"]]
-	var rep := _reputation_for(style, def)
-	if String(state.get("state", "")) == "buffed":
-		rep = int(round(rep * BUFF_RETALIATION_BONUS))
-	var graffiti := _player_graffiti(def, type, style, rep)
-	_commit_player_graffiti(wall, state, graffiti)
-	return {"ok": true, "rep": rep, "graffiti": graffiti}
+	var start := _begin_player_paint(wall, type)
+	if not start["ok"]:
+		return start
+	var graffiti := _player_graffiti(wall.def, type, start["style"], start["rep"])
+	_commit_player_graffiti(wall, start["state"], graffiti)
+	return {"ok": true, "rep": start["rep"], "graffiti": graffiti}
 
 ## Freehand spray painting (Plan.md section 10 "Later Advanced System"):
 ## commits a player-drawn image as a piece. The hand-made work earns a
@@ -84,23 +88,39 @@ func paint_wall(wall: PaintableWall, type: String) -> Dictionary:
 ## number of colors used — a lazy scribble pays less than a full burner.
 func paint_freehand(wall: PaintableWall, image: Image,
 		colors_used: int, coverage: float) -> Dictionary:
-	if not GameState.is_type_unlocked("piece"):
-		return {"ok": false, "reason": "Freehand work needs the Piece can unlocked."}
-	var style: Dictionary = styles.get("piece", {})
-	if not GameState.try_spend_paint(SupplyManager.paint_cost(style)):
-		return {"ok": false, "reason": "Not enough paint."}
-	var def := wall.def
-	var state: Dictionary = wall_states[def["wallId"]]
 	var style_mult := freehand_style_multiplier(colors_used, coverage)
-	var rep := int(round(_reputation_for(style, def) * style_mult))
-	if String(state.get("state", "")) == "buffed":
-		rep = int(round(rep * BUFF_RETALIATION_BONUS))
-	var graffiti := _player_graffiti(def, "piece", style, rep)
+	var start := _begin_player_paint(wall, "piece", style_mult,
+		"Freehand work needs the Piece can unlocked.")
+	if not start["ok"]:
+		return start
+	var graffiti := _player_graffiti(wall.def, "piece", start["style"], start["rep"])
 	graffiti["freehand"] = true
 	graffiti["image"] = Marshalls.raw_to_base64(image.save_png_to_buffer())
 	graffiti["styleMultiplier"] = style_mult
-	_commit_player_graffiti(wall, state, graffiti)
-	return {"ok": true, "rep": rep, "styleMultiplier": style_mult, "graffiti": graffiti}
+	_commit_player_graffiti(wall, start["state"], graffiti)
+	return {"ok": true, "rep": start["rep"], "styleMultiplier": style_mult, "graffiti": graffiti}
+
+## The shared head of every player paint path (Plan_v2.md §3.4): unlock
+## check, paint spend, and the rep payout including the buff-retaliation
+## bonus. A perk that discounts paint or boosts retaliation pay (Plan.md
+## section 7) now has exactly one place to hook.
+## Returns {ok: false, reason} or {ok: true, style, state, rep}.
+func _begin_player_paint(wall: PaintableWall, type: String,
+		style_mult := 1.0, unlock_reason := "") -> Dictionary:
+	var style: Dictionary = styles.get(type, {})
+	if style.is_empty():
+		return {"ok": false, "reason": "Unknown graffiti type."}
+	if not GameState.is_type_unlocked(type):
+		var reason := unlock_reason if unlock_reason != "" \
+			else "%s is not unlocked yet." % String(style.get("label", type))
+		return {"ok": false, "reason": reason}
+	if not GameState.try_spend_paint(SupplyManager.paint_cost(style)):
+		return {"ok": false, "reason": "Not enough paint."}
+	var state: Dictionary = wall_states[wall.def["wallId"]]
+	var rep := int(round(_reputation_for(style, wall.def) * style_mult))
+	if String(state.get("state", "")) == "buffed":
+		rep = int(round(rep * BUFF_RETALIATION_BONUS))
+	return {"ok": true, "style": style, "state": state, "rep": rep}
 
 ## Style multiplier for hand-drawn work: filling the wall and mixing
 ## colors pays up to 2x a stock piece; a few stray dots pay half.
@@ -127,13 +147,17 @@ func _player_graffiti(def: Dictionary, type: String, style: Dictionary, rep: int
 ## Walls remember (Plan.md section 9) — but only the metadata. Stored
 ## freehand images are dropped from history so wall_states (deep-copied
 ## and JSON-written on every quick_save) doesn't grow by a full PNG
-## each time a wall is repainted.
+## each time a wall is repainted, and the array itself is capped at
+## MAX_WALL_HISTORY entries, oldest first (Plan_v2.md §3.5).
 func _archive_current(state: Dictionary) -> void:
 	if state["currentGraffiti"] == null:
 		return
 	var entry: Dictionary = state["currentGraffiti"].duplicate()
 	entry.erase("image")
-	state["history"].append(entry)
+	var history: Array = state["history"]
+	history.append(entry)
+	while history.size() > MAX_WALL_HISTORY:
+		history.pop_front()
 
 func _commit_player_graffiti(wall: PaintableWall, state: Dictionary, graffiti: Dictionary) -> void:
 	_archive_current(state)
@@ -242,13 +266,3 @@ func _reputation_for(style: Dictionary, def: Dictionary) -> int:
 	var visibility_mult := 1.0 + 0.2 * float(def.get("visibility", 1))
 	var risk_mult := 1.0 + 0.3 * float(def.get("risk", 1))
 	return int(round(base * visibility_mult * risk_mult * HeatManager.rep_multiplier()))
-
-func _load_json(path: String) -> Variant:
-	var file := FileAccess.open(path, FileAccess.READ)
-	if file == null:
-		push_error("WallManager: cannot open %s" % path)
-		return null
-	var parsed: Variant = JSON.parse_string(file.get_as_text())
-	if parsed == null:
-		push_error("WallManager: invalid JSON in %s" % path)
-	return parsed

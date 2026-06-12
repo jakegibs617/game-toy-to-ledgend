@@ -13,6 +13,7 @@ signal dialogue_ended
 signal dialogue_event(message: String)
 
 const DIALOGUE_PATH := "res://Data/dialogue.json"
+const DataLoader := preload("res://Scripts/Data/data_loader.gd")
 ## Walking away from the speaker ends the conversation, mirroring the
 ## supply shop's behavior.
 const TALK_CLOSE_DISTANCE := 6.0
@@ -24,9 +25,17 @@ var _node_id := ""
 var _anchor: Node3D = null
 
 func _ready() -> void:
-	var parsed: Variant = _load_json(DIALOGUE_PATH)
+	var parsed: Variant = DataLoader.load_json(DIALOGUE_PATH, "DialogueManager")
 	if parsed is Dictionary:
 		trees = parsed
+		for tree_id in trees:
+			var tree: Dictionary = trees[tree_id]
+			if not DataLoader.require_fields(tree, ["start", "nodes"],
+					"DialogueManager: tree \"%s\"" % String(tree_id)):
+				continue
+			for node_id in tree["nodes"]:
+				DataLoader.require_fields(tree["nodes"][node_id], ["speaker", "text"],
+					"DialogueManager: node \"%s/%s\"" % [String(tree_id), String(node_id)])
 
 func _physics_process(_delta: float) -> void:
 	if _anchor == null:
@@ -149,13 +158,3 @@ func _apply_effects(effects: Dictionary) -> void:
 		GameState.add_paint(int(effects["paint"]))
 	if effects.has("message"):
 		dialogue_event.emit(String(effects["message"]))
-
-func _load_json(path: String) -> Variant:
-	var file := FileAccess.open(path, FileAccess.READ)
-	if file == null:
-		push_error("DialogueManager: cannot open %s" % path)
-		return null
-	var parsed: Variant = JSON.parse_string(file.get_as_text())
-	if parsed == null:
-		push_error("DialogueManager: invalid JSON in %s" % path)
-	return parsed

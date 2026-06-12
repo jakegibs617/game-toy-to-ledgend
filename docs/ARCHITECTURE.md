@@ -15,8 +15,10 @@ input map is also registered at runtime (`GameState._setup_input_actions`)
 so `project.godot` stays minimal.
 
 `district.gd` also contains the smoke test (`SMOKE_TEST=1` env var):
-a long assert-driven script that drives every system headlessly and
-quits. Every milestone extends it.
+per-system `_smoke_*()` functions (Plan_v2.md §3.3), each documenting
+the world state it assumes, run in sequence by `_run_smoke_test` —
+they drive every system headlessly and quit. Every milestone adds or
+extends a section.
 
 ## Autoloads (in load order)
 
@@ -69,7 +71,7 @@ HUD and Sfx listen. The HUD never owns game state.
   ownerCrewId: "player" | "city" | "none" | <crewId>,
   state: "blank" | "player_<type>" | "rival_<type>" | "crossed_out" | "buffed",
   currentGraffiti: <graffiti dict> | null,
-  history: [<graffiti dicts, image field stripped>],   # capped growth: see _archive_current
+  history: [<graffiti dicts, image field stripped>],   # capped at MAX_WALL_HISTORY (20), oldest dropped
   crossOut: {by, text, color}                          # only while crossed out
 }
 ```
@@ -84,6 +86,11 @@ Rep formula (`_reputation_for`): base × visibility mult × risk mult ×
 heat mult (× freehand style mult × buff retaliation bonus).
 
 ## Data files (`/Data`, all JSON — Plan.md agent rule 3)
+
+Every manager loads through `Scripts/Data/data_loader.gd`
+(`load_json` + `require_fields`, Plan_v2.md §3.6): missing required
+fields `push_error` at startup, and the smoke test asserts
+`DataLoader.error_count == 0` — shipped data must validate clean.
 
 | File | Shape | Consumed by |
 |---|---|---|
@@ -109,8 +116,16 @@ Modal conventions:
   for slot selection in display order.
 * HUD's `_unhandled_input` consumes modal input **before** Player sees
   it (HUD is added to the tree after Player, so it handles unhandled
-  input first). Each open modal closes the others. (Plan_v2.md §3.1
-  proposes replacing this choreography with a modal stack.)
+  input first).
+* **Modal registry** (Plan_v2.md §3.1): `Hud._register_modals` lists
+  every modal — freehand, dialogue, shop, blackbook, map — in input
+  priority order with `is_open`/`close`/`input` callables. The first
+  open modal owns input; every opener routes through
+  `close_modals(except)` so two modals can never stay open together.
+  A new modal = one registry entry (plus an `open` callable if the
+  HUD opens it directly, like blackbook/map).
+* Shared label/panel builders live in `Scripts/UI/ui_kit.gd` (static
+  funcs, preloaded — see the class-cache rule in CLAUDE.md).
 * Modals that need testing headless keep their model separate from UI
   nodes (see freehand_panel: `begin`/`spray_at`/`result` work off-tree).
 
