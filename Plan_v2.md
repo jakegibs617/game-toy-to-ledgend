@@ -19,13 +19,24 @@ dialogue, blackbook), and the first Could-Have (freehand spray
 painting, Milestone 14). The §46 success criteria are testable today:
 paint, get crossed out, resupply, recruit, reclaim, claim the block.
 
-v2 is now partly built. Milestones 15–20 are complete (PRs #9–#14):
+v2 is now partly built. Milestones 15–20 are complete (PRs #9–#15):
 engineering hardening, the full graffiti type set, stats/perks/rep
 decay, Canal Side, rooftop climbing, and train painting. The first real player
 character art is in: the Kronako Iconz neon rooster now has a runtime
 animation action set for idle, walking, backpedaling, running, jumping,
 and ladder climbing. The vault clip is imported and bound but awaits a
 gameplay trigger.
+
+PR #15 also shipped the first NPC/world art pass: animated Meshy
+character sets for Moth (lookout meerkat), Lupe (shop rat), Prime
+(gorilla), and the security patrols (bull), all loaded through a shared
+`Scripts/Characters/animated_model_set.gd` helper; plus procedural
+street detail (sidewalks, lane paint, manholes, drains, litter), noise
+textures and per-surface-type detail (brick mortar, concrete seams,
+stucco pitting) on walls and buildings, and a Canal Side train siding.
+Many imported clips (walk/run for every NPC, guard ladder climb, turn
+variants) are loaded but not yet triggered by gameplay — NPCs are
+stationary; only the guards and player actually move.
 
 The playable loop is currently: start in Mill Yard, learn the core
 mission chain, recruit Moth, unlock throw-ups/pieces/stencils/rollers/
@@ -47,12 +58,13 @@ it rolls through the city.
 | Public rep vs crew rep split | §11 | Single rep number until gallery tension in Milestone 21 |
 | Battle systems (graffiti/dance/rap) | §20 | None |
 | Safehouse features (blackbook table, crew board, planning map) | §22 | Safehouse is a bare mission zone |
-| Districts beyond Mill Yard (Canal Side, Train Yard, Rooftop Row, …) | §45 | Canal Side is built; Train Yard/Rooftop Row remain future |
+| Districts beyond Mill Yard (Canal Side, Train Yard, Rooftop Row, …) | §45 | Canal Side is built with a train siding (Milestone 20); a full Train Yard and Rooftop Row (Milestone 26) remain future |
 | Crew members Rico "Caps" (filler), Jay "Metro" (getaway) + 5 unused roles | §14, §43 | Only Moth (lookout); murals currently need any recruited crew |
 | Alias selection / main menu | §38, §40 | Hardcoded "NOVA", boots straight into the district |
 | Controller support | §37 | Keyboard/mouse only |
 | Gallery contact / art-world faction | §18, §43 | None |
 | Player presentation | §28, §40 | Animated rooster action set is in; turn/vault/presentation polish remains |
+| NPC presentation / ambient life | §28, §44 | Animated character models in (Milestone 20 PR); NPCs stand still — walk/run clips await movement behaviors |
 
 ## Remaining v1 Could-Have list
 
@@ -76,9 +88,11 @@ kind of writer you are → your name moves without you.**
 
 # 3. Engineering Recommendations
 
-Findings from building milestones 8–14. None block gameplay today;
-all were addressed by Milestone 15 and should stay true as guardrails
-for future work.
+§3.1–3.7 are findings from building milestones 8–14; all were
+addressed by Milestone 15 and should stay true as guardrails for
+future work. §3.8–3.11 are findings from the Milestone 20 (PR #15)
+multi-angle review; 3.8 is done, 3.9–3.11 are open and folded into
+Milestone 24 below.
 
 ## 3.1 HUD modal manager
 
@@ -154,8 +168,51 @@ add per-version migration (or an explicit "save too old" message) so
 mid-demo saves don't break.
 
 **Status:** active discipline. Milestone 17 bumped to save v2 for
-stats/perks, and Milestone 18 bumped to save v3 for per-district heat
-and mission chains.
+stats/perks, Milestone 18 bumped to save v3 for per-district heat
+and mission chains, and Milestone 20 bumped to save v4 for train
+service state.
+
+## 3.8 Shared animated-model loader
+
+The swap-visibility GLB pattern (one model per visual state, primed
+AnimationPlayer, toggle visibility) was copy-pasted identically into
+player, NPC, mission actor, and patrol guard scripts.
+
+**Status:** complete in the Milestone 20 review pass via
+`Scripts/Characters/animated_model_set.gd` (static funcs, preloaded —
+class-cache rule). All four character scripts delegate to it; new
+character types must too.
+
+## 3.9 Surface-detail material batching
+
+The street/wall art pass creates a unique `StandardMaterial3D` (and
+often a unique mesh node) per detail quad — mortar lines, seams,
+litter, lane dashes. That's hundreds of materials and draw calls per
+district for what are ~6 distinct looks. Before a third district
+ships: share materials per color/look (a small material cache keyed by
+color), and consider `MultiMeshInstance3D` for repeated quads (bricks,
+ties, joints). Cosmetic only — safe to defer until a perf dip or
+Milestone 24, whichever comes first.
+
+## 3.10 Data-driven character visuals
+
+Model paths and animation-clip names are hardcoded constants in four
+scripts, keyed by `actor_id == "lupe"`-style branches. This violates
+the v1 agent rule ("everything is data-driven"): a new NPC means code
+edits, not a JSON entry. Move per-character model/clip manifests into
+`npc_data.json` / `missions.json` actor defs (e.g. a `visuals` block:
+state → {model, clip}), with the current constants as the fallback.
+Do this before Milestone 22 adds two more crew members, or it becomes
+six copies.
+
+## 3.11 Interaction fallback line-of-sight
+
+`player.gd::_nearest_interactable` (the pickup-focus fallback added in
+Milestone 20) selects the nearest "interactable" group node within
+range with no line-of-sight check — a pickup can be grabbed through a
+thin wall. Low stakes today (one pickup type, 3.5 m range); add a
+single `intersect_ray` occlusion check when more item types join the
+group.
 
 ---
 
@@ -164,7 +221,9 @@ and mission chains.
 Continue v1 numbering. Each milestone follows the dev loop in
 CLAUDE.md (branch → implement → smoke test additions → PR → review →
 fixes → merge). Order matters: 15 unblocks cheap UI/content work,
-16–18 are the demo's spine, 19–21 are the signature features.
+16–18 are the demo's spine, 19–21 are the signature features, 22–23
+round out the demo, and 24–26 (added after Milestone 20) harden the
+world and spend the art that's already imported.
 
 ## Milestone 15: Engineering Hardening — Complete
 
@@ -228,17 +287,28 @@ Imported-but-untriggered clips (vault, turn variants, sprint-stop,
 stand-up) should become gameplay event hooks rather than passive
 movement guesses.
 
-## Recommended Next Steps
+## Recommended Next Steps (updated after Milestone 20 / PR #15)
 
-* **Animation polish pass (small, before Milestone 21 if desired):**
-  add event hooks for vault/turn/stop clips only where gameplay
-  supports them; avoid swapping clips on every tiny input change until
-  blend/cooldown rules exist.
-* **Milestone 21 is the next system milestone:** gallery missions are
-  the next demo-depth feature now that train painting exists.
-* **Keep presentation changes non-schema:** animation/model work should
-  continue without save-version bumps unless player state gains new
-  persisted fields.
+1. **Milestone 21 (gallery missions) is the next system milestone.**
+   It is the last §46-criteria feature ("selling out was a real
+   decision") and reuses the Milestone 14 freehand canvas — no new
+   tech, mostly mission/judging logic. Do it before more content
+   widens the world.
+2. **Milestone 22 (crew depth) second**, but land §3.10 (data-driven
+   character visuals) at the start of it — Rico and Metro should be
+   JSON entries with a `visuals` block, not a fifth and sixth copy of
+   hardcoded model constants.
+3. **Fold the open review findings (§3.9, §3.11) into Milestone 24**
+   rather than fixing them piecemeal: material batching pays off most
+   right before a third district, and the LOS check matters once more
+   item types exist.
+4. **Use the already-imported idle/walk clips for ambient NPC life
+   (Milestone 25)** — the art is paid for; behaviors are the missing
+   half. Keep it after the system milestones.
+5. **Keep presentation changes non-schema:** animation/model/material
+   work should continue without save-version bumps unless persisted
+   state gains new fields. Trains proved the v4 migration pattern;
+   reuse it.
 
 ## Milestone 20: Train Painting (Could-Have — the signature moment) — Complete
 
@@ -276,6 +346,48 @@ and Mill Yard, HUD events, and blackbook service logging.
 * This is the "make the demo feel like a game" milestone — keep it
   last so systems stay the priority (§47 agent rule 2).
 
+## Milestone 24: World Render & Data Hardening (new)
+
+The engineering follow-ups from the Milestone 20 review (§3.9–§3.11),
+batched so they ship once instead of as drive-by fixes:
+
+* Shared material cache + `MultiMeshInstance3D` for repeated surface
+  details (§3.9); target: a district renders with ~tens, not hundreds,
+  of unique materials, with no visible change.
+* Data-driven character visuals (§3.10): `visuals` manifest blocks in
+  the NPC/actor JSON, consumed by `animated_model_set.gd`; delete the
+  per-script model-path constants.
+* Line-of-sight check in the interactable fallback (§3.11).
+* No new gameplay; deliverable is an unchanged windowed run + smoke
+  test, like Milestone 15. Schedule before any third district.
+
+## Milestone 25: Ambient NPC Life (Could-Have, §44 crowd reactions in minimal form) (new)
+
+* Put the already-imported walk/idle clips to work: Moth wanders her
+  corner, Lupe restocks crates, Prime gestures mid-listen; simple
+  waypoint loiter loops, no nav-mesh.
+* 2–3 generic pedestrians per district (reuse character sets with
+  tinted materials) that pause to look at fresh player pieces — the
+  minimal §44 "people react to your work" beat; +1 small rep tick the
+  first time a piece draws a crowd.
+* Pedestrians scatter when heat spikes nearby — readable danger
+  without new systems (PatrolManager signals already exist).
+* Guard ladder-climb clip gets its trigger: guards use it at climb
+  zones instead of giving up, raising rooftop stakes after Milestone
+  19 made roofs safe.
+
+## Milestone 26: Rooftop Row District (§45) (new)
+
+* Third district, unlocked via the Milestone 19 climbing system:
+  entry is a climb, not a travel point — verticality is the identity.
+* Rooftop-only wall set (roller/blockbuster heavy), wind/edge risk on
+  long pieces, and the second train line passing below for Milestone
+  20 cross-district value.
+* Own rival presence and a 2–3 mission chain; per-district heat
+  already generalizes.
+* Builds on Milestone 24's render hardening (third district is the
+  cost trigger for §3.9) — do not start it before 24 lands.
+
 ---
 
 # 5. v2 Priorities
@@ -290,13 +402,14 @@ Milestone 19.
 
 ## Next Should-Have
 
-Milestone 21.
+Milestone 21, then 22 (with §3.10 landed at its start), then 24
+(engineering, gate for any third district).
 
 ## Could-Have
 
-Milestone 22, 23; procedural rival graffiti variety; NPC crowd
-reactions; dance/rap battles (§20) — battles stay parked until a
-minigame is actually fun on paper.
+Milestone 23, 25, 26; procedural rival graffiti variety; dance/rap
+battles (§20) — battles stay parked until a minigame is actually fun
+on paper.
 
 ## Do Not Build Yet (carried over from v1 §36, still true)
 
