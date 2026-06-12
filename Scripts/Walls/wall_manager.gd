@@ -17,6 +17,10 @@ const BUFF_RETALIATION_BONUS := 1.25
 ## Walls remember (Plan.md section 9) — but not forever. History is
 ## deep-copied on every quick_save, so it stays bounded (Plan_v2.md §3.5).
 const MAX_WALL_HISTORY := 20
+## Crew-backed work (requiresCrew styles — murals) builds standing with
+## your own people: the counterweight the gallery trade (Milestone 21)
+## spends.
+const CREW_WORK_CREW_REP := 2
 
 var wall_defs: Array = []
 var styles: Dictionary = {}
@@ -197,6 +201,8 @@ func _commit_player_graffiti(wall: PaintableWall, state: Dictionary, graffiti: D
 	state["state"] = "player_" + String(graffiti["type"])
 	state.erase("crossOut")
 	GameState.add_reputation(int(graffiti["repValue"]))
+	if styles.get(String(graffiti["type"]), {}).get("requiresCrew", false):
+		GameState.add_crew_rep(CREW_WORK_CREW_REP)
 	wall.show_graffiti(graffiti)
 	wall_painted.emit(String(graffiti["wallId"]), graffiti)
 

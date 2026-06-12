@@ -60,6 +60,8 @@ func _writer_text() -> String:
 	var lines: PackedStringArray = []
 	lines.append("Alias: %s" % GameState.alias)
 	lines.append("Rank: %s   (Rep %d)" % [GameState.rank, GameState.reputation])
+	lines.append("Crew rep: %d%s" % [GameState.crew_rep,
+		"   — the street side-eyes gallery money" if GameState.crew_rep < 0 else ""])
 	lines.append("Cash: $%d   ·   Paint: %d" % [GameState.cash, GameState.paint])
 	lines.append("Heat: %s (%d)" % [HeatManager.level_name(), roundi(HeatManager.heat)])
 	var stat_parts: PackedStringArray = []
@@ -145,6 +147,10 @@ func _city_text() -> String:
 				String(graffiti.get("alias", "?")),
 				int(graffiti.get("passes", 0)),
 				String(train.get("phase", "stopped"))])
+	if GalleryManager.sales_count() > 0:
+		lines.append("")
+		lines.append("Gallery sales: %d canvas%s through Vesper — cash in hand, side-eye on the block." % [
+			GalleryManager.sales_count(), "" if GalleryManager.sales_count() == 1 else "es"])
 	return "\n".join(lines)
 
 ## owner -> wall count, in one pass over the wall states.

@@ -34,6 +34,8 @@ var _visual_models: Dictionary = {}
 var _visual_animation_players: Dictionary = {}
 var _visual_animation_names: Dictionary = {}
 var _active_visual_state := ""
+var _min_rank := ""
+var _collision: CollisionShape3D = null
 
 func setup(actor_data: Dictionary) -> void:
 	data = actor_data
@@ -50,6 +52,20 @@ func setup(actor_data: Dictionary) -> void:
 		_build_capsule_visual()
 	_build_collision()
 	_build_label()
+	# Rank-gated contacts (the gallery scout, §43 "appears at rank
+	# Known") stay out of the world until the writer's name is big
+	# enough — invisible and untouchable by the interact ray.
+	_min_rank = String(data.get("minRank", ""))
+	if _min_rank != "":
+		GameState.rank_changed.connect(func(_rank: String) -> void:
+			_refresh_rank_gate())
+		_refresh_rank_gate()
+
+func _refresh_rank_gate() -> void:
+	var unlocked := GameState.rank_index(GameState.rank) >= GameState.rank_index(_min_rank)
+	visible = unlocked
+	if _collision != null:
+		_collision.disabled = not unlocked
 
 func _build_capsule_visual() -> void:
 	var mesh := MeshInstance3D.new()
@@ -65,13 +81,13 @@ func _build_capsule_visual() -> void:
 	add_child(mesh)
 
 func _build_collision() -> void:
-	var col := CollisionShape3D.new()
+	_collision = CollisionShape3D.new()
 	var shape := CapsuleShape3D.new()
 	shape.height = 1.7
 	shape.radius = 0.32
-	col.shape = shape
-	col.position = Vector3(0, 0.85, 0)
-	add_child(col)
+	_collision.shape = shape
+	_collision.position = Vector3(0, 0.85, 0)
+	add_child(_collision)
 
 func _build_label() -> void:
 	var label := Label3D.new()

@@ -26,6 +26,7 @@ const HEAT_COLORS := {
 
 var _rank_label: Label
 var _rep_label: Label
+var _crew_rep_label: Label
 var _paint_label: Label
 var _cash_label: Label
 var _heat_label: Label
@@ -47,6 +48,9 @@ var _freehand  # FreehandPanelScript instance (untyped: see preload note)
 var _perks  # PerksPanelScript instance (untyped: see preload note)
 var _map_panel: MapPanel
 var _freehand_wall: PaintableWall = null
+## True while the open freehand canvas is a gallery commission
+## (Milestone 21) — commit routes to GalleryManager, not WallManager.
+var _freehand_gallery := false
 var _focused: Node3D = null
 var _rank_index := 0
 ## The modal registry (Plan_v2.md §3.1): one entry per modal, in input
@@ -71,6 +75,7 @@ func _ready() -> void:
 	stats_panel.add_child(stats)
 	_rank_label = UiKit.make_label(stats, 22, ACCENT)
 	_rep_label = UiKit.make_label(stats, 18)
+	_crew_rep_label = UiKit.make_label(stats, 18)
 	_paint_label = UiKit.make_label(stats, 18)
 	_cash_label = UiKit.make_label(stats, 18)
 	_heat_label = UiKit.make_label(stats, 18)
@@ -158,6 +163,7 @@ func _ready() -> void:
 	_register_modals()
 
 	GameState.reputation_changed.connect(_on_rep_changed)
+	GameState.crew_rep_changed.connect(_on_crew_rep_changed)
 	GameState.rank_changed.connect(_on_rank_changed)
 	GameState.paint_changed.connect(_on_paint_changed)
 	GameState.cash_changed.connect(_on_cash_changed)
@@ -190,6 +196,9 @@ func _ready() -> void:
 		_show_message(message, 5.0)
 		if _blackbook.visible:
 			_blackbook.refresh())
+	GalleryManager.commission_started.connect(_on_gallery_commission)
+	GalleryManager.gallery_event.connect(func(message: String) -> void:
+		_show_message(message, 5.0))
 	GameState.district_changed.connect(_on_district_changed)
 	GameState.player_event.connect(func(message: String) -> void:
 		_show_message(message, 4.0))
@@ -318,6 +327,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _refresh_stats() -> void:
 	_rank_label.text = "Rank: %s" % GameState.rank
 	_rep_label.text = "Rep: %d" % GameState.reputation
+	_on_crew_rep_changed(GameState.crew_rep, 0)
 	_paint_label.text = "Paint: %d" % GameState.paint
 	_cash_label.text = "Cash: $%d" % GameState.cash
 	_on_heat_changed(HeatManager.heat, 0.0)
@@ -417,6 +427,12 @@ func _on_supply_event(message: String) -> void:
 func _on_rep_changed(new_rep: int, _gained: int) -> void:
 	_rep_label.text = "Rep: %d" % new_rep
 
+## Crew standing (§11 split, Milestone 21): negative means the street
+## thinks you sold out — color it like trouble.
+func _on_crew_rep_changed(new_crew_rep: int, _change: int) -> void:
+	_crew_rep_label.text = "Crew Rep: %d" % new_crew_rep
+	_crew_rep_label.label_settings.font_color = LOW_PAINT if new_crew_rep < 0 else Color.WHITE
+
 func _on_rank_changed(new_rank: String) -> void:
 	_rank_label.text = "Rank: %s" % new_rank
 	var idx := GameState.rank_index(new_rank)
@@ -457,9 +473,31 @@ func _on_freehand_requested(wall: PaintableWall) -> void:
 	_freehand.begin(wall)
 	_freehand.visible = true
 	_freehand_wall = wall
+	_freehand_gallery = false
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+
+## Milestone 21: Vesper stretched a canvas — same freehand panel, no
+## wall behind it; the commit routes to the gallery judge instead.
+func _on_gallery_commission(commission: Dictionary) -> void:
+	close_modals("freehand")
+	var size: Array = commission.get("size", [3.0, 2.0])
+	_freehand.begin_canvas(String(commission.get("label", "Gallery canvas")),
+		Vector2(float(size[0]), float(size[1])))
+	_freehand.visible = true
+	_freehand_wall = null
+	_freehand_gallery = true
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 
 func _on_freehand_committed(image: Image, colors_used: int, coverage: float) -> void:
+	if _freehand_gallery:
+		var gallery_result: Dictionary = GalleryManager.submit(image, colors_used, coverage)
+		if gallery_result.get("ok", false):
+			_close_freehand()
+		else:
+			# Keep the canvas open — the work isn't lost over missing paint.
+			Sfx.play("denied")
+			_show_message(String(gallery_result.get("reason", "")))
+		return
 	var wall := _freehand_wall
 	_close_freehand()
 	if wall == null:
@@ -476,6 +514,9 @@ func _on_freehand_committed(image: Image, colors_used: int, coverage: float) -> 
 func _close_freehand() -> void:
 	_freehand.visible = false
 	_freehand_wall = null
+	if _freehand_gallery:
+		_freehand_gallery = false
+		GalleryManager.cancel_commission()  # no-op when already submitted
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
 func _on_painted(result: Dictionary) -> void:

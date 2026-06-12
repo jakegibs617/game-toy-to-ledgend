@@ -388,6 +388,7 @@ func _run_smoke_test() -> void:
 	_smoke_canal_side()
 	_smoke_rooftop_climbing()
 	_smoke_train_painting()
+	_smoke_gallery()
 	_smoke_history_cap()
 	_smoke_player_model()
 	print("SMOKE: OK")
@@ -493,6 +494,8 @@ func _smoke_crew() -> void:
 	CrewManager.interact("npc_mina_moth")
 	assert(mina["stage"] == "recruited")
 	assert(CrewManager.has_role("lookout"))
+	# Recruiting builds crew standing (§11 split, Milestone 21).
+	assert(GameState.crew_rep == CrewManager.RECRUIT_CREW_REP)
 	var moth_node := get_node_or_null("npc_mina_moth")
 	assert(moth_node != null)
 	assert(moth_node.get_node_or_null("CharacterVisual/LookoutRadioPhone") != null)
@@ -931,9 +934,12 @@ func _smoke_graffiti_types() -> void:
 	assert(not result["ok"] and String(result["reason"]).contains("crew"))
 	mina["stage"] = "recruited"
 	var rep_before: int = GameState.reputation
+	var crew_rep_before: int = GameState.crew_rep
 	result = WallManager.paint_wall(wall, "mural")
 	assert(result["ok"])
 	assert(GameState.reputation == rep_before + int(result["rep"]))
+	# Crew-backed work pays crew standing too (§11 split, Milestone 21).
+	assert(GameState.crew_rep == crew_rep_before + WallManager.CREW_WORK_CREW_REP)
 	assert(WallManager.wall_states["wall_corner_01"]["state"] == "player_mural")
 	print("SMOKE: stencil/roller/mural painted — gates all enforced")
 
@@ -1091,8 +1097,10 @@ func _smoke_canal_side() -> void:
 		result = WallManager.paint_wall(WallManager.wall_nodes[wall_id], "tag")
 		assert(result["ok"])
 	assert(TerritoryManager.is_claimed("district_canal_side"))
-	assert(MissionManager.chain_done)
-	assert(MissionManager.all_chains_done())
+	# The canal chain is done; rank Known satisfied the gallery chain's
+	# rank trigger (Milestone 21), so it activates immediately.
+	assert(bool(MissionManager.chains[1].get("done", false)))
+	assert(String(MissionManager.current_mission().get("missionId", "")) == "m9_white_walls")
 	print("SMOKE: Canal Side chain complete — m6/m7/m8 against Ghost Line")
 
 	# Leaving the block is laying low: the absent district cools at
@@ -1118,7 +1126,7 @@ func _smoke_canal_side() -> void:
 	assert(SaveManager.quick_load())
 	assert(GameState.current_district_id == "district_mill_yard")
 	assert(is_equal_approx(HeatManager.heat_in("district_canal_side"), 36.0))
-	assert(MissionManager.all_chains_done())
+	assert(String(MissionManager.current_mission().get("missionId", "")) == "m9_white_walls")
 	var migrated: Dictionary = SaveManager._migrate({"version": 2,
 		"heat": {"heat": 33.0, "ticks_until_cleanup": 2},
 		"missions": {"began": true, "chain_done": true,
@@ -1201,16 +1209,122 @@ func _smoke_train_painting() -> void:
 	var city_page: String = blackbook.page_text(3)
 	assert(city_page.contains("Ghost Local") and city_page.contains("passes 2"))
 	blackbook.free()
-	assert(SaveManager.SAVE_VERSION == 4)
+	assert(SaveManager.SAVE_VERSION >= 4)
 	assert(SaveManager.quick_save())
 	state["currentGraffiti"] = null
 	assert(SaveManager.quick_load())
 	state = TrainManager.state_for(train_id)
 	assert(state["currentGraffiti"]["alias"] == GameState.alias)
 	var migrated: Dictionary = SaveManager._migrate({"version": 3})
-	assert(int(migrated["version"]) == 4)
+	assert(int(migrated["version"]) == SaveManager.SAVE_VERSION)
 	assert(migrated.has("trains"))
 	print("SMOKE: train painting — car painted, pass-through rep paid, v4 state saved")
+
+## Assumes: rank is Known+ (mill chain), the canal chain is done (the
+## gallery chain activated on its rank trigger), the piece can is
+## unlocked, and at least two fill colors are owned. Milestone 21
+## (Plan.md §18, §43): Vesper buys freehand canvases — the style
+## multiplier is the judge's score, a sale pays cash + public rep and
+## costs crew rep, and weak work is refused.
+func _smoke_gallery() -> void:
+	# The rank-triggered chain wants a meeting at the dry dock.
+	assert(String(MissionManager.current_mission().get("missionId", "")) == "m9_white_walls")
+	assert(MissionManager.current_objective()["type"] == "talk")
+	var vesper := get_node_or_null("vesper")
+	assert(vesper != null)
+	assert(vesper.visible)  # the rank gate opened when the writer hit Known
+	# Below Known the scout hides and the gallery won't deal.
+	var real_rank: String = GameState.rank
+	GameState.rank = "Toy"
+	vesper._refresh_rank_gate()
+	assert(not vesper.visible)
+	assert(not GalleryManager.start_commission())
+	GameState.rank = real_rank
+	vesper._refresh_rank_gate()
+	assert(vesper.visible)
+	assert(MissionManager.notify_actor("vesper"))
+	assert(MissionManager.current_objective()["type"] == "gallery_sale")
+
+	# A lazy scribble gets refused: paint spent, nothing paid, crew rep
+	# untouched — you didn't sell out, you just embarrassed yourself.
+	GameState.add_paint(20)
+	var freehand = preload("res://Scripts/UI/freehand_panel.gd").new()
+	assert(GalleryManager.start_commission())
+	assert(not GalleryManager.start_commission())  # one easel at a time
+	var size: Array = GalleryManager.config["canvasSize"]
+	freehand.begin_canvas("smoke gallery canvas", Vector2(size[0], size[1]))
+	freehand.spray_at(Vector2(8, 8))
+	var weak: Dictionary = freehand.result()
+	var paint_before: int = GameState.paint
+	var cash_before: int = GameState.cash
+	var rep_before: int = GameState.reputation
+	var crew_before: int = GameState.crew_rep
+	var result: Dictionary = GalleryManager.submit(
+		weak["image"], int(weak["colors_used"]), float(weak["coverage"]))
+	assert(result["ok"] and not result["accepted"])
+	assert(GameState.paint == paint_before - SupplyManager.paint_cost(WallManager.styles["piece"]))
+	assert(GameState.cash == cash_before and GameState.reputation == rep_before)
+	assert(GameState.crew_rep == crew_before)
+	assert(MissionManager.current_objective()["type"] == "gallery_sale")  # no sale, no progress
+
+	# A real canvas sells: the score is the freehand style multiplier,
+	# cash scales with Hustle like other income, public rep rises, and
+	# crew rep takes the §18 art-world hit.
+	assert(GalleryManager.start_commission())
+	freehand.begin_canvas("smoke gallery canvas", Vector2(size[0], size[1]))
+	var canvas: Image = freehand.image
+	for i in 60:
+		freehand.spray_at(Vector2(
+			(i % 10 + 0.5) / 10.0 * canvas.get_width(),
+			(floorf(i / 10.0) + 0.5) / 6.0 * canvas.get_height()))
+	GameState.cycle_fill_color()
+	for i in 20:
+		freehand.spray_at(Vector2(canvas.get_width() * 0.5, canvas.get_height() * 0.5))
+	var art: Dictionary = freehand.result()
+	freehand.free()
+	var score: float = WallManager.freehand_style_multiplier(
+		int(art["colors_used"]), float(art["coverage"]))
+	assert(score >= float(GalleryManager.config["acceptScore"]))
+	cash_before = GameState.cash
+	rep_before = GameState.reputation
+	crew_before = GameState.crew_rep
+	# Expected price uses the Hustle multiplier as it stands *before*
+	# the sale — the sale itself pays Hustle XP and can level it up.
+	var expected_cash := roundi(
+		float(GalleryManager.config["basePay"]) * score * StatsManager.delivery_multiplier())
+	result = GalleryManager.submit(art["image"], int(art["colors_used"]), float(art["coverage"]))
+	assert(result["ok"] and result["accepted"])
+	assert(is_equal_approx(float(result["score"]), score))
+	assert(int(result["cash"]) == expected_cash)
+	# The sale price plus m9's $40 completion bonus (paid inside submit
+	# via notify_gallery_sale -> mission onComplete).
+	assert(GameState.cash == cash_before + 40 + expected_cash)
+	assert(GameState.reputation == rep_before + roundi(
+		float(GalleryManager.config["repBase"]) * score))
+	assert(GameState.crew_rep == crew_before - int(GalleryManager.config["crewRepCost"]))
+	assert(GalleryManager.sales_count() == 1)
+	# The sale completes the gallery mission — every chain is now done.
+	assert(MissionManager.all_chains_done())
+	# The blackbook shows both sides of the split.
+	var blackbook = preload("res://Scripts/UI/blackbook_panel.gd").new()
+	assert(blackbook.page_text(0).contains("Crew rep"))
+	assert(blackbook.page_text(3).contains("Gallery sales: 1"))
+	blackbook.free()
+
+	# Gallery state and the rep split survive save/load; v4 saves migrate.
+	assert(SaveManager.SAVE_VERSION == 5)
+	assert(SaveManager.quick_save())
+	var saved_crew: int = GameState.crew_rep
+	GameState.crew_rep = 0
+	GalleryManager.sales.clear()
+	assert(SaveManager.quick_load())
+	assert(GameState.crew_rep == saved_crew)
+	assert(GalleryManager.sales_count() == 1)
+	var migrated: Dictionary = SaveManager._migrate({"version": 4, "game": {}})
+	assert(int(migrated["version"]) == 5)
+	assert(migrated.has("gallery"))
+	assert(int(migrated["game"]["crew_rep"]) == 0)
+	print("SMOKE: gallery — refusal, sale (score x%.2f), crew rep split, v5 save" % score)
 
 ## Assumes: nothing beyond a paintable wall. Plan_v2.md §3.5: wall
 ## history is capped — repainting past the cap drops the oldest

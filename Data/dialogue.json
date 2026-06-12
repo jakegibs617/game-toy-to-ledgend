@@ -56,6 +56,30 @@
       }
     }
   },
+  "vesper": {
+    "start": "hub",
+    "nodes": {
+      "hub": {
+        "speaker": "Vesper",
+        "text": "Vesper. I scout for the White Walls gallery. Your name is all over two districts — collectors pay for that kind of authentic. Bring me a canvas, freehand, your best work. I judge what it's worth.",
+        "choices": [
+          {"text": "Let's talk a commission.", "action": "start_gallery",
+            "requires": {"minRank": "Known"},
+            "lockedText": "(Make your name first — come back when you're Known)"},
+          {"text": "What does the street think of this?", "next": "tension"},
+          {"text": "Not for sale. Later.", "action": "end"}
+        ]
+      },
+      "tension": {
+        "speaker": "Vesper",
+        "text": "The street says gallery money is selling out. The gallery says the street is free marketing. Your crew will hear about every canvas I sell — that costs you something with them. That's the trade.",
+        "choices": [
+          {"text": "Understood. Let's work.", "next": "hub"},
+          {"text": "Later.", "action": "end"}
+        ]
+      }
+    }
+  },
   "moth": {
     "start": "hub",
     "nodes": {

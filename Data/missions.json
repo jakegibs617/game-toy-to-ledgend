@@ -58,6 +58,20 @@
         6.5
       ],
       "dialogueId": "prime"
+    },
+    {
+      "actorId": "vesper",
+      "kind": "npc",
+      "name": "Vesper",
+      "roleLabel": "Gallery",
+      "color": "#c8b8ff",
+      "position": [
+        101,
+        0,
+        6.5
+      ],
+      "dialogueId": "vesper",
+      "minRank": "Known"
     }
   ],
   "chains": [
@@ -286,6 +300,38 @@
           "onComplete": {
             "cash": 75,
             "message": "Two blocks deep. The trains run past the silo every night... (+$75)"
+          }
+        }
+      ]
+    },
+    {
+      "chainId": "gallery_debut",
+      "trigger": {
+        "type": "rank",
+        "minRank": "Known"
+      },
+      "completeMessage": "The art world knows your alias now. The street will decide what that costs.",
+      "missions": [
+        {
+          "missionId": "m9_white_walls",
+          "title": "White Walls",
+          "onStart": {
+            "message": "A gallery scout named Vesper has been asking about your work. She sets up by the Canal Side dry dock."
+          },
+          "objectives": [
+            {
+              "type": "talk",
+              "text": "Meet Vesper, the gallery scout, by the Canal Side dry dock",
+              "actorId": "vesper"
+            },
+            {
+              "type": "gallery_sale",
+              "text": "Sell Vesper a freehand canvas she'll accept — cover it, mix colors"
+            }
+          ],
+          "onComplete": {
+            "cash": 40,
+            "message": "Vesper wires a bonus. The gallery stays open for more canvases — your crew heard about it, too. (+$40)"
           }
         }
       ]

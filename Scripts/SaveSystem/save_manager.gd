@@ -12,7 +12,8 @@ const SAVE_PATH := "user://toy_to_legend_save.json"
 ## v3 (Milestone 18): per-district heat dict; mission chains (chain
 ## index/flags, painted-objective keys gain a chain prefix).
 ## v4 (Milestone 20): painted train-car service state.
-const SAVE_VERSION := 4
+## v5 (Milestone 21): gallery sales log; "game" section gains crew_rep.
+const SAVE_VERSION := 5
 
 var _player: Player
 
@@ -36,6 +37,7 @@ func quick_save() -> bool:
 		"missions": MissionManager.save_state(),
 		"stats": StatsManager.save_state(),
 		"trains": TrainManager.save_state(),
+		"gallery": GalleryManager.save_state(),
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file == null:
@@ -70,6 +72,7 @@ func quick_load() -> bool:
 	MissionManager.load_state(data.get("missions", {}))
 	StatsManager.load_state(data.get("stats", {}))
 	TrainManager.load_state(data.get("trains", {}))
+	GalleryManager.load_state(data.get("gallery", {}))
 	_apply_player_state(data.get("player", {}))
 	# Every manager is restored — now it's safe for district listeners
 	# (chain triggers, patrol respawns, HUD) to react to where we are.
@@ -113,6 +116,13 @@ func _migrate(data: Dictionary) -> Dictionary:
 	if version < 4:
 		data["trains"] = {}
 		version = 4
+	if version < 5:
+		# v4 predates the gallery and the public/crew rep split: no
+		# sales yet, and the writer's crew standing starts neutral.
+		data["gallery"] = {}
+		if data.has("game"):
+			data["game"]["crew_rep"] = int(data["game"].get("crew_rep", 0))
+		version = 5
 	data["version"] = version
 	return data
 
