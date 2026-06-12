@@ -189,6 +189,7 @@ func _setup_input_actions() -> void:
 		_add_key_action("slot_%d" % (i + 1), (KEY_1 + i) as Key)
 	_add_key_action("cycle_color", KEY_C)
 	_add_key_action("freehand_paint", KEY_F)
+	_add_key_action("perks", KEY_P)
 	_add_key_action("quick_save", KEY_F5)
 	_add_key_action("quick_load", KEY_F9)
 	_add_key_action("crew_menu", KEY_TAB)

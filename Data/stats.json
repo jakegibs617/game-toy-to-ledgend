@@ -1,0 +1,25 @@
+{
+  "style": {
+    "label": "Style",
+    "desc": "Letters get cleaner — finished work pays more rep.",
+    "xpPerLevel": 40,
+    "maxLevel": 5,
+    "repBonusPerLevel": 0.05
+  },
+  "stealth": {
+    "label": "Stealth",
+    "desc": "You read the street — guards spot you later, paint draws less heat.",
+    "xpPerLevel": 60,
+    "maxLevel": 5,
+    "spotCutPerLevel": 0.05,
+    "heatCutPerLevel": 0.05
+  },
+  "hustle": {
+    "label": "Hustle",
+    "desc": "You know everybody — better prices, better delivery pay.",
+    "xpPerLevel": 50,
+    "maxLevel": 5,
+    "priceCutPerLevel": 0.04,
+    "deliveryBonusPerLevel": 0.1
+  }
+}

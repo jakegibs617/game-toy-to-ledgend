@@ -62,6 +62,13 @@ func _writer_text() -> String:
 	lines.append("Rank: %s   (Rep %d)" % [GameState.rank, GameState.reputation])
 	lines.append("Cash: $%d   ·   Paint: %d" % [GameState.cash, GameState.paint])
 	lines.append("Heat: %s (%d)" % [HeatManager.level_name(), roundi(HeatManager.heat)])
+	var stat_parts: PackedStringArray = []
+	for stat in StatsManager.stat_defs:
+		stat_parts.append("%s %d" % [
+			String(StatsManager.stat_defs[stat].get("label", stat)),
+			StatsManager.level(String(stat))])
+	lines.append("%s   ·   Perk points: %d  [P]" % [
+		" · ".join(stat_parts), StatsManager.perk_points])
 	lines.append("")
 	for district_id in TerritoryManager.districts:
 		var district: Dictionary = TerritoryManager.districts[district_id]

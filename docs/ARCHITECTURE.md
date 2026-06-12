@@ -34,7 +34,8 @@ extends a section.
 | PatrolManager | Scripts/Patrols/patrol_manager.gd | Heat-scaled guard spawning, witness checks, chase/catch |
 | SupplyManager | Scripts/Supplies/supply_manager.gd | Lupe's shop catalog, owned upgrades (fat cap), paint_cost discounts, delivery runs |
 | DialogueManager | Scripts/Dialogue/dialogue_manager.gd | Choice trees from Data/dialogue.json, rank/recruit checks, one-time flags |
-| SaveManager | Scripts/SaveSystem/save_manager.gd | quick_save/quick_load to `user://toy_to_legend_save.json`, `SAVE_VERSION` |
+| StatsManager | Scripts/Stats/stats_manager.gd | Style/Stealth/Hustle XP+levels (raise by doing), perk points/trees, the multipliers other managers query (rep, heat, spot range, prices, delivery pay, rival damp, payout/decay) |
+| SaveManager | Scripts/SaveSystem/save_manager.gd | quick_save/quick_load to `user://toy_to_legend_save.json`, `SAVE_VERSION`, per-version `_migrate` |
 | Sfx | Scripts/Audio/sfx.gd | Synthesized placeholder sounds; **must load after the managers** (connects to their signals); self-disables headless |
 
 Non-autoload actors: `Player` (Scripts/Player/player.gd, builds its own
@@ -100,9 +101,11 @@ fields `push_error` at startup, and the smoke test asserts
 | districts.json | array (districtId, name, claimThreshold, claimRepBonus) | TerritoryManager |
 | missions.json | {actors: [...], missions: [...]} | MissionManager |
 | dialogue.json | speaker → node tree | DialogueManager |
-| supplies.json | shop catalog + delivery def | SupplyManager |
+| supplies.json | shop catalog + delivery def (items may carry unlockType) | SupplyManager |
 | patrols.json | guard counts per heat level, speeds | PatrolManager |
 | npc_data.json | recruitable NPCs (Moth) | CrewManager |
+| stats.json | stat defs (xpPerLevel, maxLevel, per-level effect coefficients) | StatsManager |
+| perks.json | tree → perk list (perkId, name, desc, effects dict) | StatsManager |
 
 ## UI layer
 

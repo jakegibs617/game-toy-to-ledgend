@@ -109,7 +109,7 @@ func response_chance(wall_id: String, crew_id: String) -> float:
 		+ float(def.get("rivalResponseChance", 0.0)), 0.0, 0.95)
 	if CrewManager.has_role("lookout"):
 		chance *= 0.6
-	return chance
+	return chance * StatsManager.response_damp()  # crew perks (Milestone 17)
 
 ## Executes a rival response immediately. Split out from the chance
 ## roll so tests and scripted missions can trigger it deterministically.

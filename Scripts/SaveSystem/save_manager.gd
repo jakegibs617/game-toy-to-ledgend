@@ -8,7 +8,8 @@ signal save_event(message: String)
 const SAVE_PATH := "user://toy_to_legend_save.json"
 ## Bump whenever any section's shape changes (CLAUDE.md rule), and add
 ## the matching step to _migrate so mid-demo saves keep loading.
-const SAVE_VERSION := 1
+## v2 (Milestone 17): adds the "stats" section (xp, perk points, perks).
+const SAVE_VERSION := 2
 
 var _player: Player
 
@@ -30,6 +31,7 @@ func quick_save() -> bool:
 		"supplies": SupplyManager.save_state(),
 		"dialogue": DialogueManager.save_state(),
 		"missions": MissionManager.save_state(),
+		"stats": StatsManager.save_state(),
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file == null:
@@ -61,17 +63,22 @@ func quick_load() -> bool:
 	SupplyManager.load_state(data.get("supplies", {}))
 	DialogueManager.load_state(data.get("dialogue", {}))
 	MissionManager.load_state(data.get("missions", {}))
+	StatsManager.load_state(data.get("stats", {}))
 	_apply_player_state(data.get("player", {}))
 	save_event.emit("Loaded prototype state.")
 	return true
 
 ## Upgrades an older save to the current schema, one version step at a
-## time (Plan_v2.md §3.7). Version 1 is the first shipped schema, so
-## there is nothing to migrate yet — when SAVE_VERSION bumps to N, add
-## an `if version < N:` block here that reshapes the N-1 sections.
+## time (Plan_v2.md §3.7). When SAVE_VERSION bumps to N, add an
+## `if version < N:` block here that reshapes the N-1 sections.
 func _migrate(data: Dictionary) -> Dictionary:
 	var version := int(data.get("version", 1))
-	data["version"] = maxi(version, 1)
+	if version < 2:
+		# v1 predates progression: fresh stats, no perks. The writer
+		# keeps their rep/rank; the new systems start clean.
+		data["stats"] = {}
+		version = 2
+	data["version"] = version
 	return data
 
 func _player_state() -> Dictionary:
