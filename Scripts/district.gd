@@ -406,6 +406,16 @@ func _smoke_data_validation() -> void:
 	assert(DataLoader.error_count == 0)
 	assert(not WallManager.wall_defs.is_empty())
 	assert(not WallManager.styles.is_empty())
+	var has_controller_move := false
+	for event in InputMap.action_get_events("move_forward"):
+		if event is InputEventJoypadMotion:
+			has_controller_move = true
+	assert(has_controller_move)
+	var has_controller_can_cycle := false
+	for event in InputMap.action_get_events("can_next"):
+		if event is InputEventJoypadButton:
+			has_controller_can_cycle = true
+	assert(has_controller_can_cycle)
 	print("SMOKE: data validation clean")
 
 ## Assumes: fresh boot. Paints the first wall (Buff Kings territory,
@@ -414,6 +424,10 @@ func _smoke_data_validation() -> void:
 func _smoke_walls_and_rivals() -> void:
 	print("SMOKE: walls spawned = %d" % WallManager.wall_nodes.size())
 	assert(WallManager.wall_nodes.size() == WallManager.wall_defs.size())
+	assert(not GameState.alias_chosen)
+	GameState.choose_alias("NOVA")
+	assert(GameState.alias_chosen and GameState.alias == "NOVA")
+	assert(MissionManager.current_objective()["type"] == "paint")
 	var first_id := _first_wall_id()
 	var state: Dictionary = WallManager.wall_states[first_id]
 	assert(state["ownerCrewId"] == "buff_kings")

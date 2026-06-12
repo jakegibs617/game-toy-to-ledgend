@@ -33,6 +33,8 @@ var _heat_label: Label
 var _type_label: Label
 var _shop_panel: PanelContainer
 var _shop_label: Label
+var _alias_panel: PanelContainer
+var _alias_line: LineEdit
 var _dialogue_panel: PanelContainer
 var _dialogue_speaker_label: Label
 var _dialogue_label: Label
@@ -117,6 +119,30 @@ func _ready() -> void:
 	_message_timer.timeout.connect(func() -> void: _message_label.text = "")
 	add_child(_message_timer)
 
+	_alias_panel = UiKit.make_panel(Color("#ffd23f"))
+	_alias_panel.set_anchors_preset(Control.PRESET_CENTER)
+	_alias_panel.visible = false
+	root.add_child(_alias_panel)
+	var alias_box := VBoxContainer.new()
+	alias_box.custom_minimum_size = Vector2(540, 0)
+	alias_box.add_theme_constant_override("separation", 10)
+	_alias_panel.add_child(alias_box)
+	var alias_title := UiKit.make_label(alias_box, 30, ACCENT)
+	alias_title.text = "TOY TO LEGEND"
+	var alias_copy := UiKit.make_label(alias_box, 16)
+	alias_copy.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	alias_copy.text = "Pick the name the city will see first."
+	_alias_line = LineEdit.new()
+	_alias_line.text = GameState.alias
+	_alias_line.max_length = 12
+	_alias_line.placeholder_text = "WRITER ALIAS"
+	_alias_line.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_alias_line.text_submitted.connect(func(_text: String) -> void:
+		_commit_alias())
+	alias_box.add_child(_alias_line)
+	var alias_hint := UiKit.make_label(alias_box, 14, Color(1, 1, 1, 0.68))
+	alias_hint.text = "Enter/E to start · 1 NOVA · 2 KILO · 3 ECHO"
+
 	_blackbook = BlackbookPanelScript.new()
 	_blackbook.set_anchors_preset(Control.PRESET_CENTER)
 	_blackbook.visible = false
@@ -163,6 +189,10 @@ func _ready() -> void:
 	_register_modals()
 
 	GameState.reputation_changed.connect(_on_rep_changed)
+	GameState.alias_changed.connect(func(_alias: String) -> void:
+		_refresh_stats()
+		if _blackbook.visible:
+			_blackbook.refresh())
 	GameState.crew_rep_changed.connect(_on_crew_rep_changed)
 	GameState.rank_changed.connect(_on_rank_changed)
 	GameState.paint_changed.connect(_on_paint_changed)
@@ -215,6 +245,8 @@ func _ready() -> void:
 	_rank_index = GameState.rank_index(GameState.rank)
 	_refresh_stats()
 	_refresh_mission()
+	if not GameState.alias_chosen:
+		open_modal("alias")
 
 func bind_player(player: Player) -> void:
 	player.focus_changed.connect(_on_focus_changed)
@@ -228,6 +260,11 @@ func bind_player(player: Player) -> void:
 ## Shop, dialogue, and freehand open through their own flows.
 func _register_modals() -> void:
 	_modals = [
+		{"name": "alias",
+			"is_open": func() -> bool: return _alias_panel.visible,
+			"close": func() -> void: _alias_panel.visible = false,
+			"open": _open_alias,
+			"input": _handle_alias_input},
 		{"name": "freehand",
 			"is_open": func() -> bool: return _freehand.visible,
 			"close": _close_freehand,
@@ -260,6 +297,17 @@ func _register_modals() -> void:
 func _open_blackbook() -> void:
 	_blackbook.visible = true
 	_blackbook.refresh()
+
+func _open_alias() -> void:
+	_alias_panel.visible = true
+	_alias_line.text = GameState.alias
+	_alias_line.grab_focus()
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+
+func _commit_alias(alias_text := "") -> void:
+	GameState.choose_alias(alias_text if alias_text != "" else _alias_line.text)
+	_alias_panel.visible = false
+	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
 func _open_crew_board() -> void:
 	open_modal("blackbook")
@@ -337,6 +385,21 @@ func _refresh_stats() -> void:
 	_cash_label.text = "Cash: $%d" % GameState.cash
 	_on_heat_changed(HeatManager.heat, 0.0)
 	_on_type_changed(GameState.selected_graffiti_type)
+
+func _handle_alias_input(event: InputEvent) -> bool:
+	if event.is_action_pressed("interact"):
+		_commit_alias()
+		return true
+	if event.is_action_pressed("slot_1"):
+		_commit_alias("NOVA")
+		return true
+	if event.is_action_pressed("slot_2"):
+		_commit_alias("KILO")
+		return true
+	if event.is_action_pressed("slot_3"):
+		_commit_alias("ECHO")
+		return true
+	return false
 
 ## Keyboard conversation (Milestone 12): number keys pick choices,
 ## E/Esc walks away. Returns true when the event was consumed.

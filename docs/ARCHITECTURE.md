@@ -12,7 +12,9 @@ then opens `Scenes/PrototypeDistrict.tscn`, whose only node runs
 walls, player, NPCs, patrols, HUD — is **built at runtime in code**.
 There is no .tscn wiring to edit; scenes are one-node shells. The
 input map is also registered at runtime (`GameState._setup_input_actions`)
-so `project.godot` stays minimal.
+so `project.godot` stays minimal. Milestone 23 registers controller
+bindings there too; `Player` reads the right stick for camera look and
+d-pad left/right can cycling.
 
 `district.gd` also contains the smoke test (`SMOKE_TEST=1` env var):
 per-system `_smoke_*()` functions (Plan_v2.md §3.3), each documenting
@@ -24,7 +26,7 @@ extends a section.
 
 | Autoload | File | Owns |
 |---|---|---|
-| GameState | Scripts/Data/game_state.gd | Alias, rep, rank, paint, cash, selected type, unlocked types, fill palette, current district, input map |
+| GameState | Scripts/Data/game_state.gd | Alias selection, rep, rank, paint, cash, selected type, unlocked types, fill palette, current district, input map |
 | WallManager | Scripts/Walls/wall_manager.gd | Wall defs/styles JSON, wall spawning, **wall_states** (the world's memory), player/rival/buff paint paths, rep formula |
 | RivalManager | Scripts/Rivals/rival_manager.gd | Rival crews, initial territory, retaliation queue, cross-outs |
 | CrewManager | Scripts/Crew/crew_manager.gd | NPC spawning, recruitment stages, crew roles (lookout/filler/getaway), crew save state |
@@ -38,7 +40,7 @@ extends a section.
 | TrainManager | Scripts/Trains/train_manager.gd | Scheduled train cars, train-side painting, pass-through rep ticks, train service log |
 | GalleryManager | Scripts/Gallery/gallery_manager.gd | Gallery commissions (rank-gated), freehand judging (style multiplier = score), cash/public-rep payouts, crew-rep cost, sales log |
 | SaveManager | Scripts/SaveSystem/save_manager.gd | quick_save/quick_load to `user://toy_to_legend_save.json`, `SAVE_VERSION`, per-version `_migrate` |
-| Sfx | Scripts/Audio/sfx.gd | Synthesized placeholder sounds; **must load after the managers** (connects to their signals); self-disables headless |
+| Sfx | Scripts/Audio/sfx.gd | Synthesized placeholder sounds, music bed, per-district ambience; **must load after the managers** (connects to their signals); self-disables headless |
 
 Non-autoload actors: `Player` (Scripts/Player/player.gd, builds its own
 camera rig/raycast and runtime rooster animation state table),
@@ -50,7 +52,8 @@ Player animation clips live as separate skinned GLB scenes in
 `Assets/Characters/`. `Player._try_build_animated_visual` loads each
 available action into a `CharacterModel` container and records:
 state name → model node, animation player, animation name. Movement
-selects idle/walk/backpedal/run/jump; world interactions can request
+selects idle/walk/backpedal/run/jump; idle plays as a slow breathing
+loop instead of a frozen pose. World interactions can request
 short contextual clips via `Player.play_context_animation` (climbs use
 `"climb"` today). Add future actions by importing a GLB, registering
 its path + animation name in `player.gd`, and triggering the state from
@@ -135,7 +138,7 @@ fields `push_error` at startup, and the smoke test asserts
 
 `Hud` (CanvasLayer, Scripts/UI/hud.gd) builds all panels in code:
 stats, mission tracker, prompt, message toasts, and the modals —
-shop, dialogue, blackbook (`blackbook_panel.gd`), map
+alias/title, shop, dialogue, blackbook (`blackbook_panel.gd`), map
 (`map_panel.gd`), freehand canvas (`freehand_panel.gd`).
 
 Modal conventions:
@@ -146,8 +149,12 @@ Modal conventions:
 * HUD's `_unhandled_input` consumes modal input **before** Player sees
   it (HUD is added to the tree after Player, so it handles unhandled
   input first).
+* **Alias/title modal** (Milestone 23): new games start with
+  `GameState.alias_chosen == false`; HUD opens the alias modal before
+  world input, `GameState.choose_alias` stores the name, and
+  `MissionManager.notify_alias_chosen` advances the first mission.
 * **Modal registry** (Plan_v2.md §3.1): `Hud._register_modals` lists
-  every modal — freehand, dialogue, shop, blackbook, map — in input
+  every modal — alias, freehand, dialogue, shop, blackbook, map — in input
   priority order with `is_open`/`close`/`input` callables. The first
   open modal owns input; every opener routes through
   `close_modals(except)` so two modals can never stay open together.

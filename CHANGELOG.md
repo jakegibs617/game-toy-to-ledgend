@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-06-12 — Milestone 23: Presentation Pass (Plan_v2.md)
+
+The demo now opens like a game instead of dropping straight into the
+block.
+
+- Added a title/alias modal in HUD: new games start with
+  `alias_chosen = false`, choose a writer name, then advance the first
+  mission's alias objective. Presets NOVA/KILO/ECHO keep startup
+  controller-friendly.
+- Added controller bindings through `GameState._setup_input_actions`:
+  left stick movement, right stick camera look, face/shoulder buttons
+  for jump/interact/run/freehand/color, d-pad left/right can cycling,
+  and d-pad/system buttons for panels.
+- Rooster presentation pass: the idle animation now plays gently
+  instead of freezing on frame 0.
+- `Sfx` now layers a synthesized low music bed with per-district
+  ambient loops that switch on district travel.
+- Smoke test now explicitly chooses the alias before first paint and
+  asserts controller movement bindings are present.
+
 ## 2026-06-12 — Milestone 22: Crew Depth (Plan_v2.md)
 
 The crew now has more than a lookout.
