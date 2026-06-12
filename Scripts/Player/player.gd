@@ -7,6 +7,9 @@ signal focus_changed(node: Node3D)
 signal painted(result: Dictionary)
 signal freehand_requested(wall: PaintableWall)
 
+const MODEL_PATH := "res://Assets/Characters/neon_rooster.glb"
+const MODEL_SOURCE_HEIGHT := 1.913  # GLB bounds, origin-centered
+
 const WALK_SPEED := 4.0
 const RUN_SPEED := 7.5
 const JUMP_VELOCITY := 4.5
@@ -31,16 +34,7 @@ func _ready() -> void:
 	col.position = Vector3(0, 0.9, 0)
 	add_child(col)
 
-	var mesh := MeshInstance3D.new()
-	var capsule_mesh := CapsuleMesh.new()
-	capsule_mesh.height = 1.8
-	capsule_mesh.radius = 0.35
-	mesh.mesh = capsule_mesh
-	mesh.position = Vector3(0, 0.9, 0)
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color("#3aa0c8")
-	mesh.material_override = mat
-	add_child(mesh)
+	_build_visual()
 
 	_pivot = Node3D.new()
 	_pivot.position = Vector3(0, 1.6, 0)
@@ -60,6 +54,33 @@ func _ready() -> void:
 	_camera.add_child(_ray)
 
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+
+## Kronako Iconz rooster model, scaled to the 1.8 m capsule. Falls back
+## to the old debug capsule when the GLB import is unavailable (fresh
+## headless runs never import assets).
+func _build_visual() -> void:
+	if ResourceLoader.exists(MODEL_PATH):
+		var packed: PackedScene = load(MODEL_PATH)
+		if packed != null:
+			var model := packed.instantiate()
+			model.name = "CharacterModel"
+			var s := 1.8 / MODEL_SOURCE_HEIGHT
+			model.scale = Vector3.ONE * s
+			model.position = Vector3(0, MODEL_SOURCE_HEIGHT * 0.5 * s, 0)
+			model.rotation.y = PI  # glTF forward is +Z; Godot's is -Z
+			add_child(model)
+			return
+	var mesh := MeshInstance3D.new()
+	mesh.name = "CapsuleFallback"
+	var capsule_mesh := CapsuleMesh.new()
+	capsule_mesh.height = 1.8
+	capsule_mesh.radius = 0.35
+	mesh.mesh = capsule_mesh
+	mesh.position = Vector3(0, 0.9, 0)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color("#3aa0c8")
+	mesh.material_override = mat
+	add_child(mesh)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
