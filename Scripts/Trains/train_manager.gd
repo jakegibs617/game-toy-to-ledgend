@@ -9,6 +9,7 @@ signal train_passed(train_id: String, district_id: String, rep: int)
 
 const TRAINS_PATH := "res://Data/trains.json"
 const DataLoader := preload("res://Scripts/Data/data_loader.gd")
+const TrainCarScript := preload("res://Scripts/World/train_car.gd")
 
 var train_defs: Array = []
 var train_states: Dictionary = {}  # train_id -> runtime/persisted state
@@ -37,8 +38,7 @@ func _ready() -> void:
 func spawn_trains(parent: Node3D) -> void:
 	train_nodes.clear()
 	for def in train_defs:
-		var script := preload("res://Scripts/World/train_car.gd")
-		var car = script.new()
+		var car = TrainCarScript.new()
 		car.setup(def)
 		parent.add_child(car)
 		train_nodes[String(def["trainId"])] = car
@@ -142,8 +142,7 @@ func _on_tick() -> void:
 			continue
 		state["ticksLeft"] = int(state.get("ticksLeft", 1)) - 1
 		if int(state["ticksLeft"]) > 0:
-			_refresh_train_visual(train_id)
-			continue
+			continue  # visuals only change on phase/graffiti transitions
 		if String(state.get("phase", "stopped")) == "stopped":
 			state["phase"] = "passing"
 			state["ticksLeft"] = int(def.get("travelTicks", 3))

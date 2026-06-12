@@ -12,6 +12,7 @@ const LOOKOUT_IDLE_ANIMATION_NAME := "Armature|clip0|baselayer"
 const LOOKOUT_WALK_ANIMATION_NAME := "Armature|walking_man|baselayer"
 const LOOKOUT_RUN_ANIMATION_NAME := "Armature|running|baselayer"
 const LOOKOUT_ALERT_ANIMATION_NAME := "Armature|Alert|baselayer"
+const AnimatedModelSet := preload("res://Scripts/Characters/animated_model_set.gd")
 
 var data: Dictionary = {}
 var _visual_root: Node3D
@@ -124,48 +125,15 @@ func _try_build_lookout_model() -> bool:
 
 func _add_animated_model(container: Node3D, path: String,
 		visual_state: String, preferred_animation: String) -> bool:
-	if not ResourceLoader.exists(path):
-		return false
-	var packed: PackedScene = load(path)
-	if packed == null:
-		return false
-	var model := packed.instantiate()
-	model.name = "%sModel" % visual_state.capitalize()
-	model.visible = false
-	container.add_child(model)
-	var player := _find_animation_player(model)
-	if player == null:
-		return false
-	var names := player.get_animation_list()
-	if names.is_empty():
-		return false
-	var chosen := String(names[0])
-	for animation_name in names:
-		if String(animation_name) == preferred_animation:
-			chosen = String(animation_name)
-			break
-	_visual_models[visual_state] = model
-	_visual_animation_players[visual_state] = player
-	_visual_animation_names[visual_state] = StringName(chosen)
-	player.play(StringName(chosen))
-	player.pause()
-	player.seek(0.0, true)
-	return true
+	return AnimatedModelSet.add_animated_model(container, path, visual_state,
+		preferred_animation, _visual_models, _visual_animation_players,
+		_visual_animation_names)
 
 func _apply_lookout_model_transform(model: Node3D) -> void:
 	var s := 1.7 / LOOKOUT_MODEL_SOURCE_HEIGHT
 	model.scale = Vector3.ONE * s
 	model.position = Vector3.ZERO
 	model.rotation.y = PI
-
-func _find_animation_player(root: Node) -> AnimationPlayer:
-	if root is AnimationPlayer:
-		return root
-	for child in root.get_children():
-		var found := _find_animation_player(child)
-		if found != null:
-			return found
-	return null
 
 func _set_visual_state(visual_state: String) -> void:
 	if _visual_animation_players.is_empty():
@@ -188,7 +156,6 @@ func _set_visual_state(visual_state: String) -> void:
 		player.play(animation)
 
 func _build_collision() -> void:
-
 	var col := CollisionShape3D.new()
 	var shape := CapsuleShape3D.new()
 	shape.height = 1.7

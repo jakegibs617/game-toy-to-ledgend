@@ -26,6 +26,7 @@ const RUN_FAST_ANIMATION_NAME := "Armature|RunFast|baselayer"
 const JUMP_ANIMATION_NAME := "Armature|Regular_Jump|baselayer"
 const CLIMB_ANIMATION_NAME := "Armature|Fast_Ladder_Climb|baselayer"
 const VAULT_ANIMATION_NAME := "Armature|Parkour_Vault_2|baselayer"
+const AnimatedModelSet := preload("res://Scripts/Characters/animated_model_set.gd")
 
 const WALK_SPEED := 4.0
 const RUN_SPEED := 7.5
@@ -129,33 +130,9 @@ func _try_build_animated_visual() -> bool:
 
 func _add_animated_model(container: Node3D, path: String,
 		state: String, preferred_animation: String) -> bool:
-	if not ResourceLoader.exists(path):
-		return false
-	var packed: PackedScene = load(path)
-	if packed == null:
-		return false
-	var model := packed.instantiate()
-	model.name = "%sModel" % state.capitalize()
-	model.visible = false
-	container.add_child(model)
-	var player := _find_animation_player(model)
-	if player == null:
-		return false
-	var names := player.get_animation_list()
-	if names.is_empty():
-		return false
-	var chosen := String(names[0])
-	for name in names:
-		if String(name) == preferred_animation:
-			chosen = String(name)
-			break
-	_visual_models[state] = model
-	_visual_animation_players[state] = player
-	_visual_animation_names[state] = StringName(chosen)
-	player.play(StringName(chosen))
-	player.pause()
-	player.seek(0.0, true)
-	return true
+	return AnimatedModelSet.add_animated_model(container, path, state,
+		preferred_animation, _visual_models, _visual_animation_players,
+		_visual_animation_names)
 
 func _try_build_static_visual(path: String) -> bool:
 	if not ResourceLoader.exists(path):
@@ -180,15 +157,6 @@ func _apply_static_visual_transform(model: Node3D) -> void:
 	model.scale = Vector3.ONE * s
 	model.position = Vector3(0, STATIC_MODEL_SOURCE_HEIGHT * 0.5 * s, 0)
 	model.rotation.y = PI  # glTF forward is +Z; Godot's is -Z
-
-func _find_animation_player(root: Node) -> AnimationPlayer:
-	if root is AnimationPlayer:
-		return root
-	for child in root.get_children():
-		var found := _find_animation_player(child)
-		if found != null:
-			return found
-	return null
 
 func _update_visual_animation(is_moving: bool, is_running: bool) -> void:
 	if _visual_animation_players.is_empty():

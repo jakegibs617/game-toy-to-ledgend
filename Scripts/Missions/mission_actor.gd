@@ -27,6 +27,7 @@ const PRIME_IDLE_02_ANIMATION_NAME := "Armature|Idle_02|baselayer"
 const PRIME_LISTENING_ANIMATION_NAME := "Armature|Listening_Gesture|baselayer"
 const PRIME_WALK_ANIMATION_NAME := "Armature|walking_man|baselayer"
 const PRIME_RUN_ANIMATION_NAME := "Armature|running|baselayer"
+const AnimatedModelSet := preload("res://Scripts/Characters/animated_model_set.gd")
 
 var data: Dictionary = {}
 var _visual_models: Dictionary = {}
@@ -87,7 +88,7 @@ func _try_build_lupe_model() -> bool:
 		return false
 	var container := Node3D.new()
 	container.name = "LupeRatModel"
-	_apply_lupe_model_transform(container)
+	_apply_model_transform(container, LUPE_MODEL_SOURCE_HEIGHT)
 	var built := false
 	built = _add_animated_model(
 		container, LUPE_IDLE_MODEL_PATH, "idle", LUPE_IDLE_ANIMATION_NAME) or built
@@ -130,51 +131,15 @@ func _try_build_prime_model() -> bool:
 
 func _add_animated_model(container: Node3D, path: String,
 		visual_state: String, preferred_animation: String) -> bool:
-	if not ResourceLoader.exists(path):
-		return false
-	var packed: PackedScene = load(path)
-	if packed == null:
-		return false
-	var model := packed.instantiate()
-	model.name = "%sModel" % visual_state.capitalize()
-	model.visible = false
-	container.add_child(model)
-	var player := _find_animation_player(model)
-	if player == null:
-		return false
-	var names := player.get_animation_list()
-	if names.is_empty():
-		return false
-	var chosen := String(names[0])
-	for animation_name in names:
-		if String(animation_name) == preferred_animation:
-			chosen = String(animation_name)
-			break
-	_visual_models[visual_state] = model
-	_visual_animation_players[visual_state] = player
-	_visual_animation_names[visual_state] = StringName(chosen)
-	player.play(StringName(chosen))
-	player.pause()
-	player.seek(0.0, true)
-	return true
-
-func _apply_lupe_model_transform(model: Node3D) -> void:
-	_apply_model_transform(model, LUPE_MODEL_SOURCE_HEIGHT)
+	return AnimatedModelSet.add_animated_model(container, path, visual_state,
+		preferred_animation, _visual_models, _visual_animation_players,
+		_visual_animation_names)
 
 func _apply_model_transform(model: Node3D, source_height: float) -> void:
 	var s := 1.7 / source_height
 	model.scale = Vector3.ONE * s
 	model.position = Vector3.ZERO
 	model.rotation.y = PI
-
-func _find_animation_player(root: Node) -> AnimationPlayer:
-	if root is AnimationPlayer:
-		return root
-	for child in root.get_children():
-		var found := _find_animation_player(child)
-		if found != null:
-			return found
-	return null
 
 func _set_visual_state(visual_state: String) -> void:
 	if _visual_animation_players.is_empty():

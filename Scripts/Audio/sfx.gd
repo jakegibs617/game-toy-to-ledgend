@@ -42,6 +42,8 @@ func _ready() -> void:
 	SupplyManager.supply_event.connect(func(_msg: String) -> void: play("ui"))
 	DialogueManager.dialogue_event.connect(func(_msg: String) -> void: play("ui"))
 	SaveManager.save_event.connect(func(_msg: String) -> void: play("ui"))
+	TrainManager.train_painted.connect(func(_id: String, _g: Dictionary) -> void: play("spray"))
+	TrainManager.train_passed.connect(func(_id: String, _d: String, _rep: int) -> void: play("ui"))
 
 ## Active playbacks keep stream references alive inside the audio
 ## server; stop them so quitting doesn't report leaked instances.
