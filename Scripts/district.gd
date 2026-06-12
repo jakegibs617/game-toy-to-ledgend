@@ -154,6 +154,7 @@ func _run_smoke_test() -> void:
 	_smoke_dialogue()
 	_smoke_blackbook()
 	_smoke_freehand()
+	_smoke_graffiti_types()
 	_smoke_history_cap()
 	print("SMOKE: OK")
 	get_tree().quit()
@@ -627,6 +628,84 @@ func _smoke_freehand() -> void:
 	assert(not fh_state["history"][-1].has("image"))
 	print("SMOKE: freehand piece — style x%.2f, +%d rep, image survives save/load" % [
 		style_mult, int(fh_result["rep"])])
+
+## Assumes: the mission chain is done (m5 unlocked roller/mural), Moth
+## is recruited, the stencil kit is not yet bought, and cash covers it.
+## Milestone 16 (Plan.md §8/§9): stencil gates behind Lupe's kit,
+## rollers only go on rooftop surfaces, murals need crew present and
+## expose the writer to patrols for longer, and rivals fall back to a
+## throw-up where surface rules block their signature type.
+func _smoke_graffiti_types() -> void:
+	var player := _smoke_player()
+	# m5 unlocked the big cans; the stencil still needs gear.
+	assert(GameState.is_type_unlocked("roller"))
+	assert(GameState.is_type_unlocked("mural"))
+	assert(not GameState.is_type_unlocked("stencil"))
+	GameState.add_paint(60)
+	var wall: PaintableWall = WallManager.wall_nodes["wall_corner_01"]
+	var result: Dictionary = WallManager.paint_wall(wall, "stencil")
+	assert(not result["ok"])
+	assert(SupplyManager.buy("stencil_kit")["ok"])
+	assert(GameState.is_type_unlocked("stencil"))
+	result = WallManager.paint_wall(wall, "stencil")
+	assert(result["ok"])
+	assert(WallManager.wall_states["wall_corner_01"]["state"] == "player_stencil")
+	# Number keys select cans in canonical style order (slot refactor).
+	GameState.select_type_slot(3)  # tag, throwup, piece, stencil, ...
+	assert(GameState.selected_graffiti_type == "stencil")
+	GameState.select_type_slot(0)
+	assert(GameState.selected_graffiti_type == "tag")
+	# Rollers are rooftop-only; the parapet takes one.
+	result = WallManager.paint_wall(wall, "roller")
+	assert(not result["ok"] and String(result["reason"]).contains("rooftop"))
+	var roof: PaintableWall = WallManager.wall_nodes["wall_roof_mill_01"]
+	result = WallManager.paint_wall(roof, "roller")
+	assert(result["ok"])
+	assert(WallManager.wall_states["wall_roof_mill_01"]["state"] == "player_roller")
+	# Murals need crew on the street with you.
+	var mina: Dictionary = CrewManager.members["npc_mina_moth"]
+	mina["stage"] = "mission_active"
+	result = WallManager.paint_wall(wall, "mural")
+	assert(not result["ok"] and String(result["reason"]).contains("crew"))
+	mina["stage"] = "recruited"
+	var rep_before: int = GameState.reputation
+	result = WallManager.paint_wall(wall, "mural")
+	assert(result["ok"])
+	assert(GameState.reputation == rep_before + int(result["rep"]))
+	assert(WallManager.wall_states["wall_corner_01"]["state"] == "player_mural")
+	print("SMOKE: stencil/roller/mural painted — gates all enforced")
+
+	# Long exposure: a guard outside normal spot range (and facing away)
+	# misses a quick tag but clocks a mural going up (exposure 2x).
+	HeatManager.settle(5.0)
+	assert(PatrolManager.guard_count() == 1)
+	var guard: PatrolGuard = PatrolManager.guards()[0]
+	guard.end_chase()
+	guard.global_position = player.global_position + Vector3(12, 0, 0)
+	guard.look_at(guard.global_position + Vector3(12, 0, 0), Vector3.UP)
+	assert(not guard.can_see(player))
+	var spotted: Array = []
+	PatrolManager.player_spotted.connect(func(g: PatrolGuard) -> void:
+		spotted.append(g))
+	result = WallManager.paint_wall(wall, "tag")
+	assert(result["ok"] and spotted.is_empty())
+	result = WallManager.paint_wall(wall, "mural")
+	assert(result["ok"])
+	assert(spotted == [guard])
+	guard.end_chase()
+	HeatManager.settle(10.0)
+	print("SMOKE: mural exposure — unseen tag, clocked mural")
+
+	# Rivals play by surface rules: Ghost Line's stencil claim landed at
+	# startup, and a blocked signature type falls back to a throw-up.
+	assert(WallManager.wall_states["wall_alley_n_01"]["state"] == "rival_stencil")
+	var saints: Dictionary = RivalManager.crews["chrome_saints"]
+	var saved_response := String(saints["responseType"])
+	saints["responseType"] = "roller"  # blocked on the corner store's brick
+	RivalManager.respond("wall_corner_01", "chrome_saints")
+	assert(WallManager.wall_states["wall_corner_01"]["state"] == "rival_throwup")
+	saints["responseType"] = saved_response
+	print("SMOKE: rival surface fallback — roller response became a throw-up")
 
 ## Assumes: nothing beyond a paintable wall. Plan_v2.md §3.5: wall
 ## history is capped — repainting past the cap drops the oldest

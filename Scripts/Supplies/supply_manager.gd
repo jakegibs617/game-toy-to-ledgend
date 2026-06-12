@@ -91,6 +91,10 @@ func buy(item_id: String) -> Dictionary:
 	if def.has("color"):
 		var color: Dictionary = def["color"]
 		GameState.add_fill_color(String(color["name"]), String(color["hex"]))
+	if def.has("unlockType"):
+		# Bought gear unlocks a graffiti type (Milestone 16: the stencil
+		# kit IS the stencil unlock — no separate flag to drift).
+		GameState.unlock_type(String(def["unlockType"]))
 	if not def.get("repeatable", false):
 		owned[item_id] = true
 	supply_event.emit("Bought %s — %s. (-$%d)" % [item_name, String(def.get("desc", "")), price])

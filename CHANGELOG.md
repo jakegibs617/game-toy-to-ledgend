@@ -1,5 +1,42 @@
 # Changelog
 
+## 2026-06-12 — Milestone 16: Full Graffiti Type Set (Plan.md §8, Plan_v2.md §4)
+
+The three missing §8 types, all data-driven from
+`Data/graffiti_styles.json`:
+
+- **Stencil** — cheap, fast, low rep. Gated behind Lupe's new Stencil
+  Kit (`supplies.json` items can now carry `unlockType`; buying the
+  gear IS the unlock).
+- **Roller** — high rep, big paint cost, only on `rooftop` surfaces
+  (per-style `surfaces` list checked against the wall's
+  `surfaceType`). New Mill West Rooftop parapet wall; reachable by
+  hand once Milestone 19 ships climbing — paintable by rivals and
+  code today.
+- **Mural** — highest rep, needs crew present (`requiresCrew`; the
+  filler-role specialization arrives with Rico in Milestone 22), and
+  the long paint time is modeled as `exposure`: the patrol witness
+  check doubles its range and ignores facing for murals
+  (`PatrolGuard.noticed_during`).
+- Roller + mural unlock when "Claim the Block" completes; rank stays
+  the rep ladder.
+- **Rivals play by surface rules too**: Ghost Line now answers with
+  stencils (`responseType`), and any crew whose signature type is
+  blocked on a wall falls back to a throw-up.
+- **Number keys generalized**: `slot_1..slot_6` actions replace
+  `graffiti_*`/`shop_delivery`. Outside a modal they select cans in
+  canonical style order; in modals they pick that modal's slots
+  (shop rows incl. the new 4-item catalog + delivery, dialogue
+  choices, blackbook pages). Wall prompt now lists every unlocked can
+  with its key, shows the wall's surface, and says up front why the
+  selected can won't work on this wall; blackbook Styles page carries
+  per-style notes and locked hints.
+- Placeholder art for the three new types (crisp stencil, full-width
+  roller strip, layered mural color field).
+- Smoke test: new `_smoke_graffiti_types` section — kit gate, surface
+  gate, crew gate, slot selection, mural exposure (unseen tag vs
+  clocked mural at 12 m), and the rival fallback.
+
 ## 2026-06-11 — Milestone 15: Engineering Hardening (Plan_v2.md §3)
 
 No new gameplay — all seven findings from Plan_v2.md §3, paid down

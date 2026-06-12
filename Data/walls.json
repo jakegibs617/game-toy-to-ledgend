@@ -135,5 +135,19 @@
     "color": "#8f8a82",
     "cleanupChance": 0.05,
     "rivalResponseChance": 0.1
+  },
+  {
+    "wallId": "wall_roof_mill_01",
+    "name": "Mill West Rooftop",
+    "districtId": "district_mill_yard",
+    "position": [-14, 10.8, -8.2],
+    "rotationY": 0,
+    "size": [8, 1.6, 0.3],
+    "visibility": 5,
+    "risk": 3,
+    "surfaceType": "rooftop",
+    "color": "#6b625a",
+    "cleanupChance": 0.1,
+    "rivalResponseChance": 0.1
   }
 ]

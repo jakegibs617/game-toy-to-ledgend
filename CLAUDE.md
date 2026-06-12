@@ -48,5 +48,6 @@ PR.
   dicts must stay JSON-serializable.
 * `Sfx` self-disables headless and must stay last in autoload order
   (it connects to the other managers' signals).
-* Number keys 1–4 are the shared modal slot convention
-  (`Hud.MODAL_SLOT_ACTIONS`); reuse it for any new modal.
+* Number keys 1–6 (`slot_1..slot_6`) are the shared slot convention
+  (`Hud.MODAL_SLOT_ACTIONS`): modals consume them first, the world
+  falls back to can selection in style order. Reuse for any new modal.

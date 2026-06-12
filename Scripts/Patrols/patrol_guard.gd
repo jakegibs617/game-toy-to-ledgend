@@ -57,6 +57,19 @@ func can_see(target: CollisionObject3D) -> bool:
 		return false
 	if (-global_transform.basis.z).dot(to.normalized()) < 0.25:
 		return false
+	return _clear_line_to(target)
+
+## A long paint job (mural exposure, Milestone 16): the writer stood
+## at the wall so long that any guard close enough with a clear line
+## of sight clocks them — distance scaled by `range_mult`, no facing
+## cone (the guard turned around at some point).
+func noticed_during(target: CollisionObject3D, range_mult: float) -> bool:
+	var to := target.global_position - global_position
+	if to.length() > _spot_range * range_mult:
+		return false
+	return _clear_line_to(target)
+
+func _clear_line_to(target: CollisionObject3D) -> bool:
 	var query := PhysicsRayQueryParameters3D.create(
 		global_position + Vector3(0, 1.5, 0),
 		target.global_position + Vector3(0, 1.0, 0),

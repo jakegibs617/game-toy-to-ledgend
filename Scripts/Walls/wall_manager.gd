@@ -114,6 +114,9 @@ func _begin_player_paint(wall: PaintableWall, type: String,
 		var reason := unlock_reason if unlock_reason != "" \
 			else "%s is not unlocked yet." % String(style.get("label", type))
 		return {"ok": false, "reason": reason}
+	var block := paint_block_reason(type, wall.def)
+	if block != "":
+		return {"ok": false, "reason": block}
 	if not GameState.try_spend_paint(SupplyManager.paint_cost(style)):
 		return {"ok": false, "reason": "Not enough paint."}
 	var state: Dictionary = wall_states[wall.def["wallId"]]
@@ -126,6 +129,30 @@ func _begin_player_paint(wall: PaintableWall, type: String,
 ## colors pays up to 2x a stock piece; a few stray dots pay half.
 func freehand_style_multiplier(colors_used: int, coverage: float) -> float:
 	return clampf(0.5 + coverage * 1.2 + 0.15 * (colors_used - 1), 0.5, 2.0)
+
+## Surface rules (Plan.md §8/§9, Milestone 16): a style with a
+## "surfaces" list only goes on those surface types — rollers need a
+## rooftop parapet. Applies to everyone, rivals included.
+func surface_block_reason(type: String, def: Dictionary) -> String:
+	var style: Dictionary = styles.get(type, {})
+	var surfaces: Array = style.get("surfaces", [])
+	var surface := String(def.get("surfaceType", "plain"))
+	if not surfaces.is_empty() and surface not in surfaces:
+		return "%s work needs a %s surface — this is %s." % [
+			String(style.get("label", type)), "/".join(PackedStringArray(surfaces)), surface]
+	return ""
+
+## Player-side paint rules beyond the unlock: surface fit, plus crew
+## presence for murals (§8 — somebody holds the ladder and watches the
+## street; the filler role specializes this in Milestone 22).
+func paint_block_reason(type: String, def: Dictionary) -> String:
+	var block := surface_block_reason(type, def)
+	if block != "":
+		return block
+	var style: Dictionary = styles.get(type, {})
+	if style.get("requiresCrew", false) and not CrewManager.any_recruited():
+		return "A %s needs crew watching your back." % String(style.get("label", type)).to_lower()
+	return ""
 
 func _player_graffiti(def: Dictionary, type: String, style: Dictionary, rep: int) -> Dictionary:
 	var graffiti := {

@@ -85,10 +85,14 @@ func _styles_text() -> String:
 	for type in WallManager.styles:
 		var style: Dictionary = WallManager.styles[type]
 		if GameState.is_type_unlocked(String(type)):
-			lines.append("%s — %d paint · base %d rep" % [String(style.get("label", type)),
-				SupplyManager.paint_cost(style), int(style.get("baseValue", 0))])
+			var notes := String(style.get("notes", ""))
+			lines.append("%s — %d paint · base %d rep%s" % [String(style.get("label", type)),
+				SupplyManager.paint_cost(style), int(style.get("baseValue", 0)),
+				" · " + notes if notes != "" else ""])
 		else:
-			lines.append("%s — locked" % String(style.get("label", type)))
+			var hint := String(style.get("lockedHint", ""))
+			lines.append("%s — locked%s" % [String(style.get("label", type)),
+				" (" + hint + ")" if hint != "" else ""])
 	lines.append("")
 	if GameState.colors_unlocked:
 		var names: PackedStringArray = []

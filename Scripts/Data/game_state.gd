@@ -113,6 +113,13 @@ func select_graffiti_type(type: String) -> void:
 	selected_graffiti_type = type
 	graffiti_type_changed.emit(type)
 
+## Number key i selects the i-th graffiti style in canonical (JSON)
+## order — the same order the wall prompt and blackbook list them.
+func select_type_slot(index: int) -> void:
+	var order: Array = WallManager.styles.keys()
+	if index >= 0 and index < order.size():
+		select_graffiti_type(String(order[index]))
+
 func unlock_type(type: String) -> void:
 	unlocked_types[type] = true
 	graffiti_type_changed.emit(selected_graffiti_type)
@@ -170,10 +177,15 @@ func _setup_input_actions() -> void:
 	_add_key_action("run", KEY_SHIFT)
 	_add_key_action("jump", KEY_SPACE)
 	_add_key_action("interact", KEY_E)
-	_add_key_action("graffiti_tag", KEY_1)
-	_add_key_action("graffiti_throwup", KEY_2)
-	_add_key_action("graffiti_piece", KEY_3)
-	_add_key_action("shop_delivery", KEY_4)
+	# Generic number-key slots (Milestone 16): in the world they select
+	# cans by style order; in a modal they pick that modal's slots
+	# (shop rows, dialogue choices, blackbook pages).
+	_add_key_action("slot_1", KEY_1)
+	_add_key_action("slot_2", KEY_2)
+	_add_key_action("slot_3", KEY_3)
+	_add_key_action("slot_4", KEY_4)
+	_add_key_action("slot_5", KEY_5)
+	_add_key_action("slot_6", KEY_6)
 	_add_key_action("cycle_color", KEY_C)
 	_add_key_action("freehand_paint", KEY_F)
 	_add_key_action("quick_save", KEY_F5)

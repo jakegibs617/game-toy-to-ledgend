@@ -77,14 +77,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("freehand_paint"):
 		if _focused is PaintableWall:
 			freehand_requested.emit(_focused)
-	elif event.is_action_pressed("graffiti_tag"):
-		GameState.select_graffiti_type("tag")
-	elif event.is_action_pressed("graffiti_throwup"):
-		GameState.select_graffiti_type("throwup")
-	elif event.is_action_pressed("graffiti_piece"):
-		GameState.select_graffiti_type("piece")
 	elif event.is_action_pressed("cycle_color"):
 		GameState.cycle_fill_color()
+	else:
+		# Number keys select cans by style order (modals consume these
+		# first via Hud, so this only fires with the world in focus).
+		for i in 6:
+			if event.is_action_pressed("slot_%d" % (i + 1)):
+				GameState.select_type_slot(i)
+				return
 
 func _physics_process(delta: float) -> void:
 	if not is_on_floor():
