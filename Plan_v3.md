@@ -218,6 +218,10 @@ Review focus:
 * Player freehand image persistence must remain untouched.
 * Rival surface rules from Milestone 16 must still apply.
 
+**Status:** complete in PR #27. Rival graffiti now uses deterministic
+crew/id/type-seeded visual variants at render time, with smoke coverage
+for stability, lightweight persistence, and save/load round-trips.
+
 ## Milestone 30: Rooftop Traversal Polish
 
 Purpose: keep Rooftop Row dangerous but legible.

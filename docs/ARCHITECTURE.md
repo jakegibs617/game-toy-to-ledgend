@@ -52,7 +52,8 @@ extends a section.
 Non-autoload actors: `Player` (Scripts/Player/player.gd, builds its own
 camera rig/raycast and runtime rooster animation state table),
 `PaintableWall` (Scripts/Walls/paintable_wall.gd, renders
-graffiti/cross-outs/buffs), `PatrolGuard`, `Npc`, `AmbientNpc`,
+graffiti/cross-outs/buffs; rival work uses deterministic render-time
+variants from `Scripts/Walls/rival_graffiti_style.gd`), `PatrolGuard`, `Npc`, `AmbientNpc`,
 `PickupItem`, and the UI panels under Scripts/UI/.
 
 Player animation clips live as separate skinned GLB scenes in
@@ -123,8 +124,9 @@ HUD and Sfx listen. The HUD never owns game state.
 Graffiti dict: `graffitiId, creatorId, crewId, wallId, type, alias,
 fillColor, outlineColor, repValue, isCrossedOut, isBuffed`, plus for
 freehand pieces: `freehand: true, image: <base64 PNG>, styleMultiplier`.
-Everything is JSON-serializable on purpose — save/load round-trips
-`wall_states` wholesale.
+Rival visual variety is recomputed from `graffitiId + crewId + type`
+instead of stored as an image. Everything is JSON-serializable on
+purpose — save/load round-trips `wall_states` wholesale.
 
 Rep formula (`_reputation_for`): base × visibility mult × risk mult ×
 heat mult (× freehand style mult × buff retaliation bonus).

@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-06-13 — Milestone 29: Procedural Rival Graffiti Variety (Plan_v3.md)
+
+Rival walls now read more like crew marks instead of repeated labels.
+
+- Added deterministic rival graffiti layout generation in
+  `Scripts/Walls/rival_graffiti_style.gd`, seeded by graffiti id,
+  crew id, and graffiti type so saves and screenshots stay stable.
+- `PaintableWall` now uses a rival-only render path for non-player
+  graffiti: crew-color panels, offsets, stripes, chips, stencil cuts,
+  and drips vary by type without storing image blobs.
+- Player freehand rendering and image persistence remain untouched.
+- Smoke coverage now asserts deterministic variant generation, visual
+  node variety, no rival image blob storage, and save/load variant
+  stability.
+
 ## 2026-06-13 — Milestone 28: Balance Pass 1 — Main Path (Plan_v3.md)
 
 First v3 tuning pass, aimed at the documented target run in
