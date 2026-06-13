@@ -409,6 +409,7 @@ func _solid_material(color: Color, emission := false, roughness := 0.7) -> Stand
 ## readable (and extendable) on its own. Every milestone adds or
 ## extends a section.
 func _run_smoke_test() -> void:
+	PlaytestMetrics.start_capture("smoke_baseline")
 	_smoke_data_validation()
 	_smoke_world_hardening()
 	_smoke_walls_and_rivals()
@@ -432,6 +433,7 @@ func _run_smoke_test() -> void:
 	_smoke_history_cap()
 	_smoke_ambient_npc_life()
 	_smoke_player_model()
+	_smoke_playtest_metrics()
 	print("SMOKE: OK")
 	get_tree().quit()
 
@@ -1557,3 +1559,32 @@ func _smoke_player_model() -> void:
 			assert(player._visual_animation_players.has(state))
 			assert(String(player._visual_animation_names[state]) != "")
 	print("SMOKE: player visual = %s" % ("animated rooster action set" if has_model else "capsule fallback"))
+
+## Plan_v3.md Milestone 27: the smoke path doubles as a repeatable
+## baseline capture. The recorder is passive in normal play; this
+## asserts that enabling it records the main beats and exposes the
+## balance knobs reviewers need for the next tuning PR.
+func _smoke_playtest_metrics() -> void:
+	var snapshot := PlaytestMetrics.capture_snapshot()
+	var beats: Dictionary = snapshot["beats"]
+	assert(beats.has("first_paint"))
+	assert(beats.has("first_rank_up"))
+	assert(beats.has("district_mill_yard_claimed"))
+	assert(beats.has("canal_side_entry"))
+	assert(beats.has("district_canal_side_claimed"))
+	assert(beats.has("first_train_painted"))
+	assert(beats.has("first_gallery_refusal"))
+	assert(beats.has("first_gallery_sale"))
+	assert(beats.has("rooftop_row_entry"))
+	assert(beats.has("district_rooftop_row_claimed"))
+	var counters: Dictionary = snapshot["counters"]
+	assert(int(counters.get("caught_count", 0)) >= 1)
+	assert(int(counters.get("fall_count", 0)) >= 1)
+	var balance := PlaytestMetrics.balance_snapshot()
+	assert((balance["graffiti"] as Dictionary).has("roller"))
+	assert((balance["districts"] as Dictionary).has("district_rooftop_row"))
+	assert((balance["trains"] as Dictionary).has("canal_ghost_local"))
+	assert(not (balance["gallery"] as Dictionary).is_empty())
+	assert(not (balance["stats"] as Dictionary).is_empty())
+	print("SMOKE: playtest metrics — %s" % PlaytestMetrics.summary_text())
+	print("SMOKE: balance snapshot — %s" % PlaytestMetrics.balance_summary_text())
