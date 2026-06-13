@@ -584,6 +584,15 @@ func _smoke_crew() -> void:
 	var mina: Dictionary = CrewManager.members["npc_mina_moth"]
 	assert(mina["stage"] == "not_met")
 	var chance_before := RivalManager.response_chance("wall_mill_02", "buff_kings")
+	assert(not GameState.practice_tag_font_style("against_myself")["ok"])
+	StatsManager.add_xp("style", int(StatsManager.stat_defs["style"]["xpPerLevel"]))
+	for i in 5:
+		assert(GameState.practice_tag_font_style("against_myself")["ok"])
+	assert(GameState.is_tag_font_style_unlocked("against_myself"))
+	GameState.select_tag_font_style("against_myself")
+	assert(GameState.selected_tag_font_style() == "against_myself")
+	assert(GameState.toy_response_multiplier("against_myself") < 1.0)
+	GameState.select_tag_font_style("ff_comma_trial")
 	CrewManager.interact("npc_mina_moth")
 	assert(mina["stage"] == "mission_active")
 	var blackbook := get_node_or_null("pickup_npc_mina_moth")
@@ -975,6 +984,7 @@ func _smoke_blackbook() -> void:
 	var styles_page: String = blackbook.page_text(1)
 	assert(styles_page.contains("Tag") and styles_page.contains("Piece"))
 	assert(styles_page.contains("Burner Chrome"))  # bought rare color listed
+	assert(styles_page.contains("Tag styles") and styles_page.contains("FF Comma Trial"))
 	var crew_page: String = blackbook.page_text(2)
 	assert(crew_page.contains("Moth") and crew_page.contains("Recruited"))
 	assert(crew_page.contains("Caps") and crew_page.contains("Filler"))
@@ -1064,6 +1074,7 @@ func _smoke_graffiti_types() -> void:
 	assert(GameState.is_type_unlocked("stencil"))
 	result = WallManager.paint_wall(wall, "stencil")
 	assert(result["ok"])
+	assert(String(result["graffiti"].get("fontStyle", "")) == GameState.selected_tag_font_style())
 	assert(WallManager.wall_states["wall_corner_01"]["state"] == "player_stencil")
 	# Number keys select cans in canonical style order (slot refactor).
 	GameState.select_type_slot(3)  # tag, throwup, piece, stencil, ...
@@ -1383,6 +1394,7 @@ func _smoke_train_painting() -> void:
 	assert(GameState.reputation == rep_before + int(result["rep"]))
 	assert(HeatManager.heat_in("district_canal_side") > heat_before)
 	assert(state["currentGraffiti"]["alias"] == GameState.alias)
+	assert(String(state["currentGraffiti"].get("fontStyle", "")) == GameState.selected_tag_font_style())
 	assert(not TrainManager.paint_train(train_id)["ok"])
 	var pass_events: Array = []
 	TrainManager.train_passed.connect(func(tid: String, did: String, rep: int) -> void:

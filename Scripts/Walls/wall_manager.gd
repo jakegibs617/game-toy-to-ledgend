@@ -11,6 +11,7 @@ signal wall_buffed(wall_id: String)
 const WALLS_PATH := "res://Data/walls.json"
 const STYLES_PATH := "res://Data/graffiti_styles.json"
 const DataLoader := preload("res://Scripts/Data/data_loader.gd")
+const GraffitiFonts := preload("res://Scripts/Walls/graffiti_font_library.gd")
 ## Plan.md section 15 "Cleanup Retaliation": repainting a wall the city
 ## buffed pays extra — taking the spot back is part of the fantasy.
 const BUFF_RETALIATION_BONUS := 1.25
@@ -46,6 +47,7 @@ func _ready() -> void:
 			# Styles know their own key so consumers holding only the
 			# dict (rep multipliers, typed perks) can identify the type.
 			styles[type]["type"] = type
+	GraffitiFonts.style_ids()  # include tag-font catalog in startup validation
 
 func spawn_walls(parent: Node3D) -> void:
 	wall_nodes.clear()
@@ -128,6 +130,7 @@ func apply_crew_graffiti(wall_id: String, member: Dictionary, type := "throwup")
 		"alias": String(member.get("alias", GameState.alias)),
 		"fillColor": member.get("color", style.get("fillColor", "#ffffff")),
 		"outlineColor": style.get("outlineColor", "#000000"),
+		"fontStyle": GameState.selected_tag_font_style(),
 		"repValue": 0,
 		"isCrossedOut": false,
 		"isBuffed": false,
@@ -207,6 +210,7 @@ func _player_graffiti(def: Dictionary, type: String, style: Dictionary, rep: int
 		"alias": GameState.alias,
 		"fillColor": GameState.current_fill_color() if GameState.colors_unlocked else style.get("fillColor", "#ffffff"),
 		"outlineColor": style.get("outlineColor", "#000000"),
+		"fontStyle": GameState.selected_tag_font_style(),
 		"repValue": rep,
 		"isCrossedOut": false,
 		"isBuffed": false,
@@ -254,6 +258,7 @@ func apply_rival_graffiti(wall_id: String, crew: Dictionary, type: String) -> Di
 		"alias": String(crew.get("tag", "???")),
 		"fillColor": crew.get("fillColor", style.get("fillColor", "#ffffff")),
 		"outlineColor": crew.get("outlineColor", style.get("outlineColor", "#000000")),
+		"fontStyle": GraffitiFonts.default_style_id(),
 		"repValue": 0,
 		"isCrossedOut": false,
 		"isBuffed": false,

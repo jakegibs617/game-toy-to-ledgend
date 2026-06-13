@@ -78,6 +78,7 @@ func paint_train(train_id: String) -> Dictionary:
 		"type": "train",
 		"fillColor": GameState.current_fill_color(),
 		"outlineColor": "#101018",
+		"fontStyle": GameState.selected_tag_font_style(),
 		"repValue": rep,
 		"passes": 0,
 	}

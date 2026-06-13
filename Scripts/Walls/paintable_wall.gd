@@ -7,6 +7,7 @@ extends StaticBody3D
 var def: Dictionary = {}
 
 const RivalGraffitiStyle := preload("res://Scripts/Walls/rival_graffiti_style.gd")
+const GraffitiFonts := preload("res://Scripts/Walls/graffiti_font_library.gd")
 
 var _graffiti_anchor: Node3D
 
@@ -70,6 +71,7 @@ func show_graffiti(graffiti: Dictionary) -> void:
 	label.text = String(graffiti.get("alias", "???"))
 	label.modulate = fill
 	label.outline_modulate = outline
+	GraffitiFonts.apply_to_label(label, String(graffiti.get("fontStyle", GraffitiFonts.default_style_id())))
 	var letter_bottom := 0.25
 	var drip_spread := 0.8
 	match String(graffiti.get("type", "tag")):
@@ -171,11 +173,14 @@ func _show_rival_graffiti(holder: Node3D, graffiti: Dictionary, fill: Color, out
 			_add_rival_label(holder, alias, fill, outline, 120, 24, 0.005, Vector3.ZERO)
 
 func _add_rival_label(parent: Node3D, text: String, fill: Color, outline: Color,
-		font_size: int, outline_size: int, pixel_size: float, pos: Vector3) -> void:
+		font_size: int, outline_size: int, pixel_size: float, pos: Vector3,
+		style_id := "") -> void:
 	var label := Label3D.new()
 	label.text = text
 	label.modulate = fill
 	label.outline_modulate = outline
+	GraffitiFonts.apply_to_label(label,
+		style_id if style_id != "" else GraffitiFonts.default_style_id())
 	label.font_size = font_size
 	label.outline_size = outline_size
 	label.pixel_size = pixel_size
@@ -229,6 +234,7 @@ func show_cross_out(cross: Dictionary) -> void:
 	label.text = String(cross.get("text", "TOY"))
 	label.modulate = color
 	label.outline_modulate = Color("#1a1a1a")
+	GraffitiFonts.apply_to_label(label, GraffitiFonts.default_style_id())
 	label.font_size = 150
 	label.outline_size = 28
 	label.pixel_size = 0.006

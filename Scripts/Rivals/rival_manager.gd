@@ -109,6 +109,9 @@ func response_chance(wall_id: String, crew_id: String) -> float:
 		+ float(def.get("rivalResponseChance", 0.0)), 0.0, 0.95)
 	if CrewManager.has_role("lookout"):
 		chance *= 0.6
+	var state: Dictionary = WallManager.wall_states.get(wall_id, {})
+	var current: Dictionary = state.get("currentGraffiti") if state.get("currentGraffiti") != null else {}
+	chance *= GameState.toy_response_multiplier(String(current.get("fontStyle", "")))
 	return chance * StatsManager.response_damp()  # crew perks (Milestone 17)
 
 ## Executes a rival response immediately. Split out from the chance
@@ -139,4 +142,3 @@ func _response_type_for(crew: Dictionary, wall_id: String) -> String:
 	if WallManager.surface_block_reason(type, WallManager.wall_def(wall_id)) != "":
 		return "throwup"
 	return type
-
