@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-06-13 — Rival Tagger Run-Up + Retaliation Floor (Product_reqs.md)
+
+Rival retaliation is now something the player watches happen, and it can
+no longer land instantly.
+
+- A queued rival response can never fire sooner than 30 seconds after the
+  player paints (`RivalManager.MIN_RESPONSE_DELAY_MS`): each pending
+  entry carries a `readyAt` stamp and `_on_tick` holds it until both the
+  tick countdown and that floor have passed. TOY no longer appears over a
+  fresh tag within a few seconds.
+- When a response is due, a `RivalTagger` (new
+  `Scripts/Rivals/rival_tagger.gd`) spawns to the side, runs up to the
+  wall face, sprays for a beat, and flees. The actual wall mutation runs
+  through `RivalManager.respond` the moment the tagger reaches the wall,
+  so WallManager's `wall_painted` flow is unchanged — the tagger is just
+  the visible body for it.
+- `district.gd` registers the tagger spawner (windowed only via
+  `DisplayServer`); headless keeps the instant-response path, so the
+  smoke test is unaffected.
+- Smoke coverage asserts the 30-second floor: the queued retaliation
+  carries a `readyAt` at least that far out and survives an early tick.
+
 ## 2026-06-13 — Interactive Ladder Climb (Product_reqs.md)
 
 Climb routes are now ladders the player rides by hand instead of an

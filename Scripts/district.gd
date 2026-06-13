@@ -11,6 +11,7 @@ const TravelPointScript := preload("res://Scripts/World/travel_point.gd")
 const ClimbZoneScript := preload("res://Scripts/World/climb_zone.gd")
 const AmbientNpcScript := preload("res://Scripts/World/ambient_npc.gd")
 const RivalGraffitiStyle := preload("res://Scripts/Walls/rival_graffiti_style.gd")
+const RivalTaggerScript := preload("res://Scripts/Rivals/rival_tagger.gd")
 
 var _material_cache: Dictionary = {}
 
@@ -41,9 +42,26 @@ func _ready() -> void:
 	add_child(hud)
 	hud.bind_player(player)
 	MissionManager.begin_chain()
+	_register_rival_tagger()
 
 	if OS.get_environment("SMOKE_TEST") == "1":
 		_run_smoke_test.call_deferred()
+
+## Gives RivalManager a way to spawn the visible rival who runs up and
+## tags a wall (Product_reqs.md). Skipped headless so the smoke test
+## keeps the instant-response path.
+func _register_rival_tagger() -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	RivalManager.set_tagger_spawner(
+		func(wall_id: String, crew: Dictionary, on_arrive: Callable) -> void:
+			var wall: Node3D = WallManager.wall_nodes.get(wall_id, null)
+			if wall == null:
+				on_arrive.call()  # no body to show; apply anyway
+				return
+			var tagger := RivalTaggerScript.new()
+			add_child(tagger)
+			tagger.begin(wall, crew, on_arrive))
 
 ## Milestone 8 lighting pass: dusk, because the story opens at night
 ## (Plan.md section 40) — low warm sun, cool fill, fog, glow, and
@@ -530,6 +548,15 @@ func _smoke_walls_and_rivals() -> void:
 	# Painting in crew territory must queue a retaliation.
 	assert(RivalManager._pending.size() == 1)
 	assert(RivalManager._pending[0]["crewId"] == "buff_kings")
+	# That retaliation cannot land sooner than the 30-second floor
+	# (Product_reqs.md): it carries a readyAt stamp at least that far
+	# out, and a tick before then leaves it queued.
+	var pending_entry: Dictionary = RivalManager._pending[0]
+	assert(pending_entry.has("readyAt"))
+	assert(int(pending_entry["readyAt"]) - Time.get_ticks_msec()
+		>= RivalManager.MIN_RESPONSE_DELAY_MS - 2000)
+	RivalManager._on_tick()
+	assert(RivalManager._pending.size() == 1)  # floor not reached, still queued
 	var events: Array = []
 	RivalManager.rival_event.connect(func(msg: String, wid: String) -> void:
 		events.append([msg, wid]))
