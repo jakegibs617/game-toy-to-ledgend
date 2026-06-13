@@ -443,6 +443,7 @@ func _run_smoke_test() -> void:
 	_smoke_progression()
 	_smoke_canal_side()
 	_smoke_rooftop_climbing()
+	_smoke_ladder_climb()
 	_smoke_train_painting()
 	_smoke_gallery()
 	_smoke_rooftop_row()
@@ -1371,6 +1372,48 @@ func _smoke_rooftop_climbing() -> void:
 	assert(guard._action_visual_state == "climb")
 	print("SMOKE: rooftop climbing — fall fine, roller from the roof, guard climb clip")
 	# Back to street level for the sections that follow.
+	player.global_position = PLAYER_SPAWN
+
+## Interactive ladder climb (Product_reqs ladder feature): committing to a
+## climb attaches the player to the ladder, where forward/back drives a
+## reversible ride up/down — only reaching the exit summits, and dropping
+## back to the foot steps off without it.
+func _smoke_ladder_climb() -> void:
+	var player := _smoke_player()
+	var climb := get_node_or_null("ClimbZone_climb_mill_west")
+	assert(climb != null)
+	var entry := Vector3(-7, 0.5, -7.5)
+	var exit := Vector3(-9, 10.6, -9.5)
+	# Attach to the ladder: we start at the foot, not teleported to the top.
+	player.begin_climb(entry, exit, climb)
+	assert(player._climb_active)
+	assert(player.global_position.distance_to(entry) < 0.5)
+	# Climb partway, then reverse — changing direction mid-climb is allowed.
+	for _i in 20:
+		player._advance_climb(1.0, 0.05)
+	var mid_t: float = player._climb_t
+	assert(mid_t > 0.0 and mid_t < 1.0)
+	player._advance_climb(-1.0, 0.05)
+	assert(player._climb_t < mid_t)
+	# Driving to the exit summits onto the Mill West roof and ends the climb.
+	for _i in 400:
+		if not player._climb_active:
+			break
+		player._advance_climb(1.0, 0.1)
+	assert(not player._climb_active)
+	assert(player.global_position.distance_to(exit) < 0.5)
+	# Stepping back down to the foot drops off without summiting.
+	player.begin_climb(entry, exit, climb)
+	for _i in 30:
+		player._advance_climb(1.0, 0.05)
+	assert(player._climb_active and player._climb_t > 0.0)
+	for _i in 400:
+		if not player._climb_active:
+			break
+		player._advance_climb(-1.0, 0.1)
+	assert(not player._climb_active)
+	assert(player.global_position.distance_to(entry) < 0.5)
+	print("SMOKE: ladder climb — attach at foot, reverse mid-climb, summit, step off")
 	player.global_position = PLAYER_SPAWN
 
 ## Assumes: the Canal Side chain is done, the player can spare paint,
