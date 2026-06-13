@@ -38,7 +38,7 @@
     "fillColor": "#c0c5ce",
     "outlineColor": "#2b2d42",
     "crossOutColor": "#ff9f1c",
-    "territory": ["wall_loading_01", "wall_lot_01"],
+    "territory": ["wall_loading_01", "wall_lot_01", "wall_rooftop_row_03", "wall_rooftop_row_05"],
     "relationshipToPlayer": -5
   }
 ]

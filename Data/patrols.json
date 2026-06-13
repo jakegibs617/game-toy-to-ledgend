@@ -46,6 +46,12 @@
 			"districtId": "district_canal_side",
 			"speed": 2.2,
 			"waypoints": [[96, 0, -18], [140, 0, -18]]
+		},
+		{
+			"routeId": "rooftop_row_loop",
+			"districtId": "district_rooftop_row",
+			"speed": 2.4,
+			"waypoints": [[164, 18.9, -10], [196, 18.9, -10], [196, 18.9, 10], [164, 18.9, 10]]
 		}
 	]
 }

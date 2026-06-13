@@ -61,9 +61,12 @@ Canal Side — Ghost Line turf with its own mission chain, walls, patrols,
 and heat: each block heats and cools on its own, and a block you leave
 cools twice as fast. Glowing drainpipes mark climb routes (E to climb,
 slip risk shown) up to the rooftop roller spots — security won't follow
-you up, but a fall costs rep. At Canal Side's east-edge train siding,
-paint a stopped car with E before it rolls out; painted cars pass
-through both districts on the schedule and keep paying visibility rep.
+you up, but a fall costs rep. A fire escape at the Canal Side rail
+edge climbs into Rooftop Row, the third district: all parapets, high
+wind, and roller-sized walls with no footbridge gate. At Canal Side's
+east-edge train siding, paint a stopped car with E before it rolls out;
+painted cars pass through all three districts on the schedule and keep
+paying visibility rep.
 Once you're Known, Vesper the gallery scout appears by the Canal Side
 dry dock: sell her freehand canvases for cash and public rep — and
 watch your crew rep pay the price. Locals now walk small loops in both
@@ -239,7 +242,9 @@ alias/title flow, controller bindings, ambience, and rooster idle
 polish. World/data hardening is in (Milestone 24) with cached generated
 materials, JSON character visual manifests, and interactable line of
 sight. Ambient NPC life is in (Milestone 25) with waypoint locals,
-crowd-reaction rep ticks, and district-scoped heat scatter; what
-remains is the rest of that list
+crowd-reaction rep ticks, and district-scoped heat scatter. Rooftop
+Row is in (Milestone 26) with climb-only entry, rooftop walls, a
+mission chain, patrol route, and train visibility; what remains is the
+rest of that list
 (battles, procedural graffiti, deeper crowd simulation) — deliberately out of
 prototype scope per Plan.md §47.

@@ -19,6 +19,9 @@ d-pad left/right can cycling.
 Generated district details use `district.gd`'s small material cache
 for repeated solid/noisy looks (Milestone 24), so new street detail
 does not create a unique `StandardMaterial3D` for every repeated quad.
+Rooftop Row (Milestone 26) is also generated here as an elevated third
+district; it has no `districts.json.travel` gate, so `ClimbZone`
+`targetDistrictId` transitions are the unlock path.
 
 `district.gd` also contains the smoke test (`SMOKE_TEST=1` env var):
 per-system `_smoke_*()` functions (Plan_v2.md §3.3), each documenting
@@ -138,7 +141,7 @@ fields `push_error` at startup, and the smoke test asserts
 | walls.json | array of wall defs (wallId, name, position, rotationY, size, color, risk, visibility, districtId, surfaceType, ownerCrewId) | WallManager |
 | graffiti_styles.json | dict type → {label, baseValue, paintCost, heatValue, colors; optional: surfaces[] (surface rule), requiresCrew, exposure (patrol witness range ×), notes/lockedHint (blackbook)} | WallManager, SupplyManager, PatrolManager, HUD |
 | crews.json | rival crew defs (tag, colors, aggression, home walls) | RivalManager |
-| districts.json | array (districtId, name, claimThreshold, claimRepBonus, payoutPerWeight, decayRep, arrival, travel) | TerritoryManager, district.gd (travel points) |
+| districts.json | array (districtId, name, claimThreshold, claimRepBonus, payoutPerWeight, decayRep, arrival, optional travel) | TerritoryManager, district.gd (travel points) |
 | missions.json | {actors: [...], chains: [{chainId, trigger?, completeMessage, missions: [...]}]}; actors may include `visuals` manifests | MissionManager |
 | ambient_npcs.json | ambient locals (npcId, label, districtId, waypoints, reactRange, optional `visuals`) | district.gd (spawns AmbientNpc) |
 | dialogue.json | speaker → node tree | DialogueManager |
@@ -147,8 +150,8 @@ fields `push_error` at startup, and the smoke test asserts
 | npc_data.json | recruitable NPCs (Moth, Caps, Metro), item pickups, role metadata, optional `visuals` manifests | CrewManager |
 | stats.json | stat defs (xpPerLevel, maxLevel, per-level effect coefficients) | StatsManager |
 | perks.json | tree → perk list (perkId, name, desc, effects dict) | StatsManager |
-| climbs.json | climb routes (climbId, label, position, top, fallChance, fallRepPenalty) | district.gd (spawns ClimbZone) |
-| trains.json | scheduled cars (trainId, label, districtId, yardPosition, size, stop/travel ticks, paint/pass rep, heat, serviceDistricts) | TrainManager, district.gd (spawns TrainCar) |
+| climbs.json | climb routes (climbId, label, position, top, fallChance, fallRepPenalty, optional targetDistrictId) | district.gd (spawns ClimbZone) |
+| trains.json | scheduled cars (trainId, label, districtId, yardPosition, size, stop/travel ticks, paint/pass rep, heat, serviceDistricts; Ghost Local services all three districts) | TrainManager, district.gd (spawns TrainCar) |
 | gallery.json | gallery config (contactName, minRank, canvasLabel, canvasSize, basePay, repBase, crewRepCost, acceptScore) | GalleryManager |
 
 ## UI layer

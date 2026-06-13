@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-06-12 — Milestone 26: Rooftop Row District (Plan_v2.md)
+
+The third district is in, and it is reached vertically instead of by a
+street gate.
+
+- Added `district_rooftop_row` to `Data/districts.json` with no travel
+  point; `ClimbZone` can now set `targetDistrictId` on successful
+  climbs, and the Row fire escape/descent routes move between Canal
+  Side and Rooftop Row.
+- Built a compact elevated Rooftop Row deck in `district.gd` with
+  parapets, lamps, a train-below visual, and five rooftop-surface wall
+  defs tuned for roller-heavy, high-visibility play.
+- Added Chrome Saints rooftop presence, a Rooftop Row patrol route,
+  and extended the Ghost Local train service through the third
+  district for pass-through visibility value.
+- Added a three-mission `rooftop_row` chain: climb entry, skyline
+  roller work, and district claim.
+- Smoke test now covers climb-only entry, district trigger, roller
+  claim, descent, and train service including Rooftop Row.
+
 ## 2026-06-12 — Milestone 25: Ambient NPC Life (Plan_v2.md)
 
 The blocks now have a small street-life layer instead of only mission

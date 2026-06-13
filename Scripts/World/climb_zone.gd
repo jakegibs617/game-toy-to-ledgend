@@ -71,6 +71,9 @@ func resolve(success: bool) -> void:
 			player.velocity = Vector3.ZERO
 		if player.has_method("play_context_animation"):
 			player.play_context_animation("climb", 0.85)
+		var target_district := String(def.get("targetDistrictId", ""))
+		if target_district != "":
+			GameState.set_district(target_district)
 		GameState.player_event.emit("You made the climb. The block looks small from up here.")
 	else:
 		# The caught-equivalent fine (Plan_v2.md Milestone 19): the
