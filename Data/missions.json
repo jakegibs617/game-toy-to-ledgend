@@ -361,6 +361,74 @@
           }
         }
       ]
+    },
+    {
+      "chainId": "rooftop_row",
+      "trigger": {
+        "type": "enter_district",
+        "districtId": "district_rooftop_row"
+      },
+      "completeMessage": "ROOFTOP ROW IS YOURS — the trains pass under your name now.",
+      "missions": [
+        {
+          "missionId": "m10_updraft",
+          "title": "Updraft",
+          "onStart": {
+            "message": "Rooftop Row. No gate, no bridge — just the fire escape and the wind."
+          },
+          "objectives": [
+            {
+              "type": "paint",
+              "text": "Roll your name onto a Rooftop Row parapet",
+              "graffitiTypes": [
+                "roller"
+              ],
+              "count": 1,
+              "districtId": "district_rooftop_row"
+            }
+          ],
+          "onComplete": {
+            "paint": 15,
+            "message": "The skyline caught it. Keep your feet under you. (+15 paint)"
+          }
+        },
+        {
+          "missionId": "m11_skyline_letters",
+          "title": "Skyline Letters",
+          "objectives": [
+            {
+              "type": "paint",
+              "text": "Paint 2 different Rooftop Row rooftop walls",
+              "graffitiTypes": [
+                "roller",
+                "piece"
+              ],
+              "count": 2,
+              "distinctWalls": true,
+              "districtId": "district_rooftop_row"
+            }
+          ],
+          "onComplete": {
+            "rep": 60,
+            "message": "Chrome Saints can see it from the rails. So can everybody else. (+60 rep)"
+          }
+        },
+        {
+          "missionId": "m12_row_crown",
+          "title": "Row Crown",
+          "objectives": [
+            {
+              "type": "claim_district",
+              "text": "Own Rooftop Row — push your influence past 50% (check the map on M)",
+              "districtId": "district_rooftop_row"
+            }
+          ],
+          "onComplete": {
+            "cash": 100,
+            "message": "Three blocks high. Rooftop Row belongs to your name now. (+$100)"
+          }
+        }
+      ]
     }
   ]
 }

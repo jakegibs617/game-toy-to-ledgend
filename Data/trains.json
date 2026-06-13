@@ -12,6 +12,6 @@
     "paintRep": 90,
     "passRep": 24,
     "heatValue": 22,
-    "serviceDistricts": ["district_canal_side", "district_mill_yard"]
+    "serviceDistricts": ["district_canal_side", "district_mill_yard", "district_rooftop_row"]
   }
 ]

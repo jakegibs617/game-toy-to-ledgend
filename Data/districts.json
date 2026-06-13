@@ -26,5 +26,14 @@
       "label": "MILL\nFOOTBRIDGE",
       "to": "district_mill_yard"
     }
+  },
+  {
+    "districtId": "district_rooftop_row",
+    "name": "Rooftop Row",
+    "claimThreshold": 0.5,
+    "claimRepBonus": 260,
+    "payoutPerWeight": 0.15,
+    "decayRep": 6,
+    "arrival": [174, 18.9, 0]
   }
 ]

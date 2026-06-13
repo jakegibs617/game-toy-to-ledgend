@@ -14,5 +14,23 @@
     "top": [126, 14.6, 9.5],
     "fallChance": 0.2,
     "fallRepPenalty": 25
+  },
+  {
+    "climbId": "climb_rooftop_row_access",
+    "label": "ROW\nFIRE ESCAPE",
+    "position": [154, 0.5, 7.5],
+    "top": [174, 18.9, 0],
+    "fallChance": 0.25,
+    "fallRepPenalty": 35,
+    "targetDistrictId": "district_rooftop_row"
+  },
+  {
+    "climbId": "climb_rooftop_row_descent",
+    "label": "CANAL\nDESCENT",
+    "position": [174, 18.9, -4],
+    "top": [126, 14.6, 9.5],
+    "fallChance": 0.1,
+    "fallRepPenalty": 15,
+    "targetDistrictId": "district_canal_side"
   }
 ]

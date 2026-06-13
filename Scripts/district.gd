@@ -20,6 +20,7 @@ func _ready() -> void:
 	_build_buildings()
 	_build_canal_side()
 	_build_train_yard()
+	_build_rooftop_row()
 	_build_street_details()
 	_spawn_travel_points()
 	_spawn_climb_zones()
@@ -161,6 +162,19 @@ func _build_train_yard() -> void:
 	_add_box(Vector3(148, 0.05, -1.65), Vector3(24, 0.12, 0.18), Color("#202328"), "TrainRailSouth")
 	for x in [138.0, 142.0, 146.0, 150.0, 154.0, 158.0]:
 		_add_box(Vector3(x, 0.08, -3), Vector3(0.25, 0.12, 5.2), Color("#6b5840"), "TrainTie")
+
+## Milestone 26: Rooftop Row is a compact elevated district reached by
+## climb routes instead of a footbridge travel point.
+func _build_rooftop_row() -> void:
+	_add_box(Vector3(180, 9, 0), Vector3(48, 18, 30), Color("#575e62"),
+		"RooftopRowTower", _wall_material(Color("#575e62"), 0.55, 0.96))
+	_add_box(Vector3(180, 18.15, 0), Vector3(52, 0.5, 34), Color("#4a5056"),
+		"RooftopRowDeck", _street_material(Color("#4a5056"), 0.98, 0.75))
+	_add_box(Vector3(180, 18.65, -16.8), Vector3(52, 1.0, 0.8), Color("#32363a"), "RooftopRowNorthParapet")
+	_add_box(Vector3(180, 18.65, 16.8), Vector3(52, 1.0, 0.8), Color("#32363a"), "RooftopRowSouthParapet")
+	_add_box(Vector3(154, 9, -3), Vector3(0.4, 18, 3), Color("#202328"), "RooftopRowTrainBelow")
+	for lamp_pos in [Vector3(164, 18.4, 9), Vector3(180, 18.4, -9), Vector3(196, 18.4, 8)]:
+		_add_street_lamp(lamp_pos)
 
 ## First outside-street art pass: readable asphalt, sidewalks, gutters,
 ## lane/crosswalk paint, metal covers, drains, stains, and small litter.
@@ -414,6 +428,7 @@ func _run_smoke_test() -> void:
 	_smoke_rooftop_climbing()
 	_smoke_train_painting()
 	_smoke_gallery()
+	_smoke_rooftop_row()
 	_smoke_history_cap()
 	_smoke_ambient_npc_life()
 	_smoke_player_model()
@@ -1313,14 +1328,17 @@ func _smoke_train_painting() -> void:
 	for i in int(TrainManager.train_def(train_id)["stopTicks"]):
 		TrainManager._on_tick()
 	assert(String(state.get("phase", "")) == "passing")
-	assert(pass_events.size() == 2)
-	assert(pass_events[0][1] == "district_canal_side")
-	assert(pass_events[1][1] == "district_mill_yard")
-	assert(GameState.reputation == rep_before + int(TrainManager.train_def(train_id)["passRep"]) * 2)
-	assert(int(state["currentGraffiti"]["passes"]) == 2)
+	var service_districts: Array = TrainManager.train_def(train_id)["serviceDistricts"]
+	assert(pass_events.size() == service_districts.size())
+	for i in service_districts.size():
+		assert(pass_events[i][1] == service_districts[i])
+	assert(GameState.reputation == rep_before
+		+ int(TrainManager.train_def(train_id)["passRep"]) * service_districts.size())
+	assert(int(state["currentGraffiti"]["passes"]) == service_districts.size())
 	var blackbook = preload("res://Scripts/UI/blackbook_panel.gd").new()
 	var city_page: String = blackbook.page_text(3)
-	assert(city_page.contains("Ghost Local") and city_page.contains("passes 2"))
+	assert(city_page.contains("Ghost Local")
+		and city_page.contains("passes %d" % service_districts.size()))
 	blackbook.free()
 	assert(SaveManager.SAVE_VERSION >= 4)
 	assert(SaveManager.quick_save())
@@ -1332,6 +1350,37 @@ func _smoke_train_painting() -> void:
 	assert(int(migrated["version"]) == SaveManager.SAVE_VERSION)
 	assert(migrated.has("trains"))
 	print("SMOKE: train painting — car painted, pass-through rep paid, v4 state saved")
+
+## Assumes: the gallery chain has completed, so the next triggerable
+## chain can be Rooftop Row. Milestone 26: the third district opens by
+## climb, has rooftop-only walls, shares the train visibility route,
+## and can be claimed through a short roller-heavy mission chain.
+func _smoke_rooftop_row() -> void:
+	var player := _smoke_player()
+	var climb := get_node_or_null("ClimbZone_climb_rooftop_row_access")
+	assert(climb != null)
+	climb.resolve(true)
+	assert(GameState.current_district_id == "district_rooftop_row")
+	assert(player.global_position.distance_to(Vector3(174, 18.9, 0)) < 1.2)
+	assert(String(MissionManager.current_chain().get("chainId", "")) == "rooftop_row")
+	assert(String(MissionManager.current_mission().get("missionId", "")) == "m10_updraft")
+	GameState.add_paint(60)
+	assert(WallManager.paint_wall(WallManager.wall_nodes["wall_rooftop_row_01"], "roller")["ok"])
+	assert(String(MissionManager.current_mission().get("missionId", "")) == "m11_skyline_letters")
+	assert(WallManager.paint_wall(WallManager.wall_nodes["wall_rooftop_row_02"], "roller")["ok"])
+	assert(WallManager.paint_wall(WallManager.wall_nodes["wall_rooftop_row_03"], "roller")["ok"])
+	assert(String(MissionManager.current_mission().get("missionId", "")) == "m12_row_crown")
+	assert(WallManager.paint_wall(WallManager.wall_nodes["wall_rooftop_row_04"], "roller")["ok"])
+	assert(TerritoryManager.is_claimed("district_rooftop_row"))
+	assert(MissionManager.current_chain().get("done", false))
+	assert("district_rooftop_row" in TrainManager.train_def("canal_ghost_local")["serviceDistricts"])
+	var down := get_node_or_null("ClimbZone_climb_rooftop_row_descent")
+	assert(down != null)
+	down.resolve(true)
+	assert(GameState.current_district_id == "district_canal_side")
+	player.global_position = PLAYER_SPAWN
+	GameState.set_district("district_mill_yard")
+	print("SMOKE: Rooftop Row — climb entry, roller claim, train route")
 
 ## Assumes: rank is Known+ (mill chain), the canal chain is done (the
 ## gallery chain activated on its rank trigger), the piece can is
@@ -1416,8 +1465,10 @@ func _smoke_gallery() -> void:
 		float(GalleryManager.config["repBase"]) * score))
 	assert(GameState.crew_rep == crew_before - int(GalleryManager.config["crewRepCost"]))
 	assert(GalleryManager.sales_count() == 1)
-	# The sale completes the gallery mission — every chain is now done.
-	assert(MissionManager.all_chains_done())
+	# The sale completes the gallery mission; Rooftop Row waits for its
+	# climb-entry district trigger.
+	assert(String(MissionManager.current_chain().get("chainId", "")) == "gallery_debut")
+	assert(MissionManager.current_chain().get("done", false))
 	# The blackbook shows both sides of the split.
 	var blackbook = preload("res://Scripts/UI/blackbook_panel.gd").new()
 	assert(blackbook.page_text(0).contains("Crew rep"))
