@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-06-12 — Milestone 25: Ambient NPC Life (Plan_v2.md)
+
+The blocks now have a small street-life layer instead of only mission
+actors and guards.
+
+- Added `Data/ambient_npcs.json` with three waypoint-loop locals in
+  Mill Yard and three in Canal Side, all reusing existing character GLB
+  idle/walk sets through visual manifests.
+- New `Scripts/World/ambient_npc.gd`: ambient locals walk simple
+  no-nav loops, pause for nearby fresh player paint, and pay a one-time
+  +1 crowd-reaction rep tick per wall.
+- Ambient locals scatter only when their own district spikes to Hot or
+  Blazing heat, so danger reads locally instead of globally.
+- Security now triggers the imported bull ladder-climb clip when a
+  chase ends because the player reached high ground.
+- Smoke test now covers ambient spawns, crowd reaction rep, district
+  heat scatter, and the guard climb clip trigger.
+
 ## 2026-06-12 — Milestone 24: World Render & Data Hardening (Plan_v2.md)
 
 World hardening pass before adding more districts.

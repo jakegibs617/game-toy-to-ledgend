@@ -49,8 +49,8 @@ extends a section.
 Non-autoload actors: `Player` (Scripts/Player/player.gd, builds its own
 camera rig/raycast and runtime rooster animation state table),
 `PaintableWall` (Scripts/Walls/paintable_wall.gd, renders
-graffiti/cross-outs/buffs), `PatrolGuard`, `Npc`, `PickupItem`, and
-the UI panels under Scripts/UI/.
+graffiti/cross-outs/buffs), `PatrolGuard`, `Npc`, `AmbientNpc`,
+`PickupItem`, and the UI panels under Scripts/UI/.
 
 Player animation clips live as separate skinned GLB scenes in
 `Assets/Characters/`. `Player._try_build_animated_visual` loads each
@@ -76,6 +76,11 @@ names live in JSON `visuals` blocks (`npc_data.json` members and
 rotationY, initialState, and `states` mapping state → {model, clip};
 missing imports fall back to the capsule visuals.
 
+Ambient locals are loaded from `Data/ambient_npcs.json` by
+`district.gd`. They use the same `visuals` manifest shape, walk small
+waypoint loops, react to nearby fresh player walls, and scatter only
+when heat spikes in their own district.
+
 ## The signal hub: `WallManager.wall_painted`
 
 Every paint — player tag/throw-up/piece, freehand commit, rival
@@ -87,6 +92,8 @@ repaint, crew assist — flows through WallManager and emits
 * **MissionManager** — advances paint/defend objectives
 * **PatrolManager** — line-of-sight witness check → spotted/chase
 * **TerritoryManager** — recomputes influence, fires district_claimed
+* **AmbientNpc** — pauses for nearby player work and pays the one-time
+  crowd-reaction rep tick
 * **Sfx** — spray hiss for player paints
 
 **Rule: never paint a wall by mutating wall_states directly** — go
@@ -133,6 +140,7 @@ fields `push_error` at startup, and the smoke test asserts
 | crews.json | rival crew defs (tag, colors, aggression, home walls) | RivalManager |
 | districts.json | array (districtId, name, claimThreshold, claimRepBonus, payoutPerWeight, decayRep, arrival, travel) | TerritoryManager, district.gd (travel points) |
 | missions.json | {actors: [...], chains: [{chainId, trigger?, completeMessage, missions: [...]}]}; actors may include `visuals` manifests | MissionManager |
+| ambient_npcs.json | ambient locals (npcId, label, districtId, waypoints, reactRange, optional `visuals`) | district.gd (spawns AmbientNpc) |
 | dialogue.json | speaker → node tree | DialogueManager |
 | supplies.json | shop catalog + delivery def (items may carry unlockType) | SupplyManager |
 | patrols.json | guard counts per heat level, speeds | PatrolManager |
