@@ -17,6 +17,7 @@ const MIN_RESPONSE_DELAY_MS := 30000
 
 var crews: Dictionary = {}  # crewId -> crew definition
 var _pending: Array[Dictionary] = []  # queued responses {wallId, crewId, ticks, readyAt}
+var _in_flight: Dictionary = {}  # wallId -> true while a tagger is en route
 var _claimed_initial := false
 var _rng := RandomNumberGenerator.new()
 ## Set by district.gd (windowed only) to spawn the visible rival who
@@ -60,6 +61,8 @@ func _on_wall_painted(wall_id: String, graffiti: Dictionary) -> void:
 	if crew.is_empty():
 		return
 	crew["relationshipToPlayer"] = int(crew.get("relationshipToPlayer", 0)) - 10
+	if _in_flight.has(wall_id):
+		return  # a tagger is already running at this wall
 	for p in _pending:
 		if p["wallId"] == wall_id:
 			return
@@ -120,6 +123,7 @@ func set_tagger_spawner(spawner: Callable) -> void:
 func _begin_response(wall_id: String, crew_id: String) -> void:
 	if _tagger_spawner.is_valid():
 		var crew: Dictionary = crews.get(crew_id, {})
+		_in_flight[wall_id] = true
 		_tagger_spawner.call(wall_id, crew, func() -> void: respond(wall_id, crew_id))
 	else:
 		respond(wall_id, crew_id)
@@ -142,6 +146,7 @@ func response_chance(wall_id: String, crew_id: String) -> float:
 ## Executes a rival response immediately. Split out from the chance
 ## roll so tests and scripted missions can trigger it deterministically.
 func respond(wall_id: String, crew_id: String) -> void:
+	_in_flight.erase(wall_id)  # the tagger (if any) has arrived
 	var crew: Dictionary = crews[crew_id]
 	var state: Dictionary = WallManager.wall_states[wall_id]
 	if String(state.get("ownerCrewId", "")) != "player":

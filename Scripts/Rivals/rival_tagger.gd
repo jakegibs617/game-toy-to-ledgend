@@ -15,6 +15,12 @@ const ARRIVE_DIST := 0.6
 const APPROACH_OFFSET := 2.0   # where it stops, in front of the wall face
 const SIDE_OFFSET := 7.0       # how far to the side it runs in from / flees to
 const TAG_DURATION := 1.3      # seconds spent spraying before the paint lands
+## If the tagger can't reach the wall in this long (blocked by geometry,
+## an elevated wall it can't path to, etc.) the paint is applied anyway
+## and the body removed — a stuck animation must never swallow the
+## retaliation the way an instant response never would.
+const MAX_APPROACH_TIME := 8.0
+const MAX_RETREAT_TIME := 6.0
 
 enum State { APPROACH, TAG, RETREAT }
 
@@ -25,6 +31,7 @@ var _retreat_point := Vector3.ZERO
 var _on_arrive := Callable()
 var _arrived_fired := false
 var _tag_timer := 0.0
+var _state_time := 0.0            # seconds spent in the current state
 var _crew_color := Color("#d94f6c")
 var _arm: Node3D
 var _puff: MeshInstance3D
@@ -48,10 +55,18 @@ func begin(wall: Node3D, crew: Dictionary, on_arrive: Callable) -> void:
 	_build_body(String(crew.get("tag", "?")))
 
 func _physics_process(delta: float) -> void:
+	_state_time += delta
 	match _state:
 		State.APPROACH:
+			# Stuck on geometry or an unreachable (e.g. elevated) wall:
+			# put the paint up where it stands and bail, so the response
+			# is never silently dropped.
+			if _state_time >= MAX_APPROACH_TIME:
+				_fire_arrival()
+				queue_free()
+				return
 			if _move_toward(_target):
-				_state = State.TAG
+				_enter_state(State.TAG)
 				_tag_timer = TAG_DURATION
 				_face(_wall_pos)
 				if _arm != null:
@@ -65,19 +80,30 @@ func _physics_process(delta: float) -> void:
 			if _puff != null:
 				_puff.scale = Vector3.ONE * (1.0 + 0.4 * sin(_tag_timer * 30.0))
 			# Put the paint up halfway through the spray beat.
-			if not _arrived_fired and _tag_timer <= TAG_DURATION * 0.5:
-				_arrived_fired = true
-				if _on_arrive.is_valid():
-					_on_arrive.call()
+			if _tag_timer <= TAG_DURATION * 0.5:
+				_fire_arrival()
 			if _tag_timer <= 0.0:
 				if _puff != null:
 					_puff.visible = false
 				if _arm != null:
 					_arm.rotation_degrees = Vector3.ZERO
-				_state = State.RETREAT
+				_enter_state(State.RETREAT)
 		State.RETREAT:
-			if _move_toward(_retreat_point):
+			# Don't linger forever if the exit is blocked.
+			if _move_toward(_retreat_point) or _state_time >= MAX_RETREAT_TIME:
 				queue_free()
+
+## Applies the actual graffiti exactly once, however we got to the wall.
+func _fire_arrival() -> void:
+	if _arrived_fired:
+		return
+	_arrived_fired = true
+	if _on_arrive.is_valid():
+		_on_arrive.call()
+
+func _enter_state(next: State) -> void:
+	_state = next
+	_state_time = 0.0
 
 ## Moves flat toward point, facing the heading; true once within reach.
 func _move_toward(point: Vector3) -> bool:
