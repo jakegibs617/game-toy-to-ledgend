@@ -19,6 +19,15 @@ const STATIC_MODEL_PATH := "res://Assets/Characters/neon_rooster.glb"
 const ANIMATED_MODEL_SOURCE_HEIGHT := 1.7  # animated GLBs have feet at local y=0
 const STATIC_MODEL_SOURCE_HEIGHT := 1.913  # static fallback GLB is origin-centered
 const IDLE_ANIMATION_NAME := "Armature|clip0|baselayer"
+# Extra idle clips (Product_reqs.md): the rooster picks one at random and
+# rotates to another each time a loop finishes, so standing still has
+# variety instead of a single breathing pose. Keyed visual-state ->
+# (GLB path, clip name). Missing imports just shrink the pool.
+const IDLE_VARIANTS := {
+	"idle_4": ["res://Assets/Characters/neon_rooster_idle_4.glb", "Armature|Idle_4|baselayer"],
+	"idle_6": ["res://Assets/Characters/neon_rooster_idle_6.glb", "Armature|Idle_6|baselayer"],
+	"idle_11": ["res://Assets/Characters/neon_rooster_idle_11.glb", "Armature|Idle_11|baselayer"],
+}
 const WALK_ANIMATION_NAME := "Armature|walking_man|baselayer"
 const WALK_BACK_ANIMATION_NAME := "Armature|Walk_Backward_inplace|baselayer"
 const RUN_ANIMATION_NAME := "Armature|running|baselayer"
@@ -49,6 +58,9 @@ var _visual_animation_names: Dictionary = {}
 var _active_visual_state := ""
 var _action_visual_state := ""
 var _action_visual_time_left := 0.0
+var _idle_states: Array[String] = []  # built idle variants, for random rotation
+var _idle_choice := ""                # the idle currently being shown
+var _idle_rng := RandomNumberGenerator.new()
 # Interactive ladder climb (Product_reqs ladder feature). While active the
 # player rides the entry→exit line by hand instead of free movement.
 var _climb_active := false
@@ -118,6 +130,11 @@ func _try_build_animated_visual() -> bool:
 	var built := false
 	built = _add_animated_model(
 		container, IDLE_MODEL_PATH, "idle", IDLE_ANIMATION_NAME) or built
+	_idle_rng.randomize()
+	for variant in IDLE_VARIANTS:
+		var spec: Array = IDLE_VARIANTS[variant]
+		if _add_animated_model(container, String(spec[0]), variant, String(spec[1])):
+			_idle_states.append(variant)
 	built = _add_animated_model(
 		container, WALK_MODEL_PATH, "walk", WALK_ANIMATION_NAME) or built
 	built = _add_animated_model(
@@ -186,7 +203,21 @@ func _update_visual_animation(is_moving: bool, is_running: bool) -> void:
 		else:
 			_set_visual_state("walk")
 	else:
+		_set_idle_state()
+
+## Plays an idle clip, rotating to a random new variant each time the
+## current one finishes a loop (Product_reqs.md). With no extra idle
+## variants imported this falls back to the single legacy idle.
+func _set_idle_state() -> void:
+	if _idle_states.is_empty():
 		_set_visual_state("idle")
+		return
+	var was_idle: bool = _idle_states.has(_active_visual_state)
+	# Pick a fresh idle when arriving from movement or when the active
+	# clip has played out (the per-frame replay leaves it stopped).
+	if not was_idle or not _visual_animation_players[_active_visual_state].is_playing():
+		_idle_choice = _idle_states[_idle_rng.randi_range(0, _idle_states.size() - 1)]
+	_set_visual_state(_idle_choice)
 
 func _set_visual_state(state: String) -> void:
 	var target := state
@@ -200,7 +231,7 @@ func _set_visual_state(state: String) -> void:
 		_active_visual_state = target
 	var player: AnimationPlayer = _visual_animation_players[target]
 	var animation: StringName = _visual_animation_names[target]
-	player.speed_scale = 0.65 if state == "idle" else 1.0
+	player.speed_scale = 0.65 if state.begins_with("idle") else 1.0
 	if not player.is_playing() or String(player.current_animation) != String(animation):
 		player.play(animation)
 

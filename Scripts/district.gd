@@ -1711,7 +1711,21 @@ func _smoke_player_model() -> void:
 		for state in ["idle", "walk", "walk_back", "run", "run_fast", "jump", "climb", "vault"]:
 			assert(player._visual_animation_players.has(state))
 			assert(String(player._visual_animation_names[state]) != "")
-	print("SMOKE: player visual = %s" % ("animated rooster action set" if has_model else "capsule fallback"))
+		# Idle variants build and the selector rotates among them
+		# (Product_reqs.md). Each imported variant registers its own clip;
+		# _set_idle_state must land on one of them.
+		for variant in Player.IDLE_VARIANTS:
+			var spec: Array = Player.IDLE_VARIANTS[variant]
+			if ResourceLoader.exists(String(spec[0])):
+				assert(player._idle_states.has(variant))
+				assert(String(player._visual_animation_names[variant]) == String(spec[1]))
+		if not player._idle_states.is_empty():
+			player._set_idle_state()
+			assert(player._idle_states.has(player._idle_choice))
+			assert(player._active_visual_state == player._idle_choice)
+	print("SMOKE: player visual = %s (%d idle variants)" % [
+		"animated rooster action set" if has_model else "capsule fallback",
+		player._idle_states.size()])
 
 ## Plan_v3.md Milestone 27: the smoke path doubles as a repeatable
 ## baseline capture. The recorder is passive in normal play; this

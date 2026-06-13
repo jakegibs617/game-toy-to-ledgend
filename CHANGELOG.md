@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-06-13 — Random Idle Animations (Product_reqs.md)
+
+The main character no longer stands in a single breathing pose.
+
+- Three Kronako idle clips (`Idle_4`, `Idle_6`, `Idle_11`) are imported
+  to `Assets/Characters/` as `neon_rooster_idle_*.glb` and registered as
+  extra idle visual states alongside the legacy idle.
+- `player.gd` picks a random idle when the player stops moving and
+  rotates to a fresh random one each time the current clip finishes a
+  loop (`_set_idle_state`). Missing imports just shrink the pool — with
+  none, it falls back to the single legacy idle.
+- Smoke coverage asserts the idle variants build with their clips and
+  that the selector lands on one of the pooled idles.
+
 ## 2026-06-13 — Rival Tagger Run-Up + Retaliation Floor (Product_reqs.md)
 
 Rival retaliation is now something the player watches happen, and it can

@@ -96,10 +96,12 @@ The player character is the Kronako Iconz neon rooster. `player.gd`
 prefers the animated action set in `Assets/Characters/`: idle, walk,
 walk backward, run-fast, jump, ladder climb, and vault. Normal WASD
 movement walks, S without Shift uses the backward walk, Shift+WASD
-runs, Space plays the jump clip while airborne, idle breathes instead
-of freezing, and the ladder-climb clip plays continuously while riding a
+runs, Space plays the jump clip while airborne, and the ladder-climb
+clip plays continuously while riding a
 ladder — forward up, reversed when climbing down, paused between rungs.
-The vault clip is imported for future use but has no gameplay
+Standing still cycles through several idle clips at random instead of a
+single breathing pose, picking a new one each time the current loop
+finishes. The vault clip is imported for future use but has no gameplay
 trigger yet. If Godot asset import has not run once (opening the editor, or
 `Godot --headless --path . --import`), the game falls back to the
 static rooster GLB, then the old debug capsule.
