@@ -191,6 +191,11 @@ Review focus:
   crowd, and district decay/payout loops.
 * Verify that Stealth, Style, and Hustle still feel distinct.
 
+**Status:** complete in PR #26. Added `docs/BALANCE_TARGETS.md`, tuned
+main-path economy/heat/reward/risk values in data, and added smoke
+invariants for paint recovery, unlock order, rep caps, and Rooftop Row
+return routing.
+
 ## Milestone 29: Procedural Rival Graffiti Variety
 
 Purpose: make rival territory visually read as crews, not repeated

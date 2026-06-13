@@ -6,12 +6,12 @@
     "yardPosition": [148, 1.1, -3],
     "rotationY": 0.0,
     "size": [7.5, 2.2, 2.4],
-    "stopTicks": 2,
+    "stopTicks": 3,
     "travelTicks": 3,
-    "paintCost": 8,
-    "paintRep": 90,
-    "passRep": 24,
-    "heatValue": 22,
+    "paintCost": 7,
+    "paintRep": 75,
+    "passRep": 18,
+    "heatValue": 18,
     "serviceDistricts": ["district_canal_side", "district_mill_yard", "district_rooftop_row"]
   }
 ]

@@ -4,9 +4,9 @@
   "minRank": "Known",
   "canvasLabel": "Gallery canvas for Vesper",
   "canvasSize": [3.4, 2.2],
-  "basePay": 60,
-  "repBase": 25,
-  "crewRepCost": 15,
+  "basePay": 70,
+  "repBase": 20,
+  "crewRepCost": 12,
   "acceptScore": 1.0,
   "hustleXp": 10
 }

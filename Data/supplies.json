@@ -3,16 +3,16 @@
     {
       "itemId": "paint_pack",
       "name": "Paint Pack",
-      "desc": "+10 paint",
-      "price": 12,
+      "desc": "+12 paint",
+      "price": 10,
       "repeatable": true,
-      "paint": 10
+      "paint": 12
     },
     {
       "itemId": "fat_cap",
       "name": "Fat Cap",
       "desc": "throw-ups & pieces cost 1 less paint",
-      "price": 25,
+      "price": 22,
       "repeatable": false,
       "paintDiscount": 1
     },
@@ -20,7 +20,7 @@
       "itemId": "burner_chrome",
       "name": "Burner Chrome",
       "desc": "rare fill color",
-      "price": 30,
+      "price": 28,
       "repeatable": false,
       "color": {"name": "Burner Chrome", "hex": "#9fd8e8"}
     },
@@ -28,15 +28,15 @@
       "itemId": "stencil_kit",
       "name": "Stencil Kit",
       "desc": "unlocks Stencil work — fast, cheap, clean",
-      "price": 20,
+      "price": 18,
       "repeatable": false,
       "unlockType": "stencil"
     }
   ],
   "delivery": {
     "name": "Delivery Run",
-    "cash": 25,
-    "heat": 6.0,
+    "cash": 30,
+    "heat": 5.0,
     "drops": [
       {"label": "train yard gate", "position": [30, 1.2, 0]},
       {"label": "north alley dumpster", "position": [0, 1.2, -14]},

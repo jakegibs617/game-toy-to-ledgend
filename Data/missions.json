@@ -293,9 +293,9 @@
             }
           ],
           "onComplete": {
-            "paint": 10,
-            "cash": 20,
-            "message": "The towpath knows you now. (+10 paint, +$20)"
+            "paint": 12,
+            "cash": 25,
+            "message": "The towpath knows you now. (+12 paint, +$25)"
           }
         },
         {
@@ -324,8 +324,8 @@
             }
           ],
           "onComplete": {
-            "cash": 75,
-            "message": "Two blocks deep. The trains run past the silo every night... (+$75)"
+            "cash": 65,
+            "message": "Two blocks deep. The trains run past the silo every night... (+$65)"
           }
         }
       ]
@@ -388,8 +388,8 @@
             }
           ],
           "onComplete": {
-            "paint": 15,
-            "message": "The skyline caught it. Keep your feet under you. (+15 paint)"
+            "paint": 20,
+            "message": "The skyline caught it. Keep your feet under you. (+20 paint)"
           }
         },
         {
@@ -409,8 +409,8 @@
             }
           ],
           "onComplete": {
-            "rep": 60,
-            "message": "Chrome Saints can see it from the rails. So can everybody else. (+60 rep)"
+            "rep": 50,
+            "message": "Chrome Saints can see it from the rails. So can everybody else. (+50 rep)"
           }
         },
         {
@@ -424,8 +424,8 @@
             }
           ],
           "onComplete": {
-            "cash": 100,
-            "message": "Three blocks high. Rooftop Row belongs to your name now. (+$100)"
+            "cash": 80,
+            "message": "Three blocks high. Rooftop Row belongs to your name now. (+$80)"
           }
         }
       ]

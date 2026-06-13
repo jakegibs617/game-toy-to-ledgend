@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026-06-13 — Milestone 28: Balance Pass 1 — Main Path (Plan_v3.md)
+
+First v3 tuning pass, aimed at the documented target run in
+`docs/BALANCE_TARGETS.md`.
+
+- Added v3 balance targets: 35-50 minute first run, 1-3 mistakes,
+  1-3 paint-pack purchases, Known by Mill Yard claim, and Block King
+  near the end instead of too early.
+- Tuned data first: lowered stacked rep from district claims, trains,
+  gallery sales, Rooftop Row, rollers, pieces, and murals while making
+  paint recovery less brittle through cheaper/larger paint packs and
+  lower late-game paint costs.
+- Softened patrol and rooftop punishment: spotted heat, caught fines,
+  Rooftop Row fall chance, and fall penalty now leave more room for a
+  normal first-run mistake.
+- Adjusted mission rewards around Canal Side and Rooftop Row so late
+  required work has a clearer recovery path without flooding public rep.
+- Added smoke-test balance invariants for paint-pack affordability,
+  late-path paint coverage, required unlock order, rep-inflation caps,
+  and Rooftop Row return-route availability.
+- Updated older smoke assertions to read tuned values from data instead
+  of hard-coded pre-balance constants.
+
 ## 2026-06-13 — Milestone 27: Playtest Instrumentation & Balance Baseline (Plan_v3.md)
 
 The v3 loop now starts with measurement instead of tuning by feel.
