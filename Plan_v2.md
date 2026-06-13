@@ -331,12 +331,21 @@ and Mill Yard, HUD events, and blackbook service logging.
 * Pays cash + public rep but **costs** crew rep (§18 art-world
   tension, §11 public/crew split in minimal form: one tracked value).
 
+**Status:** complete in PR #17. `GalleryManager`, Vesper, gallery
+commission canvases, accepted/refused sale outcomes, crew rep cost,
+sales persistence, HUD/blackbook text, smoke coverage, and docs landed.
+
 ## Milestone 22: Crew Depth (§14, §43)
 
 * Rico "Caps" (filler: assists murals, auto-fills throw-ups in held
   territory) and Jay "Metro" (getaway: one free escape per heat
   level) with recruitment mini-chains like Moth's.
 * Crew board in the safehouse (§22 MVP features).
+
+**Status:** complete in PR #18. Caps and Metro are data-driven crew
+members with recruitment stages, passive filler/getaway roles, v6 save
+migration, safehouse crew board, blackbook coverage, smoke coverage,
+and data-driven NPC/mission actor visuals.
 
 ## Milestone 23: Presentation Pass
 
@@ -345,6 +354,10 @@ and Mill Yard, HUD events, and blackbook service logging.
   + per-district ambience (§28); controller bindings (§37).
 * This is the "make the demo feel like a game" milestone — keep it
   last so systems stay the priority (§47 agent rule 2).
+
+**Status:** complete in PR #19. Title/alias flow, controller bindings,
+right-stick look, can cycling, rooster idle polish, music bed, and
+per-district ambience landed with smoke coverage and boot verification.
 
 ## Milestone 24: World Render & Data Hardening (new)
 
@@ -361,6 +374,11 @@ batched so they ship once instead of as drive-by fixes:
 * No new gameplay; deliverable is an unchanged windowed run + smoke
   test, like Milestone 15. Schedule before any third district.
 
+**Status:** complete in PR #20. Generated world material caching,
+interactable line-of-sight filtering, manifest-driven character visual
+documentation, smoke coverage, and docs landed before the third
+district work.
+
 ## Milestone 25: Ambient NPC Life (Could-Have, §44 crowd reactions in minimal form) (new)
 
 * Put the already-imported walk/idle clips to work: Moth wanders her
@@ -376,6 +394,11 @@ batched so they ship once instead of as drive-by fixes:
   zones instead of giving up, raising rooftop stakes after Milestone
   19 made roofs safe.
 
+**Status:** complete in PR #21. `Data/ambient_npcs.json` drives three
+locals per street-level district; `AmbientNpc` waypoint loops, crowd
+reaction rep, shared per-wall crowd ledger, district-scoped heat
+scatter, guard climb-clip trigger, smoke coverage, and docs landed.
+
 ## Milestone 26: Rooftop Row District (§45) (new)
 
 * Third district, unlocked via the Milestone 19 climbing system:
@@ -388,28 +411,72 @@ batched so they ship once instead of as drive-by fixes:
 * Builds on Milestone 24's render hardening (third district is the
   cost trigger for §3.9) — do not start it before 24 lands.
 
+**Status:** complete in PR #22. `district_rooftop_row` is a climb-only
+third district with elevated generated geometry, rooftop-surface walls,
+Chrome Saints presence, patrol route, train service coverage,
+`targetDistrictId` climb transitions, a three-mission chain, smoke
+coverage, and docs.
+
 ---
 
 # 5. v2 Priorities
 
-## Complete Demo Spine
+## Current Status
 
-Milestones 15, 16, 17, 18.
+Milestones 15-26 are complete. The demo spine, Should-Have list, and
+the v2 Could-Have stretch goals have shipped through PR #22.
 
-## Complete Should-Have
+## Recommended Next Steps
 
-Milestone 19.
+1. Run a human playtest pass from new game through Rooftop Row claim,
+   noting friction, confusing prompts, pacing spikes, and any places
+   where smoke coverage feels greener than the actual moment.
+2. Do a balancing pass on rep/paint/cash/heat now that gallery sales,
+   crew roles, trains, ambient crowd ticks, and three districts all pay
+   into the same economy.
+3. Add visual/performance profiling for the three-district runtime
+   scene before adding more content; Milestone 24 reduced material
+   churn, but the world is now big enough to measure.
+4. Only then choose between the new milestone candidates below.
 
-## Next Should-Have
+## New Milestone Candidates
 
-Milestone 21, then 22 (with §3.10 landed at its start), then 24
-(engineering, gate for any third district).
+### Milestone 27: Playtest & Balance Pass
 
-## Could-Have
+* Instrument or log the main path timings: first tag, first claim,
+  Canal Side entry, gallery sale, train painting, Rooftop Row claim.
+* Tune paint costs, mission rewards, heat gains, patrol counts, and
+  territory decay against one target playthrough.
+* Add smoke assertions for any balance invariants that should never
+  regress (minimum paint before required roller work, no mission soft
+  locks, rank thresholds reachable without grinding).
 
-Milestone 23, 25, 26; procedural rival graffiti variety; dance/rap
-battles (§20) — battles stay parked until a minigame is actually fun
-on paper.
+### Milestone 28: Procedural Rival Graffiti Variety
+
+* Replace repeated placeholder rival labels with generated tag/throw-up
+  variants using crew palette, alias, stroke blocks, drips, and simple
+  layout noise.
+* Keep it deterministic per graffiti id so saves and screenshots are
+  stable.
+* Extend wall history/blackbook display to show rival variety without
+  storing heavy image blobs.
+
+### Milestone 29: Rooftop Traversal Polish
+
+* Add visible ledge/edge warning, wind gust tells, and a small stumble
+  or slip chance for long rooftop work instead of relying only on wall
+  risk values.
+* Make climb/descent prompts clearer and add a grounded return route
+  hint after the player first enters Rooftop Row.
+* Verify camera framing and guard behavior on elevated patrol routes.
+
+### Milestone 30: Battle Prototype Paper Cut
+
+* Prototype the smallest fun version of a dance/rap battle (§20) on
+  paper first: input pattern, scoring, fail state, reward, and why it
+  belongs in this graffiti loop.
+* Build only if the paper version has a clear 60-second interaction
+  that is more fun than another paint/territory beat.
 
 ## Do Not Build Yet (carried over from v1 §36, still true)
 
