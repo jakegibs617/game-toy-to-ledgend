@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-06-13 — Milestone 27: Playtest Instrumentation & Balance Baseline (Plan_v3.md)
+
+The v3 loop now starts with measurement instead of tuning by feel.
+
+- Added `PlaytestMetrics` as an optional autoload that listens to
+  existing gameplay signals but records nothing unless a capture is
+  started.
+- `PLAYTEST_METRICS=1 Godot --path .` writes
+  `user://toy_to_legend_playtest_metrics.json` with first-beat timings,
+  caught/fall/starvation counters, and the event ledger for a live run.
+- The headless smoke path now starts a `smoke_baseline` capture and
+  asserts the main beats: first paint/rank, three district claims,
+  Canal Side and Rooftop Row entry, train painting, gallery refusal,
+  gallery sale, caught count, and fall count.
+- Added a balance snapshot helper covering graffiti costs/heat,
+  mission rewards, district payout/decay, heat ticks, patrol config,
+  trains, gallery config, stats/perks, and supply prices.
+- README now documents the live playtest capture command and metrics
+  output path.
+
 ## 2026-06-12 — Milestone 26: Rooftop Row District (Plan_v2.md)
 
 The third district is in, and it is reached vertically instead of by a

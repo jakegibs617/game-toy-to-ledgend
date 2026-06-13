@@ -162,6 +162,11 @@ Review focus:
 * No save schema bump unless metrics are persisted in regular saves.
 * Smoke coverage proves the recorder does not alter progression.
 
+**Status:** complete in PR #25. `PlaytestMetrics` records optional
+live-run ledgers behind `PLAYTEST_METRICS=1`, the smoke test now prints
+and asserts a repeatable baseline path, and the balance snapshot exposes
+the economy/heat/progression knobs Milestone 28 will tune.
+
 ## Milestone 28: Balance Pass 1 - Main Path
 
 Purpose: tune the demo against one target playthrough instead of
@@ -429,4 +434,3 @@ After this docs PR lands, start Milestone 27:
 3. Extend smoke coverage without changing progression numbers.
 4. Run 3 smoke passes and 1 windowed boot.
 5. Open the PR with baseline metrics pasted into the description.
-

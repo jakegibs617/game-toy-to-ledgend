@@ -27,6 +27,16 @@ Headless smoke test (per-system `_smoke_*()` checks in
 SMOKE_TEST=1 /Applications/Godot.app/Contents/MacOS/Godot --headless --path .
 ```
 
+The smoke path also prints the v3 playtest baseline metrics and balance
+snapshot. For a live playtest capture, launch with metrics enabled:
+
+```sh
+PLAYTEST_METRICS=1 /Applications/Godot.app/Contents/MacOS/Godot --path .
+```
+
+That writes `user://toy_to_legend_playtest_metrics.json` with first-beat
+timings, caught/fall/starvation counters, and the event ledger for the run.
+
 ## Controls
 
 | Input | Action |
@@ -115,6 +125,11 @@ static rooster GLB, then the old debug capsule.
   painting, denied blip, rank-up/block-claim stings, rival buzz, UI
   blips for crew/save events, a low music bed, and per-district
   ambience. Headless runs self-disable audio playback.
+- **PlaytestMetrics** (`Scripts/Debug/playtest_metrics.gd`,
+  Milestone 27) — optional v3 instrumentation. It records nothing in
+  normal play, but `PLAYTEST_METRICS=1` writes a JSON playthrough ledger
+  to `user://toy_to_legend_playtest_metrics.json`; the smoke test uses
+  the same recorder for a repeatable baseline and balance snapshot.
 - **RivalManager** (autoload, `Scripts/Rivals/rival_manager.gd`,
   Milestone 4) — loads `Data/crews.json` (The Buff Kings, Ghost Line,
   Chrome Saints). Crews claim their home walls at session start. When
