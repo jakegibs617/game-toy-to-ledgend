@@ -11,11 +11,19 @@ const CREWS_PATH := "res://Data/crews.json"
 const DataLoader := preload("res://Scripts/Data/data_loader.gd")
 ## One simulation tick = one "in-game hour" (Plan.md section 33).
 const TICK_SECONDS := 12.0
+## A retaliation can never land sooner than this after the player paints
+## (Product_reqs.md): rivals do not teleport their TOY over a fresh tag.
+const MIN_RESPONSE_DELAY_MS := 30000
 
 var crews: Dictionary = {}  # crewId -> crew definition
-var _pending: Array[Dictionary] = []  # queued responses {wallId, crewId, ticks}
+var _pending: Array[Dictionary] = []  # queued responses {wallId, crewId, ticks, readyAt}
+var _in_flight: Dictionary = {}  # wallId -> true while a tagger is en route
 var _claimed_initial := false
 var _rng := RandomNumberGenerator.new()
+## Set by district.gd (windowed only) to spawn the visible rival who
+## runs up and tags the wall; headless leaves it empty and responds
+## instantly so the smoke test path is unchanged.
+var _tagger_spawner := Callable()
 
 func _ready() -> void:
 	var parsed: Variant = DataLoader.load_json(CREWS_PATH, "RivalManager")
@@ -53,6 +61,8 @@ func _on_wall_painted(wall_id: String, graffiti: Dictionary) -> void:
 	if crew.is_empty():
 		return
 	crew["relationshipToPlayer"] = int(crew.get("relationshipToPlayer", 0)) - 10
+	if _in_flight.has(wall_id):
+		return  # a tagger is already running at this wall
 	for p in _pending:
 		if p["wallId"] == wall_id:
 			return
@@ -60,6 +70,7 @@ func _on_wall_painted(wall_id: String, graffiti: Dictionary) -> void:
 		"wallId": wall_id,
 		"crewId": crew["crewId"],
 		"ticks": 1 + _rng.randi_range(0, 1),
+		"readyAt": Time.get_ticks_msec() + MIN_RESPONSE_DELAY_MS,
 	})
 	# A recruited lookout spots the trouble coming (Plan.md section 14).
 	var lookout := CrewManager.first_with_role("lookout")
@@ -82,10 +93,13 @@ func _offended_crew(wall_id: String) -> Dictionary:
 	return {}
 
 func _on_tick() -> void:
+	var now := Time.get_ticks_msec()
 	var remaining: Array[Dictionary] = []
 	for p in _pending:
 		p["ticks"] = int(p["ticks"]) - 1
-		if p["ticks"] > 0:
+		# Hold the response until both the tick countdown elapses and the
+		# 30-second floor has passed, so TOY never lands sooner than that.
+		if p["ticks"] > 0 or now < int(p.get("readyAt", 0)):
 			remaining.append(p)
 		else:
 			_try_respond(String(p["wallId"]), String(p["crewId"]))
@@ -97,6 +111,21 @@ func _try_respond(wall_id: String, crew_id: String) -> void:
 	if crew.is_empty() or String(state.get("ownerCrewId", "")) != "player":
 		return  # The player's work is already gone; nothing to avenge.
 	if _rng.randf() <= response_chance(wall_id, crew_id):
+		_begin_response(wall_id, crew_id)
+
+## Lets district.gd supply the visible tagger; unset headless.
+func set_tagger_spawner(spawner: Callable) -> void:
+	_tagger_spawner = spawner
+
+## Spawns the rival who runs up and tags the wall, applying the paint
+## only when they arrive. With no spawner (headless/no world) the paint
+## lands immediately, preserving the original instant behavior.
+func _begin_response(wall_id: String, crew_id: String) -> void:
+	if _tagger_spawner.is_valid():
+		var crew: Dictionary = crews.get(crew_id, {})
+		_in_flight[wall_id] = true
+		_tagger_spawner.call(wall_id, crew, func() -> void: respond(wall_id, crew_id))
+	else:
 		respond(wall_id, crew_id)
 
 ## Aggression + per-wall response chance, dampened when a recruited
@@ -117,6 +146,7 @@ func response_chance(wall_id: String, crew_id: String) -> float:
 ## Executes a rival response immediately. Split out from the chance
 ## roll so tests and scripted missions can trigger it deterministically.
 func respond(wall_id: String, crew_id: String) -> void:
+	_in_flight.erase(wall_id)  # the tagger (if any) has arrived
 	var crew: Dictionary = crews[crew_id]
 	var state: Dictionary = WallManager.wall_states[wall_id]
 	if String(state.get("ownerCrewId", "")) != "player":
