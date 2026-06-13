@@ -469,6 +469,7 @@ func _run_smoke_test() -> void:
 	_smoke_ambient_npc_life()
 	_smoke_player_model()
 	_smoke_rival_tagger_model()
+	_smoke_scripted_cross_out()
 	_smoke_balance_invariants()
 	_smoke_playtest_metrics()
 	print("SMOKE: OK")
@@ -1766,6 +1767,36 @@ func _smoke_rival_tagger_model() -> void:
 	tagger.queue_free()
 	print("SMOKE: rival tagger visual = %s" % [
 		"hooded fox warrior" if animated else "capsule fallback"])
+
+## Scripted mission cross-outs route through the visible tagger when one is
+## available, and never cross out work the writer repainted while the rival
+## was en route (Product_reqs.md). A stub spawner drives both branches
+## deterministically.
+func _smoke_scripted_cross_out() -> void:
+	var wall_id := _first_wall_id()
+	var crew: Dictionary = RivalManager.crews["buff_kings"]
+	var captured := {"cb": Callable()}
+	RivalManager.set_tagger_spawner(
+		func(_wid: String, _crew: Dictionary, on_arrive: Callable) -> void:
+			captured["cb"] = on_arrive)
+
+	# Wall holds the player's work; the rival runs up and the cross-out lands.
+	WallManager.paint_wall(WallManager.wall_nodes[wall_id], "tag")
+	RivalManager.scripted_cross_out(wall_id, crew, "TOY")
+	assert(captured["cb"].is_valid())
+	captured["cb"].call()
+	assert(String(WallManager.wall_states[wall_id].get("state", "")) == "crossed_out")
+
+	# Writer repaints before the rival arrives: the run-up is a no-op.
+	WallManager.paint_wall(WallManager.wall_nodes[wall_id], "tag")
+	RivalManager.scripted_cross_out(wall_id, crew, "TOY")
+	var pending: Callable = captured["cb"]
+	WallManager.paint_wall(WallManager.wall_nodes[wall_id], "throwup")
+	pending.call()
+	assert(String(WallManager.wall_states[wall_id].get("state", "")) == "player_throwup")
+
+	RivalManager.set_tagger_spawner(Callable())  # restore headless default
+	print("SMOKE: scripted cross-out — visible tagger + skips repainted work")
 
 ## Plan_v3.md Milestone 27: the smoke path doubles as a repeatable
 ## baseline capture. The recorder is passive in normal play; this

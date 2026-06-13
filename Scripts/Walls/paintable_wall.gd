@@ -46,9 +46,10 @@ func clear_graffiti() -> void:
 	for child in _graffiti_anchor.get_children():
 		child.queue_free()
 
-## Milestone 8 art pass: each graffiti gets a deterministic tilt, paint
-## drips under the letters, and (for throw-ups/pieces) filled panels —
-## all unshaded so the work pops in the dusk lighting.
+## Milestone 8 art pass: each graffiti gets a deterministic tilt; bigger
+## work (throw-ups/pieces/etc.) adds paint drips and filled panels, while
+## tags stay bare lettering — all unshaded so the work pops in the dusk
+## lighting.
 func show_graffiti(graffiti: Dictionary) -> void:
 	clear_graffiti()
 	var rng := RandomNumberGenerator.new()
@@ -79,6 +80,9 @@ func show_graffiti(graffiti: Dictionary) -> void:
 			label.font_size = 96
 			label.outline_size = 18
 			label.pixel_size = 0.004
+			# Tags are bare lettering — just the outline and fill, no drips
+			# or background panel.
+			drip_spread = 0.0
 		"throwup":
 			label.font_size = 160
 			label.outline_size = 48
@@ -135,9 +139,8 @@ func _show_rival_graffiti(holder: Node3D, graffiti: Dictionary, fill: Color, out
 	var alias := String(graffiti.get("alias", "???"))
 	match type:
 		"tag":
+			# Bare lettering only — no stripes, drips, or background panel.
 			_add_rival_label(holder, alias, fill, outline, 108, 20, 0.0045, Vector3.ZERO)
-			_add_rival_stripes(holder, rng, variant, fill, outline, 0.45)
-			_add_drips(holder, rng, fill, 0.22, 0.65)
 		"stencil":
 			_add_panel(holder, _panel_size(0.48, 0.34), outline.lightened(0.05), -0.016)
 			_add_rival_cut_marks(holder, rng, variant, fill)

@@ -95,10 +95,11 @@ func _physics_process(delta: float) -> void:
 			_tag_timer -= delta
 			if _puff != null:
 				_puff.scale = Vector3.ONE * (1.0 + 0.4 * sin(_tag_timer * 30.0))
-			# Put the paint up halfway through the spray beat.
-			if _tag_timer <= TAG_DURATION * 0.5:
-				_fire_arrival()
+			# The paint lands only when the rival finishes the spray beat:
+			# the writer watches them run up, stand in front, and tag before
+			# TOY appears — never before the body is there (Product_reqs.md).
 			if _tag_timer <= 0.0:
+				_fire_arrival()
 				if _puff != null:
 					_puff.visible = false
 				if _arm != null:
