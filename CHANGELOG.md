@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-06-13 — Milestone 30: Rooftop Traversal Polish (Plan_v3.md)
+
+Rooftop Row now communicates its risk and return path more clearly.
+
+- Climb prompts are context-aware: Rooftop Row access says "Climb to
+  Rooftop Row" and the return route says "Descend to Canal Side."
+- Successful Rooftop Row entry now toasts a return-route hint pointing
+  players back to the CANAL DESCENT climb.
+- Added non-text rooftop hazard tells: edge-warning strips along the
+  parapets and pale wind streaks across the deck.
+- Smoke coverage now checks the access/descent prompts, first-entry
+  return hint, generated hazard tell nodes, and the existing Rooftop
+  Row claim route.
+
 ## 2026-06-13 — Milestone 29: Procedural Rival Graffiti Variety (Plan_v3.md)
 
 Rival walls now read more like crew marks instead of repeated labels.

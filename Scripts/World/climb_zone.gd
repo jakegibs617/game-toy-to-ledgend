@@ -51,8 +51,9 @@ func setup(climb_def: Dictionary) -> void:
 	add_child(sign_label)
 
 func prompt_text() -> String:
-	return "%s\n[E] Climb to the roof  (%d%% slip risk)" % [
+	return "%s\n[E] %s  (%d%% slip risk)" % [
 		String(def.get("label", "CLIMB")).replace("\n", " "),
+		_prompt_action(),
 		roundi(float(def.get("fallChance", 0.15)) * 100.0)]
 
 ## Player raycast interaction (same protocol as Npc/TravelPoint).
@@ -74,7 +75,7 @@ func resolve(success: bool) -> void:
 		var target_district := String(def.get("targetDistrictId", ""))
 		if target_district != "":
 			GameState.set_district(target_district)
-		GameState.player_event.emit("You made the climb. The block looks small from up here.")
+		GameState.player_event.emit(_success_message(target_district))
 	else:
 		# The caught-equivalent fine (Plan_v2.md Milestone 19): the
 		# street saw you eat it.
@@ -83,3 +84,21 @@ func resolve(success: bool) -> void:
 			GameState.add_reputation(-penalty)
 		GameState.player_event.emit(
 			"You slipped — rolled an ankle and your pride. (-%d rep)" % penalty)
+
+func _prompt_action() -> String:
+	match String(def.get("targetDistrictId", "")):
+		"district_rooftop_row":
+			return "Climb to Rooftop Row"
+		"district_canal_side":
+			return "Descend to Canal Side"
+		_:
+			return "Climb to the roof"
+
+func _success_message(target_district: String) -> String:
+	match target_district:
+		"district_rooftop_row":
+			return "You made Rooftop Row. Watch the wind; the CANAL DESCENT route gets you back."
+		"district_canal_side":
+			return "You drop back toward Canal Side. Street level feels loud again."
+		_:
+			return "You made the climb. The block looks small from up here."
