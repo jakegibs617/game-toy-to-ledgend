@@ -433,6 +433,7 @@ func _run_smoke_test() -> void:
 	_smoke_history_cap()
 	_smoke_ambient_npc_life()
 	_smoke_player_model()
+	_smoke_balance_invariants()
 	_smoke_playtest_metrics()
 	print("SMOKE: OK")
 	get_tree().quit()
@@ -775,8 +776,10 @@ func _smoke_patrols() -> void:
 	guard.start_chase(player)
 	PatrolManager.resolve_catch(guard)
 	assert(caught_guards == [guard])
-	assert(GameState.reputation == rep_before_catch - mini(25, rep_before_catch))
-	assert(GameState.paint == paint_before_catch - mini(3, paint_before_catch))
+	assert(GameState.reputation == rep_before_catch
+		- mini(int(PatrolManager.config.get("caughtRepPenalty", 25)), rep_before_catch))
+	assert(GameState.paint == paint_before_catch
+		- mini(int(PatrolManager.config.get("caughtPaintPenalty", 3)), paint_before_catch))
 	assert(HeatManager.heat <= 25.0)
 	assert(PatrolManager.guard_count() ==
 		PatrolManager.guards_for_level(HeatManager.level_name()))
@@ -823,13 +826,14 @@ func _smoke_supplies() -> void:
 	assert(GameState.cash == 105)
 	var cash_now: int = GameState.cash
 	var paint_now: int = GameState.paint
+	var pack: Dictionary = SupplyManager.item("paint_pack")
 	assert(SupplyManager.buy("paint_pack")["ok"])
-	assert(GameState.paint == paint_now + 10)
-	assert(GameState.cash == cash_now - 12)
+	assert(GameState.paint == paint_now + int(pack.get("paint", 0)))
+	assert(GameState.cash == cash_now - SupplyManager.item_price(pack))
 	# The fat cap discounts bigger work but never below 1 paint.
-	assert(SupplyManager.paint_cost(WallManager.styles["piece"]) == 6)
+	var piece_cost_before_cap := SupplyManager.paint_cost(WallManager.styles["piece"])
 	assert(SupplyManager.buy("fat_cap")["ok"])
-	assert(SupplyManager.paint_cost(WallManager.styles["piece"]) == 5)
+	assert(SupplyManager.paint_cost(WallManager.styles["piece"]) == piece_cost_before_cap - 1)
 	assert(SupplyManager.paint_cost(WallManager.styles["throwup"]) == 2)
 	assert(SupplyManager.paint_cost(WallManager.styles["tag"]) == 1)
 	assert(not SupplyManager.buy("fat_cap")["ok"])  # one-time upgrade
@@ -842,12 +846,13 @@ func _smoke_supplies() -> void:
 	paint_now = GameState.paint
 	var result: Dictionary = WallManager.paint_wall(WallManager.wall_nodes["wall_median_01"], "piece")
 	assert(result["ok"])
-	assert(GameState.paint == paint_now - 5)
+	assert(GameState.paint == paint_now - SupplyManager.paint_cost(WallManager.styles["piece"]))
 	# Broke writers get turned away.
 	var stash: int = GameState.cash
-	assert(GameState.try_spend_cash(stash))
+	var spent_to_broke := maxi(stash - 1, 0)
+	assert(GameState.try_spend_cash(spent_to_broke))
 	assert(not SupplyManager.buy("paint_pack")["ok"])
-	GameState.add_cash(stash)
+	GameState.add_cash(spent_to_broke)
 	print("SMOKE: shop OK — cash $%d, palette %d colors" % [
 		GameState.cash, GameState.fill_palette().size()])
 
@@ -860,9 +865,12 @@ func _smoke_supplies() -> void:
 	var heat_now: float = HeatManager.heat
 	SupplyManager.resolve_delivery()
 	assert(not SupplyManager.delivery_active)
-	assert(GameState.cash == cash_now + 25)
+	var expected_delivery_cash := roundi(int(SupplyManager.delivery.get("cash", 0))
+		* StatsManager.delivery_multiplier())
+	assert(GameState.cash == cash_now + expected_delivery_cash)
 	assert(HeatManager.heat > heat_now)
-	print("SMOKE: delivery run paid $25, heat %.1f -> %.1f" % [heat_now, HeatManager.heat])
+	print("SMOKE: delivery run paid $%d, heat %.1f -> %.1f" % [
+		expected_delivery_cash, heat_now, HeatManager.heat])
 
 	# Supplies survive the save/load round trip.
 	assert(SaveManager.quick_save())
@@ -1138,7 +1146,7 @@ func _smoke_progression() -> void:
 	assert(StatsManager.perk_points == 2)
 	var cash_before: int = GameState.cash
 	assert(SupplyManager.buy("paint_pack")["ok"])
-	assert(cash_before - GameState.cash == 11)
+	assert(cash_before - GameState.cash == SupplyManager.item_price(SupplyManager.item("paint_pack")))
 	# The perks panel reads pure state — drive it off-tree like the
 	# other modal models.
 	var perks_panel = preload("res://Scripts/UI/perks_panel.gd").new()
@@ -1588,3 +1596,38 @@ func _smoke_playtest_metrics() -> void:
 	assert(not (balance["stats"] as Dictionary).is_empty())
 	print("SMOKE: playtest metrics — %s" % PlaytestMetrics.summary_text())
 	print("SMOKE: balance snapshot — %s" % PlaytestMetrics.balance_summary_text())
+
+## Milestone 28: soft-lock invariants for the target main path. These
+## guard the data tuning knobs instead of asserting one exact route.
+func _smoke_balance_invariants() -> void:
+	var styles: Dictionary = WallManager.styles
+	var paint_pack := SupplyManager.item("paint_pack")
+	assert(not paint_pack.is_empty())
+	assert(int(paint_pack.get("paint", 0)) >= int(TrainManager.train_def("canal_ghost_local").get("paintCost", 0)))
+	assert(int(paint_pack.get("price", 0)) <= 12)
+	assert(int(styles["piece"].get("paintCost", 0)) <= 5)
+	assert(int(styles["roller"].get("paintCost", 0)) <= 8)
+	assert(int(styles["mural"].get("paintCost", 0)) <= 10)
+
+	var planned_paint := 20 # new-game starting paint
+	for chain in MissionManager.chains:
+		for mission in chain.get("missions", []):
+			planned_paint += int((mission as Dictionary).get("onComplete", {}).get("paint", 0))
+	var required_late_paint := int(TrainManager.train_def("canal_ghost_local").get("paintCost", 0))
+	required_late_paint += int(styles["piece"].get("paintCost", 0)) * 2 # gallery refusal + sale
+	required_late_paint += int(styles["roller"].get("paintCost", 0)) * 4 # Rooftop Row critical path
+	assert(planned_paint + int(paint_pack.get("paint", 0)) >= required_late_paint)
+
+	var mill_chain: Dictionary = MissionManager.chains[0]
+	var mill_missions: Array = mill_chain.get("missions", [])
+	var supply_objectives: Array = (mill_missions[2] as Dictionary).get("objectives", [])
+	var supply_talk: Dictionary = supply_objectives[0]
+	assert("piece" in supply_talk.get("onComplete", {}).get("unlockTypes", []))
+	var claim_complete: Dictionary = (mill_missions[4] as Dictionary).get("onComplete", {})
+	assert("roller" in claim_complete.get("unlockTypes", []))
+	assert("mural" in claim_complete.get("unlockTypes", []))
+	assert(TrainManager.train_def("canal_ghost_local").get("passRep", 0) <= 20)
+	assert(int(GalleryManager.config.get("repBase", 0)) <= 20)
+	assert(int(TerritoryManager.districts["district_rooftop_row"].get("claimRepBonus", 0)) <= 220)
+	assert(get_node_or_null("ClimbZone_climb_rooftop_row_descent") != null)
+	print("SMOKE: balance invariants — target path has paint recovery and unlock order")

@@ -5,11 +5,11 @@
 	"catchRadius": 1.7,
 	"giveUpRange": 18.0,
 	"giveUpSeconds": 9.0,
-	"spottedHeat": 12.0,
-	"caughtRepPenalty": 25,
-	"caughtPaintPenalty": 3,
+	"spottedHeat": 10.0,
+	"caughtRepPenalty": 20,
+	"caughtPaintPenalty": 2,
 	"caughtHeatCeiling": 25.0,
-	"guardsPerLevel": {"Cold": 1, "Low": 1, "Watched": 2, "Hot": 3, "Blazing": 3},
+	"guardsPerLevel": {"Cold": 1, "Low": 1, "Watched": 2, "Hot": 2, "Blazing": 3},
 	"routes": [
 		{
 			"routeId": "street_sweep",

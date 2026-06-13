@@ -17,9 +17,9 @@
   },
   "piece": {
     "label": "Piece",
-    "baseValue": 60,
-    "paintCost": 6,
-    "heatValue": 12,
+    "baseValue": 55,
+    "paintCost": 5,
+    "heatValue": 11,
     "fillColor": "#ffd23f",
     "outlineColor": "#202033"
   },
@@ -35,9 +35,9 @@
   },
   "roller": {
     "label": "Roller",
-    "baseValue": 80,
-    "paintCost": 10,
-    "heatValue": 14,
+    "baseValue": 75,
+    "paintCost": 8,
+    "heatValue": 12,
     "fillColor": "#f2f2f2",
     "outlineColor": "#16161d",
     "surfaces": ["rooftop"],
@@ -46,9 +46,9 @@
   },
   "mural": {
     "label": "Mural",
-    "baseValue": 120,
-    "paintCost": 12,
-    "heatValue": 16,
+    "baseValue": 105,
+    "paintCost": 10,
+    "heatValue": 15,
     "fillColor": "#ffd23f",
     "outlineColor": "#202033",
     "requiresCrew": true,

@@ -3,9 +3,9 @@
     "districtId": "district_mill_yard",
     "name": "Mill Yard",
     "claimThreshold": 0.5,
-    "claimRepBonus": 150,
-    "payoutPerWeight": 0.1,
-    "decayRep": 4,
+    "claimRepBonus": 140,
+    "payoutPerWeight": 0.08,
+    "decayRep": 3,
     "arrival": [34, 0.5, 0],
     "travel": {
       "position": [38, 0.6, 0],
@@ -17,8 +17,8 @@
     "districtId": "district_canal_side",
     "name": "Canal Side",
     "claimThreshold": 0.5,
-    "claimRepBonus": 200,
-    "payoutPerWeight": 0.1,
+    "claimRepBonus": 180,
+    "payoutPerWeight": 0.09,
     "decayRep": 4,
     "arrival": [86, 0.5, 0],
     "travel": {
@@ -31,9 +31,9 @@
     "districtId": "district_rooftop_row",
     "name": "Rooftop Row",
     "claimThreshold": 0.5,
-    "claimRepBonus": 260,
-    "payoutPerWeight": 0.15,
-    "decayRep": 6,
+    "claimRepBonus": 220,
+    "payoutPerWeight": 0.12,
+    "decayRep": 5,
     "arrival": [174, 18.9, 0]
   }
 ]

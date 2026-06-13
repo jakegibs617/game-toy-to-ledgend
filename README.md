@@ -3,6 +3,7 @@
 Open-world graffiti RPG prototype. Original design in [Plan.md](Plan.md);
 current roadmap in [Plan_v3.md](Plan_v3.md); completed v2 roadmap in
 [Plan_v2.md](Plan_v2.md); system map in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md);
+v3 balance targets in [docs/BALANCE_TARGETS.md](docs/BALANCE_TARGETS.md);
 agent/dev workflow in [CLAUDE.md](CLAUDE.md).
 
 Engine: **Godot 4.6** (chosen per Plan.md §29 — open source, text-based scenes/scripts, headless CLI testing).
