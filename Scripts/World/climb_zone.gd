@@ -18,13 +18,11 @@ func setup(climb_def: Dictionary) -> void:
 	_rng.randomize()
 
 	# An actual rail-and-rung ladder up the wall face marks the route
-	# (Product_reqs ladder feature) instead of the old slim pipe hint.
+	# (Product_reqs ladder feature) instead of the old slim pipe hint. The
+	# ladder is vertical along the height rise; `top` may sit far off
+	# horizontally (it is the landing the climb steps onto on summit).
 	var top: Array = def.get("top", [0, 8, 0])
-	var top_local := Vector3(
-		float(top[0]) - position.x,
-		float(top[1]) - position.y,
-		float(top[2]) - position.z)
-	_build_ladder(top_local)
+	_build_ladder(float(top[1]) - position.y)
 
 	var col := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
@@ -43,18 +41,20 @@ func setup(climb_def: Dictionary) -> void:
 	sign_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	add_child(sign_label)
 
-## Builds rails + rungs running from the zone foot up to the exit, so the
-## route reads as a climbable ladder. `top_local` is the exit in zone space.
-func _build_ladder(top_local: Vector3) -> void:
-	var length := maxf(top_local.length(), 2.0)
-	var dir := top_local.normalized() if top_local.length() > 0.001 else Vector3.UP
+## Builds a vertical rail-and-rung ladder spanning the height rise from the
+## foot. `span` is the signed exit height (negative for a descent route);
+## a near-zero span still draws a short ladder so the route reads.
+func _build_ladder(span: float) -> void:
+	var y_low := minf(0.0, span)
+	var y_high := maxf(0.0, span)
+	if y_high - y_low < 2.0:
+		y_high = y_low + 2.0
+	var length := y_high - y_low
+	var mid := (y_low + y_high) / 2.0
 	var ladder := Node3D.new()
 	ladder.name = "Ladder"
-	var basis := Basis()
-	if not dir.is_equal_approx(Vector3.UP):
-		basis = Basis(Quaternion(Vector3.UP, dir))
 	# Set back 0.4 m against the wall face, as the old pipe hint was.
-	ladder.transform = Transform3D(basis, Vector3(0, 0, -0.4))
+	ladder.position = Vector3(0, 0, -0.4)
 	add_child(ladder)
 
 	var rail_mat := StandardMaterial3D.new()
@@ -70,13 +70,13 @@ func _build_ladder(top_local: Vector3) -> void:
 
 	const RAIL_OFFSET := 0.24
 	_add_bar(ladder, Vector3(0.08, length, 0.08),
-		Vector3(-RAIL_OFFSET, length / 2.0, 0), rail_mat)
+		Vector3(-RAIL_OFFSET, mid, 0), rail_mat)
 	_add_bar(ladder, Vector3(0.08, length, 0.08),
-		Vector3(RAIL_OFFSET, length / 2.0, 0), rail_mat)
+		Vector3(RAIL_OFFSET, mid, 0), rail_mat)
 	var rung_spacing := 0.45
 	var rungs := maxi(int(length / rung_spacing), 1)
 	for i in range(rungs + 1):
-		var y := minf(float(i) * rung_spacing, length)
+		var y := minf(y_low + float(i) * rung_spacing, y_high)
 		_add_bar(ladder, Vector3(RAIL_OFFSET * 2.0 + 0.08, 0.06, 0.06),
 			Vector3(0, y, 0), rung_mat)
 
@@ -108,9 +108,11 @@ func interact() -> void:
 	if player != null and player.has_method("begin_climb"):
 		var pos: Array = def.get("position", [0, 0, 0])
 		var top: Array = def.get("top", [0, 8, 0])
+		# Ride the vertical column at the foot; the horizontal step onto the
+		# landing happens on summit (complete_climb places at `top`).
 		player.begin_climb(
 			Vector3(pos[0], pos[1], pos[2]),
-			Vector3(top[0], top[1], top[2]), self)
+			Vector3(float(pos[0]), float(top[1]), float(pos[2])), self)
 	else:
 		resolve(true)
 
@@ -121,20 +123,26 @@ func resolve(success: bool) -> void:
 	if player == null:
 		return
 	if success:
-		var top: Array = def.get("top", [0, 8, 0])
-		player.global_position = Vector3(top[0], top[1], top[2])
-		if player is CharacterBody3D:
-			player.velocity = Vector3.ZERO
+		_place_at_top(player)
 		if player.has_method("play_context_animation"):
 			player.play_context_animation("climb", 0.85)
 		_apply_summit()
 	else:
 		_apply_fall()
 
-## The interactive climb reached the exit — run the success beat (the
-## player has already climbed into place). Called by Player.begin_climb.
+## The interactive climb reached the exit — step onto the landing and run
+## the success beat. Called by Player when the vertical climb summits.
 func complete_climb() -> void:
+	var player: Node3D = get_tree().get_first_node_in_group("player")
+	if player != null:
+		_place_at_top(player)
 	_apply_summit()
+
+func _place_at_top(player: Node3D) -> void:
+	var top: Array = def.get("top", [0, 8, 0])
+	player.global_position = Vector3(top[0], top[1], top[2])
+	if player is CharacterBody3D:
+		player.velocity = Vector3.ZERO
 
 func _apply_summit() -> void:
 	var target_district := String(def.get("targetDistrictId", ""))
