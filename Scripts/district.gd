@@ -10,6 +10,7 @@ const DataLoader := preload("res://Scripts/Data/data_loader.gd")
 const TravelPointScript := preload("res://Scripts/World/travel_point.gd")
 const ClimbZoneScript := preload("res://Scripts/World/climb_zone.gd")
 const AmbientNpcScript := preload("res://Scripts/World/ambient_npc.gd")
+const RivalGraffitiStyle := preload("res://Scripts/Walls/rival_graffiti_style.gd")
 
 var _material_cache: Dictionary = {}
 
@@ -424,6 +425,7 @@ func _run_smoke_test() -> void:
 	_smoke_blackbook()
 	_smoke_freehand()
 	_smoke_graffiti_types()
+	_smoke_rival_graffiti_variety()
 	_smoke_progression()
 	_smoke_canal_side()
 	_smoke_rooftop_climbing()
@@ -1111,6 +1113,43 @@ func _smoke_graffiti_types() -> void:
 	assert(WallManager.wall_states["wall_corner_01"]["state"] == "rival_throwup")
 	saints["responseType"] = saved_response
 	print("SMOKE: rival surface fallback — roller response became a throw-up")
+
+## Milestone 29: rival graffiti gets deterministic visual variety from
+## crew/id/type seeds. The rendered output is built at display time, so
+## wall history and saves keep only lightweight graffiti metadata.
+func _smoke_rival_graffiti_variety() -> void:
+	var crew: Dictionary = RivalManager.crews["buff_kings"]
+	var sample := {
+		"graffitiId": "graffiti_review_001",
+		"creatorId": "buff_kings",
+		"crewId": "buff_kings",
+		"wallId": "wall_mill_02",
+		"type": "throwup",
+		"alias": "BFK",
+		"fillColor": crew["fillColor"],
+		"outlineColor": crew["outlineColor"],
+	}
+	var variant_a := RivalGraffitiStyle.variant_for(sample)
+	var variant_b := RivalGraffitiStyle.variant_for(sample)
+	assert(JSON.stringify(variant_a) == JSON.stringify(variant_b))
+	var changed := sample.duplicate(true)
+	changed["graffitiId"] = "graffiti_review_002"
+	assert(int(RivalGraffitiStyle.variant_for(changed)["seed"]) != int(variant_a["seed"]))
+	var result: Dictionary = WallManager.apply_rival_graffiti("wall_mill_02", crew, "throwup")
+	assert(String(result.get("creatorId", "")) == "buff_kings")
+	assert(not result.has("image"))
+	var wall: PaintableWall = WallManager.wall_nodes["wall_mill_02"]
+	assert(wall._graffiti_anchor.get_child_count() >= 1)
+	var latest_holder := wall._graffiti_anchor.get_child(wall._graffiti_anchor.get_child_count() - 1)
+	assert(latest_holder.get_child_count() >= 5)
+	var before_variant := RivalGraffitiStyle.variant_for(result)
+	assert(SaveManager.quick_save())
+	wall.clear_graffiti()
+	assert(SaveManager.quick_load())
+	var restored: Dictionary = WallManager.wall_states["wall_mill_02"]["currentGraffiti"]
+	assert(JSON.stringify(before_variant) == JSON.stringify(RivalGraffitiStyle.variant_for(restored)))
+	assert(not restored.has("image"))
+	print("SMOKE: rival graffiti variety — deterministic lightweight variants")
 
 ## Assumes: a whole run of painting/deliveries behind us (stats earned
 ## XP through use) and four rank-ups (Toy → Block King). Milestone 17

@@ -6,6 +6,8 @@ extends StaticBody3D
 
 var def: Dictionary = {}
 
+const RivalGraffitiStyle := preload("res://Scripts/Walls/rival_graffiti_style.gd")
+
 var _graffiti_anchor: Node3D
 
 func setup(wall_def: Dictionary) -> void:
@@ -61,6 +63,9 @@ func show_graffiti(graffiti: Dictionary) -> void:
 
 	var fill := Color(String(graffiti.get("fillColor", "#ffffff")))
 	var outline := Color(String(graffiti.get("outlineColor", "#000000")))
+	if String(graffiti.get("creatorId", "player")) != "player":
+		_show_rival_graffiti(holder, graffiti, fill, outline)
+		return
 	var label := Label3D.new()
 	label.text = String(graffiti.get("alias", "???"))
 	label.modulate = fill
@@ -116,6 +121,101 @@ func show_graffiti(graffiti: Dictionary) -> void:
 	holder.add_child(label)
 	if drip_spread > 0.0:
 		_add_drips(holder, rng, fill, letter_bottom, drip_spread)
+
+func _show_rival_graffiti(holder: Node3D, graffiti: Dictionary, fill: Color, outline: Color) -> void:
+	var variant := RivalGraffitiStyle.variant_for(graffiti)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(variant["seed"])
+	holder.rotation_degrees.z = float(variant["slant"])
+	holder.position.x = float(variant["xOffset"]) * _panel_size(1.0, 1.0).x
+	holder.position.y = float(variant["yOffset"]) * _panel_size(1.0, 1.0).y
+	var type := String(graffiti.get("type", "tag"))
+	var alias := String(graffiti.get("alias", "???"))
+	match type:
+		"tag":
+			_add_rival_label(holder, alias, fill, outline, 108, 20, 0.0045, Vector3.ZERO)
+			_add_rival_stripes(holder, rng, variant, fill, outline, 0.45)
+			_add_drips(holder, rng, fill, 0.22, 0.65)
+		"stencil":
+			_add_panel(holder, _panel_size(0.48, 0.34), outline.lightened(0.05), -0.016)
+			_add_rival_cut_marks(holder, rng, variant, fill)
+			_add_rival_label(holder, alias, fill, outline.darkened(0.3), 118, 8, 0.004, Vector3(0, 0, 0.006))
+		"throwup":
+			_add_panel(holder, _panel_size(0.62, 0.46), outline.darkened(0.25), -0.02)
+			_add_panel(holder, _panel_size(0.54, 0.38), fill.darkened(0.25), -0.015)
+			_add_rival_stripes(holder, rng, variant, fill.lightened(0.08), outline, 0.72)
+			_add_rival_label(holder, alias, fill, outline, 168, 52, 0.006, Vector3(0, 0, 0.01))
+			_add_rival_chips(holder, rng, variant, outline)
+			_add_drips(holder, rng, fill, 0.55, 1.2)
+		"piece":
+			_add_panel(holder, _panel_size(0.88, 0.78), outline.darkened(0.35), -0.024)
+			_add_panel(holder, _panel_size(0.8, 0.68), fill.darkened(0.45), -0.018)
+			_add_rival_stripes(holder, rng, variant, fill.lightened(0.18), outline, 0.95)
+			_add_rival_label(holder, alias, fill, outline, 214, 66, 0.008, Vector3(0, 0, 0.012))
+			_add_rival_chips(holder, rng, variant, fill.lightened(0.2))
+			_add_drips(holder, rng, fill, 0.78, 1.55)
+		"roller":
+			_add_panel(holder, _panel_size(0.98, 0.58), outline.darkened(0.22), -0.02)
+			_add_rival_stripes(holder, rng, variant, fill, outline, 1.1)
+			_add_rival_label(holder, alias, fill, outline, 252, 80, 0.009, Vector3(0, 0, 0.012))
+			_add_drips(holder, rng, fill, 0.52, 2.1)
+		"mural":
+			_add_panel(holder, _panel_size(0.94, 0.88), outline.darkened(0.35), -0.026)
+			_add_panel(holder, _panel_size(0.86, 0.76), fill.darkened(0.5), -0.02)
+			_add_panel(holder, _panel_size(0.58, 0.45), fill.lightened(0.12), -0.015)
+			_add_rival_stripes(holder, rng, variant, fill.lightened(0.16), outline, 1.0)
+			_add_rival_label(holder, alias, fill, outline, 226, 62, 0.009, Vector3(0, 0, 0.014))
+			_add_rival_chips(holder, rng, variant, outline.lightened(0.15))
+			_add_drips(holder, rng, fill, 0.86, 1.4)
+		_:
+			_add_rival_label(holder, alias, fill, outline, 120, 24, 0.005, Vector3.ZERO)
+
+func _add_rival_label(parent: Node3D, text: String, fill: Color, outline: Color,
+		font_size: int, outline_size: int, pixel_size: float, pos: Vector3) -> void:
+	var label := Label3D.new()
+	label.text = text
+	label.modulate = fill
+	label.outline_modulate = outline
+	label.font_size = font_size
+	label.outline_size = outline_size
+	label.pixel_size = pixel_size
+	label.position = pos
+	parent.add_child(label)
+
+func _add_rival_stripes(parent: Node3D, rng: RandomNumberGenerator, variant: Dictionary,
+		fill: Color, outline: Color, spread: float) -> void:
+	var count := int(variant.get("stripeCount", 3))
+	var panel := _panel_size(0.9, 0.7)
+	for i in count:
+		var width := rng.randf_range(panel.x * 0.14, panel.x * 0.28)
+		var height := rng.randf_range(0.035, 0.085)
+		var x := rng.randf_range(-panel.x * 0.42, panel.x * 0.42)
+		var y := rng.randf_range(-spread, spread)
+		var color := fill.lightened(0.12) if i % 2 == 0 else outline.lightened(0.08)
+		_add_panel_at(parent, Vector3(x, y, -0.008 + i * 0.001),
+			Vector2(width, height), color, rng.randf_range(-18.0, 18.0))
+
+func _add_rival_chips(parent: Node3D, rng: RandomNumberGenerator, variant: Dictionary, color: Color) -> void:
+	var count := int(variant.get("chipCount", 3))
+	var panel := _panel_size(0.82, 0.62)
+	for i in count:
+		_add_panel_at(parent,
+			Vector3(rng.randf_range(-panel.x * 0.5, panel.x * 0.5),
+				rng.randf_range(-panel.y * 0.5, panel.y * 0.5), 0.017 + i * 0.001),
+			Vector2(rng.randf_range(0.08, 0.22), rng.randf_range(0.025, 0.07)),
+			color,
+			rng.randf_range(-35.0, 35.0))
+
+func _add_rival_cut_marks(parent: Node3D, rng: RandomNumberGenerator, variant: Dictionary, color: Color) -> void:
+	var count := int(variant.get("repeatCount", 2)) + 2
+	var panel := _panel_size(0.46, 0.3)
+	for i in count:
+		_add_panel_at(parent,
+			Vector3(rng.randf_range(-panel.x * 0.42, panel.x * 0.42),
+				rng.randf_range(-panel.y * 0.35, panel.y * 0.35), 0.004 + i * 0.001),
+			Vector2(rng.randf_range(0.08, 0.18), panel.y * 0.08),
+			color.darkened(0.15),
+			rng.randf_range(-8.0, 8.0))
 
 ## Slaps a cross-out (e.g. "TOY") at an angle over the current graffiti,
 ## with a strike bar through the work. Cleared when show_graffiti repaints.
@@ -188,11 +288,16 @@ func _show_freehand(parent: Node3D, graffiti: Dictionary) -> bool:
 
 ## Filled quad behind the letters (throw-up halo / piece background).
 func _add_panel(parent: Node3D, panel_size: Vector2, color: Color, z_offset: float) -> void:
+	_add_panel_at(parent, Vector3(0, 0, z_offset), panel_size, color, 0.0)
+
+func _add_panel_at(parent: Node3D, pos: Vector3, panel_size: Vector2,
+		color: Color, rot_degrees: float) -> void:
 	var quad := QuadMesh.new()
 	quad.size = panel_size
 	var mesh := MeshInstance3D.new()
 	mesh.mesh = quad
-	mesh.position = Vector3(0, 0, z_offset)
+	mesh.position = pos
+	mesh.rotation_degrees.z = rot_degrees
 	mesh.material_override = _flat_material(color)
 	parent.add_child(mesh)
 
