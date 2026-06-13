@@ -28,6 +28,9 @@ const IDLE_VARIANTS := {
 	"idle_6": ["res://Assets/Characters/neon_rooster_idle_6.glb", "Armature|Idle_6|baselayer"],
 	"idle_11": ["res://Assets/Characters/neon_rooster_idle_11.glb", "Armature|Idle_11|baselayer"],
 }
+# How long one idle clip plays before swapping to a different random one.
+const IDLE_SWAP_MIN := 3.0
+const IDLE_SWAP_MAX := 6.0
 const WALK_ANIMATION_NAME := "Armature|walking_man|baselayer"
 const WALK_BACK_ANIMATION_NAME := "Armature|Walk_Backward_inplace|baselayer"
 const RUN_ANIMATION_NAME := "Armature|running|baselayer"
@@ -60,6 +63,8 @@ var _action_visual_state := ""
 var _action_visual_time_left := 0.0
 var _idle_states: Array[String] = []  # built idle variants, for random rotation
 var _idle_choice := ""                # the idle currently being shown
+var _idle_time := 0.0                 # seconds the current idle has shown
+var _idle_swap_at := 0.0              # when to swap to a new idle
 var _idle_rng := RandomNumberGenerator.new()
 # Interactive ladder climb (Product_reqs ladder feature). While active the
 # player rides the entry→exit line by hand instead of free movement.
@@ -135,6 +140,11 @@ func _try_build_animated_visual() -> bool:
 		var spec: Array = IDLE_VARIANTS[variant]
 		if _add_animated_model(container, String(spec[0]), variant, String(spec[1])):
 			_idle_states.append(variant)
+			# Loop each idle so it never freezes between random swaps.
+			var ap: AnimationPlayer = _visual_animation_players[variant]
+			var clip := ap.get_animation(_visual_animation_names[variant])
+			if clip != null:
+				clip.loop_mode = Animation.LOOP_LINEAR
 	built = _add_animated_model(
 		container, WALK_MODEL_PATH, "walk", WALK_ANIMATION_NAME) or built
 	built = _add_animated_model(
@@ -185,7 +195,7 @@ func _apply_static_visual_transform(model: Node3D) -> void:
 	model.position = Vector3(0, STATIC_MODEL_SOURCE_HEIGHT * 0.5 * s, 0)
 	model.rotation.y = PI  # glTF forward is +Z; Godot's is -Z
 
-func _update_visual_animation(is_moving: bool, is_running: bool) -> void:
+func _update_visual_animation(delta: float, is_moving: bool, is_running: bool) -> void:
 	if _visual_animation_players.is_empty():
 		return
 	if _action_visual_time_left > 0.0 and _visual_models.has(_action_visual_state):
@@ -203,21 +213,36 @@ func _update_visual_animation(is_moving: bool, is_running: bool) -> void:
 		else:
 			_set_visual_state("walk")
 	else:
-		_set_idle_state()
+		_set_idle_state(delta)
 
-## Plays an idle clip, rotating to a random new variant each time the
-## current one finishes a loop (Product_reqs.md). With no extra idle
-## variants imported this falls back to the single legacy idle.
-func _set_idle_state() -> void:
+## Plays an idle clip, swapping to a different random variant every few
+## seconds so standing still keeps changing (Product_reqs.md). With no
+## extra idle variants imported this falls back to the single legacy idle.
+func _set_idle_state(delta: float) -> void:
 	if _idle_states.is_empty():
 		_set_visual_state("idle")
 		return
 	var was_idle: bool = _idle_states.has(_active_visual_state)
-	# Pick a fresh idle when arriving from movement or when the active
-	# clip has played out (the per-frame replay leaves it stopped).
-	if not was_idle or not _visual_animation_players[_active_visual_state].is_playing():
-		_idle_choice = _idle_states[_idle_rng.randi_range(0, _idle_states.size() - 1)]
+	var swap := not was_idle  # just arrived from movement → pick one
+	if was_idle:
+		_idle_time += delta
+		if _idle_time >= _idle_swap_at:
+			swap = true
+	if swap:
+		_idle_time = 0.0
+		_idle_swap_at = _idle_rng.randf_range(IDLE_SWAP_MIN, IDLE_SWAP_MAX)
+		_idle_choice = _next_idle()
 	_set_visual_state(_idle_choice)
+
+## A random idle, always different from the current one when there is a
+## choice, so each swap is visibly a new animation.
+func _next_idle() -> String:
+	if _idle_states.size() == 1:
+		return _idle_states[0]
+	var pick := _idle_choice
+	while pick == _idle_choice:
+		pick = _idle_states[_idle_rng.randi_range(0, _idle_states.size() - 1)]
+	return pick
 
 func _set_visual_state(state: String) -> void:
 	var target := state
@@ -366,7 +391,7 @@ func _physics_process(delta: float) -> void:
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, speed)
 		velocity.z = move_toward(velocity.z, 0.0, speed)
-	_update_visual_animation(direction != Vector3.ZERO, is_running)
+	_update_visual_animation(delta, direction != Vector3.ZERO, is_running)
 	move_and_slide()
 	_update_focus()
 

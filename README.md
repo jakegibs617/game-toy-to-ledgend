@@ -100,8 +100,7 @@ runs, Space plays the jump clip while airborne, and the ladder-climb
 clip plays continuously while riding a
 ladder — forward up, reversed when climbing down, paused between rungs.
 Standing still cycles through several idle clips at random instead of a
-single breathing pose, picking a new one each time the current loop
-finishes. The vault clip is imported for future use but has no gameplay
+single breathing pose, swapping to a different one every few seconds. The vault clip is imported for future use but has no gameplay
 trigger yet. If Godot asset import has not run once (opening the editor, or
 `Godot --headless --path . --import`), the game falls back to the
 static rooster GLB, then the old debug capsule.

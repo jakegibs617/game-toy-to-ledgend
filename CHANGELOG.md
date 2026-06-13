@@ -8,11 +8,12 @@ The main character no longer stands in a single breathing pose.
   to `Assets/Characters/` as `neon_rooster_idle_*.glb` and registered as
   extra idle visual states alongside the legacy idle.
 - `player.gd` picks a random idle when the player stops moving and
-  rotates to a fresh random one each time the current clip finishes a
-  loop (`_set_idle_state`). Missing imports just shrink the pool — with
-  none, it falls back to the single legacy idle.
+  swaps to a different random one every few seconds (`_set_idle_state`,
+  3–6s timer). Each idle clip is forced to loop so it never freezes
+  between swaps. Missing imports just shrink the pool — with none, it
+  falls back to the single legacy idle.
 - Smoke coverage asserts the idle variants build with their clips and
-  that the selector lands on one of the pooled idles.
+  that letting the swap timer elapse rotates to a different idle.
 
 ## 2026-06-13 — Rival Tagger Run-Up + Retaliation Floor (Product_reqs.md)
 

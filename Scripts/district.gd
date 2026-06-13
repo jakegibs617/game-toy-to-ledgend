@@ -1720,9 +1720,15 @@ func _smoke_player_model() -> void:
 				assert(player._idle_states.has(variant))
 				assert(String(player._visual_animation_names[variant]) == String(spec[1]))
 		if not player._idle_states.is_empty():
-			player._set_idle_state()
+			player._set_idle_state(0.0)
+			var first_idle := player._idle_choice
+			assert(player._idle_states.has(first_idle))
+			assert(player._active_visual_state == first_idle)
+			# Letting the swap timer elapse rotates to a different idle.
+			player._set_idle_state(Player.IDLE_SWAP_MAX + 1.0)
 			assert(player._idle_states.has(player._idle_choice))
-			assert(player._active_visual_state == player._idle_choice)
+			if player._idle_states.size() > 1:
+				assert(player._idle_choice != first_idle)
 	print("SMOKE: player visual = %s (%d idle variants)" % [
 		"animated rooster action set" if has_model else "capsule fallback",
 		player._idle_states.size()])
