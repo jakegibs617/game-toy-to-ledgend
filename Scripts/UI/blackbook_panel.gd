@@ -10,6 +10,7 @@ extends PanelContainer
 ## scene.
 
 const UiKit := preload("res://Scripts/UI/ui_kit.gd")
+const GraffitiFonts := preload("res://Scripts/Walls/graffiti_font_library.gd")
 
 var page := 0
 var _title_label: Label
@@ -113,6 +114,21 @@ func _styles_text() -> String:
 		lines.append("Fill colors [C]: %s" % ", ".join(names))
 	else:
 		lines.append("Fill colors: locked — see Lupe about real paint.")
+	lines.append("")
+	var font_names: PackedStringArray = []
+	for style_id in GraffitiFonts.style_ids():
+		var id := String(style_id)
+		var def: Dictionary = GraffitiFonts.style_def(id)
+		var name := "%s L%d %s" % [
+			GraffitiFonts.style_label(id), int(def.get("level", 0)), String(def.get("family", "style"))]
+		if GameState.is_tag_font_style_unlocked(id):
+			font_names.append("> %s <" % name if GameState.selected_tag_font_style() == id else name)
+		else:
+			var required := int(def.get("practiceRequired", 5))
+			var practiced := GameState.practice_count_for_tag_font_style(id)
+			var hint := String(def.get("lockedHint", "locked"))
+			font_names.append("%s (%d/%d sketches: %s)" % [name, practiced, required, hint])
+	lines.append("Tag styles: %s" % ", ".join(font_names))
 	return "\n".join(lines)
 
 func _crew_text() -> String:

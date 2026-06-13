@@ -22,6 +22,7 @@ const DECAY_PER_TICK := 2.0
 ## Unattended blocks cool faster (Plan.md section 12, Milestone 18).
 const ABSENT_DECAY_MULT := 2.0
 const MAX_HEAT := 100.0
+const GraffitiFonts := preload("res://Scripts/Walls/graffiti_font_library.gd")
 
 const LEVELS := [
 	{"name": "Cold", "min": 0.0},
@@ -113,8 +114,10 @@ func _on_wall_painted(wall_id: String, graffiti: Dictionary) -> void:
 	var def := WallManager.wall_def(wall_id)
 	var style: Dictionary = WallManager.styles.get(String(graffiti.get("type", "tag")), {})
 	var risk := float(def.get("risk", 1))
+	var font_style := GraffitiFonts.style_def(String(graffiti.get("fontStyle", "")))
 	# Stealth stat/perks dampen the noise (Milestone 17).
 	add_heat(float(style.get("heatValue", 4)) * (0.5 + 0.25 * risk)
+		* float(font_style.get("exposure", 1.0))
 		* StatsManager.heat_multiplier(),
 		String(def.get("districtId", "")))
 

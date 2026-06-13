@@ -13,6 +13,7 @@ signal cash_changed(new_cash: int)
 signal alias_changed(new_alias: String)
 signal graffiti_type_changed(new_type: String)
 signal fill_color_changed(color_name: String)
+signal tag_font_style_changed(style_id: String)
 ## Milestone 18: which block the writer is standing in. Travel points
 ## set it; HeatManager, PatrolManager, and the HUD read it.
 signal district_changed(district_id: String)
@@ -33,6 +34,9 @@ const RANKS := [
 ## single source for everyone who loops them (player can selection,
 ## Hud.MODAL_SLOT_ACTIONS length).
 const SLOT_COUNT := 6
+const GraffitiFonts := preload("res://Scripts/Walls/graffiti_font_library.gd")
+const FONT_PRACTICE_TOY_RESPONSE_CUT := 0.04
+const FONT_PRACTICE_RESPONSE_FLOOR := 0.8
 
 const FILL_COLORS := [
 	{"name": "White", "hex": "#f2f2f2"},
@@ -51,6 +55,9 @@ var paint := 20
 var cash := 25
 var selected_graffiti_type := "tag"
 var unlocked_types := {"tag": true}
+var selected_tag_font_style_id := "ff_comma_trial"
+var unlocked_tag_font_styles := {"ff_comma_trial": true}
+var tag_font_practice_counts: Dictionary = {}
 var colors_unlocked := false
 var fill_color_index := 0
 var extra_fill_colors: Array = []  # rare colors bought from the shop
@@ -70,6 +77,9 @@ func save_state() -> Dictionary:
 		"cash": cash,
 		"selected_graffiti_type": selected_graffiti_type,
 		"unlocked_types": unlocked_types.duplicate(true),
+		"selected_tag_font_style_id": selected_tag_font_style_id,
+		"unlocked_tag_font_styles": unlocked_tag_font_styles.duplicate(true),
+		"tag_font_practice_counts": tag_font_practice_counts.duplicate(true),
 		"colors_unlocked": colors_unlocked,
 		"fill_color_index": fill_color_index,
 		"extra_fill_colors": extra_fill_colors.duplicate(true),
@@ -87,6 +97,12 @@ func load_state(data: Dictionary) -> void:
 	cash = int(data.get("cash", cash))
 	selected_graffiti_type = String(data.get("selected_graffiti_type", selected_graffiti_type))
 	unlocked_types = data.get("unlocked_types", unlocked_types).duplicate(true)
+	selected_tag_font_style_id = String(data.get("selected_tag_font_style_id", selected_tag_font_style_id))
+	unlocked_tag_font_styles = data.get("unlocked_tag_font_styles", unlocked_tag_font_styles).duplicate(true)
+	_normalize_unlocked_tag_font_styles()
+	tag_font_practice_counts = data.get("tag_font_practice_counts", tag_font_practice_counts).duplicate(true)
+	if not is_tag_font_style_unlocked(selected_tag_font_style_id):
+		selected_tag_font_style_id = GraffitiFonts.default_style_id()
 	colors_unlocked = bool(data.get("colors_unlocked", colors_unlocked))
 	extra_fill_colors = data.get("extra_fill_colors", extra_fill_colors).duplicate(true)
 	fill_color_index = clampi(int(data.get("fill_color_index", fill_color_index)), 0, fill_palette().size() - 1)
@@ -101,6 +117,7 @@ func load_state(data: Dictionary) -> void:
 	paint_changed.emit(paint)
 	cash_changed.emit(cash)
 	graffiti_type_changed.emit(selected_graffiti_type)
+	tag_font_style_changed.emit(selected_tag_font_style_id)
 	fill_color_changed.emit(current_fill_color_name())
 	alias_changed.emit(alias)
 
@@ -182,6 +199,82 @@ func unlock_type(type: String) -> void:
 
 func is_type_unlocked(type: String) -> bool:
 	return bool(unlocked_types.get(type, false))
+
+func selected_tag_font_style() -> String:
+	selected_tag_font_style_id = GraffitiFonts.resolve_style_id(selected_tag_font_style_id)
+	if not is_tag_font_style_unlocked(selected_tag_font_style_id):
+		selected_tag_font_style_id = GraffitiFonts.default_style_id()
+	return selected_tag_font_style_id
+
+func select_tag_font_style(style_id: String) -> void:
+	style_id = GraffitiFonts.resolve_style_id(style_id)
+	if not is_tag_font_style_unlocked(style_id):
+		return
+	selected_tag_font_style_id = style_id
+	tag_font_style_changed.emit(style_id)
+
+func unlock_tag_font_style(style_id: String) -> void:
+	style_id = GraffitiFonts.resolve_style_id(style_id)
+	if not GraffitiFonts.is_valid_style(style_id):
+		return
+	unlocked_tag_font_styles[style_id] = true
+	tag_font_style_changed.emit(selected_tag_font_style_id)
+
+func is_tag_font_style_unlocked(style_id: String) -> bool:
+	style_id = GraffitiFonts.resolve_style_id(style_id)
+	return bool(unlocked_tag_font_styles.get(style_id, false)) \
+		and GraffitiFonts.is_valid_style(style_id)
+
+func _normalize_unlocked_tag_font_styles() -> void:
+	var normalized := {}
+	for style_id in unlocked_tag_font_styles:
+		var resolved := GraffitiFonts.resolve_style_id(String(style_id))
+		if GraffitiFonts.is_valid_style(resolved) and bool(unlocked_tag_font_styles[style_id]):
+			normalized[resolved] = true
+	normalized[GraffitiFonts.default_style_id()] = true
+	unlocked_tag_font_styles = normalized
+
+func practice_tag_font_style(style_id: String) -> Dictionary:
+	style_id = GraffitiFonts.resolve_style_id(style_id)
+	var style := GraffitiFonts.style_def(style_id)
+	if style.is_empty():
+		return {"ok": false, "reason": "Unknown tag style."}
+	var required_level := int(style.get("level", 0))
+	if StatsManager.level("style") < required_level:
+		return {"ok": false, "reason": "%s needs Style level %d." % [
+			GraffitiFonts.style_label(style_id), required_level]}
+	var count := practice_count_for_tag_font_style(style_id) + 1
+	var required := int(style.get("practiceRequired", 5))
+	tag_font_practice_counts[style_id] = count
+	if count >= required:
+		unlock_tag_font_style(style_id)
+	return {"ok": true, "count": count, "required": required,
+		"unlocked": is_tag_font_style_unlocked(style_id)}
+
+func practice_count_for_tag_font_style(style_id: String) -> int:
+	style_id = GraffitiFonts.resolve_style_id(style_id)
+	return int(tag_font_practice_counts.get(style_id, 0))
+
+func toy_response_multiplier(style_id: String) -> float:
+	style_id = GraffitiFonts.resolve_style_id(style_id)
+	var style := GraffitiFonts.style_def(style_id)
+	if bool(style.get("toyStyle", false)):
+		return 1.0
+	var required := maxi(int(style.get("practiceRequired", 5)), 1)
+	var practice := mini(practice_count_for_tag_font_style(style_id), required)
+	return maxf(1.0 - FONT_PRACTICE_TOY_RESPONSE_CUT * practice, FONT_PRACTICE_RESPONSE_FLOOR)
+
+func gear_suspicion_multiplier() -> float:
+	var carried_cans := 0
+	for type in unlocked_types:
+		if is_type_unlocked(String(type)):
+			carried_cans += 1
+	var multiplier := 1.0 + maxf(carried_cans - 1, 0) * 0.03
+	if is_type_unlocked("stencil"):
+		multiplier += 0.08
+	var font_style := GraffitiFonts.style_def(selected_tag_font_style())
+	multiplier += float(font_style.get("gearSuspicion", 0.0))
+	return multiplier
 
 func set_district(district_id: String) -> void:
 	if district_id == current_district_id or district_id == "":

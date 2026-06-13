@@ -6,6 +6,8 @@ var _body_mesh: MeshInstance3D
 var _graffiti_label: Label3D
 var _phase_label: Label3D
 
+const GraffitiFonts := preload("res://Scripts/Walls/graffiti_font_library.gd")
+
 func setup(train_def: Dictionary) -> void:
 	def = train_def.duplicate(true)
 	name = "TrainCar_%s" % String(def.get("trainId", ""))
@@ -88,6 +90,7 @@ func refresh_from_state() -> void:
 		_graffiti_label.text = String(g.get("alias", GameState.alias)).to_upper()
 		_graffiti_label.modulate = Color(String(g.get("fillColor", "#ffd23f")))
 		_graffiti_label.outline_modulate = Color(String(g.get("outlineColor", "#101018")))
+		GraffitiFonts.apply_to_label(_graffiti_label, String(g.get("fontStyle", GraffitiFonts.default_style_id())))
 
 func _size() -> Vector3:
 	var size: Array = def.get("size", [7.5, 2.2, 2.4])

@@ -1,0 +1,159 @@
+{
+  "ff_comma_trial": {
+    "label": "FF Comma Trial",
+    "path": "res://Assets/Fonts/TagStyles/FFCommaTrial-Regular.ttf",
+    "level": 0,
+    "family": "hand",
+    "tool": "marker",
+    "toyStyle": true,
+    "unlockedByDefault": true,
+    "practiceRequired": 0,
+    "notes": "toy/default marker hand"
+  },
+  "against_myself": {
+    "label": "Against Myself",
+    "path": "res://Assets/Fonts/TagStyles/Against Myself.ttf",
+    "level": 1,
+    "family": "throw",
+    "tool": "spray",
+    "practiceRequired": 5,
+    "lockedHint": "practice this throw in the blackbook"
+  },
+  "digitag": {
+    "label": "Digitag",
+    "path": "res://Assets/Fonts/TagStyles/Digitag.ttf",
+    "level": 2,
+    "family": "hand",
+    "tool": "marker",
+    "practiceRequired": 5,
+    "lockedHint": "practice this marker hand"
+  },
+  "don_graffiti": {
+    "label": "Don Graffiti",
+    "path": "res://Assets/Fonts/TagStyles/DonGraffiti.otf",
+    "level": 3,
+    "family": "hand",
+    "tool": "marker",
+    "practiceRequired": 5,
+    "lockedHint": "practice this marker hand"
+  },
+  "hoax_vandal": {
+    "label": "Hoax Vandal",
+    "path": "res://Assets/Fonts/TagStyles/Hoax Vandal.otf",
+    "level": 3,
+    "family": "hand",
+    "tool": "marker",
+    "practiceRequired": 5,
+    "lockedHint": "practice this marker hand"
+  },
+  "hoax_vandal_ttf": {
+    "label": "Hoax Vandal TTF",
+    "path": "res://Assets/Fonts/TagStyles/Hoax Vandal.ttf",
+    "level": 3,
+    "family": "hand",
+    "tool": "marker",
+    "practiceRequired": 5,
+    "lockedHint": "practice this marker hand"
+  },
+  "maelstrom": {
+    "label": "Maelstrom",
+    "path": "res://Assets/Fonts/TagStyles/MAELS___.TTF",
+    "level": 4,
+    "family": "wildstyle",
+    "tool": "spray",
+    "practiceRequired": 5,
+    "exposure": 1.35,
+    "notes": "longest paint time, strong heaven-spot payoff",
+    "lockedHint": "practice wildstyle structure"
+  },
+  "namskow_orange": {
+    "label": "Namskow Orange",
+    "path": "res://Assets/Fonts/TagStyles/Namskow-Orange.ttf",
+    "level": 4,
+    "family": "throw",
+    "tool": "spray",
+    "practiceRequired": 5,
+    "lockedHint": "practice this throw"
+  },
+  "namskow_blue": {
+    "label": "Namskow Blue",
+    "path": "res://Assets/Fonts/TagStyles/Namskow-Blue.ttf",
+    "level": 4,
+    "family": "throw",
+    "tool": "spray",
+    "practiceRequired": 5,
+    "lockedHint": "practice this throw"
+  },
+  "namskow_green": {
+    "label": "Namskow Green",
+    "path": "res://Assets/Fonts/TagStyles/Namskow-Green.ttf",
+    "level": 4,
+    "family": "throw",
+    "tool": "spray",
+    "practiceRequired": 5,
+    "lockedHint": "practice this throw"
+  },
+  "namskow_white": {
+    "label": "Namskow White",
+    "path": "res://Assets/Fonts/TagStyles/Namskow-White.ttf",
+    "level": 4,
+    "family": "throw",
+    "tool": "spray",
+    "practiceRequired": 5,
+    "lockedHint": "practice this throw"
+  },
+  "punk_kid": {
+    "label": "Punk Kid",
+    "path": "res://Assets/Fonts/TagStyles/punk kid.ttf",
+    "level": 3,
+    "family": "stencil_art",
+    "tool": "stencil",
+    "practiceRequired": 5,
+    "gearSuspicion": 0.08,
+    "lockedHint": "practice and carry a stencil"
+  },
+  "secret_labs": {
+    "label": "Secret Labs",
+    "path": "res://Assets/Fonts/TagStyles/secret.ttf",
+    "level": 1,
+    "family": "scratch_hand",
+    "tool": "scratch",
+    "practiceRequired": 5,
+    "glass": true,
+    "oneColor": true,
+    "opacity": 0.5,
+    "notes": "glass scratch, greyscale only",
+    "lockedHint": "practice glass scratch hands"
+  },
+  "simple_rounded": {
+    "label": "SimpleRounded",
+    "path": "res://Assets/Fonts/TagStyles/SimpleRounded.ttf",
+    "level": 1,
+    "family": "throw",
+    "tool": "spray",
+    "practiceRequired": 5,
+    "lockedHint": "practice this throw"
+  },
+  "street_toxic": {
+    "label": "Street Toxic",
+    "path": "res://Assets/Fonts/TagStyles/StreetToxicDemo.otf",
+    "level": 2,
+    "family": "hand",
+    "tool": "acid",
+    "practiceRequired": 5,
+    "glass": true,
+    "orientations": ["horizontal", "vertical"],
+    "lockedHint": "practice acid hands"
+  },
+  "the_battle_continuez": {
+    "label": "The Battle Continuez",
+    "path": "res://Assets/Fonts/TagStyles/TheBattleCont.ttf",
+    "level": 2,
+    "family": "hand",
+    "tool": "acid",
+    "practiceRequired": 5,
+    "glass": true,
+    "orientations": ["horizontal", "vertical"],
+    "lockedHint": "practice acid hands"
+  }
+}

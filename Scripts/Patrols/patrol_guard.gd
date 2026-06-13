@@ -76,7 +76,8 @@ func end_chase() -> void:
 ## the effective range (Milestone 17).
 func can_see(target: CollisionObject3D) -> bool:
 	var to := target.global_position - global_position
-	if to.length() > _spot_range * StatsManager.spot_range_multiplier():
+	if to.length() > _spot_range * StatsManager.spot_range_multiplier() \
+			* GameState.gear_suspicion_multiplier():
 		return false
 	if (-global_transform.basis.z).dot(to.normalized()) < 0.25:
 		return false
@@ -88,7 +89,8 @@ func can_see(target: CollisionObject3D) -> bool:
 ## cone (the guard turned around at some point).
 func noticed_during(target: CollisionObject3D, range_mult: float) -> bool:
 	var to := target.global_position - global_position
-	if to.length() > _spot_range * range_mult * StatsManager.spot_range_multiplier():
+	if to.length() > _spot_range * range_mult * StatsManager.spot_range_multiplier() \
+			* GameState.gear_suspicion_multiplier():
 		return false
 	return _clear_line_to(target)
 
