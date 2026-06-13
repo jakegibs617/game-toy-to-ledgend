@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-06-13 — Interactive Ladder Climb (Product_reqs.md)
+
+Climb routes are now ladders the player rides by hand instead of an
+instant dice-roll teleport.
+
+- Climb zones render an actual rail-and-rung ladder running from the
+  foot up to the exit, replacing the old slim-pipe hint.
+- Committing to a climb (E) rolls the Milestone 19 slip once at the
+  foot; clearing it attaches the player to the ladder for a controllable
+  ride. Forward/back climbs up/down, direction can change at any time,
+  reaching the exit summits (and still fires district transitions), and
+  dropping back to the foot — or Space — steps off without summiting.
+- The ladder-climb clip now plays continuously while climbing: forward
+  going up, reversed going down, paused when holding a rung. World
+  actions (paint/interact/freehand) are suppressed while on the ladder.
+- `ClimbZone.resolve(success)` is unchanged so the deterministic
+  test/scripted path (and the guard climb clip) still work.
+- Smoke coverage drives the interactive climb headlessly: attach at the
+  foot, reverse mid-climb, summit at the top, and step off at the foot.
+
 ## 2026-06-13 — Milestone 30: Rooftop Traversal Polish (Plan_v3.md)
 
 Rooftop Row now communicates its risk and return path more clearly.

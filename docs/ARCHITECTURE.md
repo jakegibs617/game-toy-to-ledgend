@@ -62,8 +62,13 @@ available action into a `CharacterModel` container and records:
 state name → model node, animation player, animation name. Movement
 selects idle/walk/backpedal/run/jump; idle plays as a slow breathing
 loop instead of a frozen pose. World interactions can request
-short contextual clips via `Player.play_context_animation` (climbs use
-`"climb"` today). Add future actions by importing a GLB, registering
+short contextual clips via `Player.play_context_animation` (the
+deterministic `ClimbZone.resolve` and guards still play `"climb"` this
+way). Ladder climbs instead use `Player.begin_climb(entry, exit, zone)`:
+the player rides the entry→exit line by hand (forward/back, reversible),
+the `"climb"` clip runs continuously with its speed driven by climb
+direction, and reaching the exit calls back to `ClimbZone.complete_climb`.
+Add future actions by importing a GLB, registering
 its path + animation name in `player.gd`, and triggering the state from
 the gameplay event rather than hard-coding animation logic into the
 world object.

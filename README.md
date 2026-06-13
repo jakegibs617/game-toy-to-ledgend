@@ -47,7 +47,9 @@ timings, caught/fall/starvation counters, and the event ledger for the run.
 | Controller left/right stick | Move / look |
 | Shift | Run |
 | Space | Jump |
-| E | Paint focused wall / talk / shop / pick up (in a conversation: walk away) |
+| E | Paint focused wall / talk / shop / pick up / grab a ladder (in a conversation: walk away) |
+| W/S (on a ladder) | Climb up / down — reverse any time; ride to the top to summit, back to the foot to step off |
+| Space (on a ladder) | Hop off the ladder |
 | 1–6 | Select can: Tag / Throw-up / Piece / Stencil / Roller / Mural (in shop: buy/delivery; in dialogue: choose; in blackbook: flip pages) |
 | [ / ] | Previous / next unlocked can |
 | C | Cycle fill color after Lupe unlocks colors (also in the freehand canvas) |
@@ -70,10 +72,14 @@ prompt appears at the bottom of the screen, then press E. Once the Mill
 Yard is claimed, cross the canal footbridge east (E at the gate) into
 Canal Side — Ghost Line turf with its own mission chain, walls, patrols,
 and heat: each block heats and cools on its own, and a block you leave
-cools twice as fast. Glowing drainpipes mark climb routes (E to climb,
-slip risk shown) up to the rooftop roller spots — security won't follow
-you up, but a fall costs rep. A fire escape at the Canal Side rail
-edge climbs into Rooftop Row, the third district: all parapets, high
+cools twice as fast. Glowing rail-and-rung ladders mark climb routes up
+to the rooftop roller spots — security won't follow you up. Press E at
+the foot to grab the ladder (the slip risk shown is rolled on that
+commit, and a slip costs rep); once on, climb up and down by hand with
+W/S, change direction whenever you like, ride to the top to summit or
+back to the foot to step off, and Space hops off mid-ladder. A fire
+escape at the Canal Side rail edge climbs into Rooftop Row, the third
+district: all parapets, high
 wind, edge-warning paint, and roller-sized walls with no footbridge gate.
 Use the Canal Descent climb to get back down. At Canal Side's
 east-edge train siding, paint a stopped car with E before it rolls out;
@@ -91,8 +97,9 @@ prefers the animated action set in `Assets/Characters/`: idle, walk,
 walk backward, run-fast, jump, ladder climb, and vault. Normal WASD
 movement walks, S without Shift uses the backward walk, Shift+WASD
 runs, Space plays the jump clip while airborne, idle breathes instead
-of freezing, and successful climb interactions briefly play the ladder
-climb. The vault clip is imported for future use but has no gameplay
+of freezing, and the ladder-climb clip plays continuously while riding a
+ladder — forward up, reversed when climbing down, paused between rungs.
+The vault clip is imported for future use but has no gameplay
 trigger yet. If Godot asset import has not run once (opening the editor, or
 `Godot --headless --path . --import`), the game falls back to the
 static rooster GLB, then the old debug capsule.

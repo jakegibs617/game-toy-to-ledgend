@@ -30,6 +30,7 @@ const AnimatedModelSet := preload("res://Scripts/Characters/animated_model_set.g
 
 const WALK_SPEED := 4.0
 const RUN_SPEED := 7.5
+const CLIMB_SPEED := 3.2
 const JUMP_VELOCITY := 4.5
 const MOUSE_SENSITIVITY := 0.0025
 const JOY_LOOK_SENSITIVITY := 2.4
@@ -48,6 +49,13 @@ var _visual_animation_names: Dictionary = {}
 var _active_visual_state := ""
 var _action_visual_state := ""
 var _action_visual_time_left := 0.0
+# Interactive ladder climb (Product_reqs ladder feature). While active the
+# player rides the entry→exit line by hand instead of free movement.
+var _climb_active := false
+var _climb_entry := Vector3.ZERO
+var _climb_exit := Vector3.ZERO
+var _climb_zone: Node = null
+var _climb_t := 0.0
 
 func _ready() -> void:
 	name = "Player"
@@ -203,6 +211,73 @@ func play_context_animation(state: String, duration := 0.75) -> void:
 	_action_visual_time_left = duration
 	_set_visual_state(state)
 
+## Attach to a ladder for a controllable, reversible climb (Product_reqs
+## ladder feature). Forward drives up the entry→exit line, back drives
+## down; reaching the exit summits, dropping back to the entry steps off
+## at the foot, and jump detaches mid-ladder. ClimbZone rolls the slip
+## before calling, so the ride itself is safe.
+func begin_climb(entry: Vector3, exit: Vector3, zone: Node) -> void:
+	_climb_active = true
+	_climb_entry = entry
+	_climb_exit = exit
+	_climb_zone = zone
+	_climb_t = 0.0
+	velocity = Vector3.ZERO
+	global_position = entry
+	_action_visual_state = ""
+	_action_visual_time_left = 0.0
+	_update_climb_visual(0.0)
+
+func _process_climb(delta: float) -> void:
+	if Input.is_action_just_pressed("jump"):
+		_end_climb()  # hop off; gravity takes over from here
+		return
+	var axis := Input.get_axis("move_back", "move_forward")
+	_advance_climb(axis, delta)
+	if _climb_active:
+		_update_climb_visual(axis)
+
+## Moves along the ladder by `axis` (+1 up, -1 down). Public/deterministic
+## so the smoke test can drive the climb without polling input.
+func _advance_climb(axis: float, delta: float) -> void:
+	if not _climb_active:
+		return
+	var length := _climb_entry.distance_to(_climb_exit)
+	if length < 0.001:
+		_summit_climb()
+		return
+	_climb_t = clampf(_climb_t + axis * CLIMB_SPEED / length * delta, 0.0, 1.0)
+	global_position = _climb_entry.lerp(_climb_exit, _climb_t)
+	velocity = Vector3.ZERO
+	if _climb_t >= 1.0:
+		_summit_climb()
+	elif _climb_t <= 0.0 and axis < 0.0:
+		_end_climb()  # stepped back down to the foot — no summit
+
+func _summit_climb() -> void:
+	var zone := _climb_zone
+	_end_climb()
+	if zone != null and is_instance_valid(zone) and zone.has_method("complete_climb"):
+		zone.complete_climb()
+
+func _end_climb() -> void:
+	if not _climb_active:
+		return
+	_climb_active = false
+	_climb_zone = null
+	if _visual_animation_players.has("climb"):
+		_visual_animation_players["climb"].speed_scale = 1.0
+	_action_visual_state = ""
+	_action_visual_time_left = 0.0
+
+func _update_climb_visual(axis: float) -> void:
+	if not _visual_models.has("climb"):
+		return
+	_set_visual_state("climb")
+	# Drive the clip by direction: climbing up plays it forward, reversing
+	# plays it backward, holding still pauses on the current rung.
+	_visual_animation_players["climb"].speed_scale = axis
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
 		rotate_y(-event.relative.x * MOUSE_SENSITIVITY)
@@ -214,6 +289,11 @@ func _unhandled_input(event: InputEvent) -> void:
 			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 		else:
 			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	elif _climb_active:
+		# On the ladder, world actions are suppressed; only look and the
+		# mouse toggle above stay live. Up/down and detach are polled in
+		# _process_climb.
+		return
 	elif event.is_action_pressed("interact"):
 		_try_interact()
 	elif event.is_action_pressed("freehand_paint"):
@@ -237,6 +317,9 @@ func _physics_process(delta: float) -> void:
 	if _action_visual_time_left > 0.0:
 		_action_visual_time_left = maxf(_action_visual_time_left - delta, 0.0)
 	_apply_controller_look(delta)
+	if _climb_active:
+		_process_climb(delta)
+		return
 	if not is_on_floor():
 		velocity.y -= _gravity * delta
 	elif Input.is_action_just_pressed("jump"):
