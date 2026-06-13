@@ -7,7 +7,8 @@ wiring to edit).
 ## Read first
 
 * **docs/ARCHITECTURE.md** — system map, signal flow, data schemas. Read before touching code.
-* **Plan_v2.md** — current roadmap (milestones 15+) and engineering recommendations.
+* **Plan_v3.md** — current roadmap (milestones 27+) and PR/review process.
+* **Plan_v2.md** — completed v2 roadmap (milestones 15-26) and engineering history.
 * **Plan.md** — the v1 design doc; cite sections as `Plan.md §N` in comments, as the codebase does.
 * **CHANGELOG.md** — what each milestone shipped; add an entry per milestone.
 
