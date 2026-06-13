@@ -134,6 +134,7 @@ func _chase(delta: float) -> void:
 	# Security won't climb (Milestone 19): once the writer holds the
 	# high ground, the chase is over.
 	if _target.global_position.y - global_position.y > 2.5:
+		play_context_animation("climb", 1.0)
 		state = State.RETURN
 		PatrolManager.guard_gave_up(self)
 		return

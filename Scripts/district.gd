@@ -5,9 +5,11 @@ extends Node3D
 
 const PLAYER_SPAWN := Vector3(0, 0.5, 4)
 const CLIMBS_PATH := "res://Data/climbs.json"
+const AMBIENT_NPCS_PATH := "res://Data/ambient_npcs.json"
 const DataLoader := preload("res://Scripts/Data/data_loader.gd")
 const TravelPointScript := preload("res://Scripts/World/travel_point.gd")
 const ClimbZoneScript := preload("res://Scripts/World/climb_zone.gd")
+const AmbientNpcScript := preload("res://Scripts/World/ambient_npc.gd")
 
 var _material_cache: Dictionary = {}
 
@@ -26,6 +28,7 @@ func _ready() -> void:
 	RivalManager.claim_initial_territory()
 	CrewManager.spawn_npcs(self)
 	MissionManager.spawn_actors(self)
+	_spawn_ambient_npcs()
 
 	var player := Player.new()
 	player.position = PLAYER_SPAWN
@@ -286,6 +289,18 @@ func _spawn_travel_points() -> void:
 		point.setup(travel, String(travel.get("to", "")))
 		add_child(point)
 
+func _spawn_ambient_npcs() -> void:
+	var parsed: Variant = DataLoader.load_json(AMBIENT_NPCS_PATH, "District")
+	if not (parsed is Array):
+		return
+	for def in parsed:
+		if not DataLoader.require_fields(def, ["npcId", "waypoints"],
+				"District: ambient npc \"%s\"" % String(def.get("npcId", "?"))):
+			continue
+		var npc := AmbientNpcScript.new()
+		npc.setup(def)
+		add_child(npc)
+
 func _add_box(pos: Vector3, size: Vector3, color: Color, box_name: String,
 		material: Material = null) -> StaticBody3D:
 	var body := StaticBody3D.new()
@@ -400,6 +415,7 @@ func _run_smoke_test() -> void:
 	_smoke_train_painting()
 	_smoke_gallery()
 	_smoke_history_cap()
+	_smoke_ambient_npc_life()
 	_smoke_player_model()
 	print("SMOKE: OK")
 	get_tree().quit()
@@ -430,6 +446,12 @@ func _smoke_data_validation() -> void:
 
 func _smoke_world_hardening() -> void:
 	assert(_solid_material(Color("#68635a")) == _solid_material(Color("#68635a")))
+	assert(get_node_or_null("local_mill_01") != null)
+	assert(get_node_or_null("local_canal_01") != null)
+	assert(get_node_or_null("local_mill_02") != null)
+	assert(get_node_or_null("local_mill_03") != null)
+	assert(get_node_or_null("local_canal_02") != null)
+	assert(get_node_or_null("local_canal_03") != null)
 	var player := _smoke_player()
 	var blocker := _add_box(player.global_position + Vector3(0, 0.8, -1.0),
 		Vector3(1.0, 1.6, 0.2), Color("#111111"), "SmokeLOSBlock")
@@ -1257,7 +1279,8 @@ func _smoke_rooftop_climbing() -> void:
 	guard._chase(0.016)
 	assert(not guard.is_chasing())
 	assert(escaped[0])
-	print("SMOKE: rooftop climbing — fall fine, roller from the roof, guards stay grounded")
+	assert(guard._action_visual_state == "climb")
+	print("SMOKE: rooftop climbing — fall fine, roller from the roof, guard climb clip")
 	# Back to street level for the sections that follow.
 	player.global_position = PLAYER_SPAWN
 
@@ -1431,6 +1454,42 @@ func _smoke_history_cap() -> void:
 	assert(state["history"].size() == WallManager.MAX_WALL_HISTORY)
 	assert(state["history"][-1]["type"] == "tag")  # newest entry survived
 	print("SMOKE: wall history capped at %d entries" % WallManager.MAX_WALL_HISTORY)
+
+## Assumes: data-driven ambient locals are spawned in both current
+## districts. Milestone 25: locals walk waypoint loops, pause for fresh
+## player work once per wall for a tiny crowd-reaction rep tick, and
+## scatter when the block jumps to Hot heat.
+func _smoke_ambient_npc_life() -> void:
+	GameState.set_district("district_mill_yard")
+	var local := get_node("local_mill_01")
+	var canal_local := get_node("local_canal_02")
+	assert(local != null and canal_local != null)
+	assert(local.walking_speed() > 0.0 and canal_local.walking_speed() > 0.0)
+	GameState.add_paint(3)
+	var rep_before: int = GameState.reputation
+	var wall: PaintableWall = WallManager.wall_nodes["wall_mill_01"]
+	var result: Dictionary = WallManager.paint_wall(wall, "tag")
+	assert(result["ok"])
+	assert(local.crowd_target_wall_id() == "wall_mill_01")
+	local.global_position = wall.global_position
+	local._physics_process(0.016)
+	assert(GameState.reputation == rep_before + int(result["rep"]) + 1)
+	assert(local.crowd_target_wall_id() == "")
+	GameState.add_paint(3)
+	var repeat_rep_before: int = GameState.reputation
+	var repeat_result: Dictionary = WallManager.paint_wall(wall, "tag")
+	assert(repeat_result["ok"])
+	assert(local.crowd_target_wall_id() == "")
+	assert(GameState.reputation == repeat_rep_before + int(repeat_result["rep"]))
+	GameState.add_paint(3)
+	var second_wall: PaintableWall = WallManager.wall_nodes["wall_mill_02"]
+	local.global_position = second_wall.global_position
+	assert(WallManager.paint_wall(second_wall, "tag")["ok"])
+	assert(local.crowd_target_wall_id() == "wall_mill_02")
+	HeatManager.heat = 0.0
+	HeatManager.add_heat(65.0)
+	assert(local.crowd_target_wall_id() == "")
+	print("SMOKE: ambient NPC life — locals react to paint and scatter at Hot heat")
 
 ## Assumes: player exists. The Kronako Iconz rooster GLB replaces the
 ## debug capsule; player.gd prefers the animated action GLBs

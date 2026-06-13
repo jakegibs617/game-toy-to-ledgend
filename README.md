@@ -66,8 +66,10 @@ paint a stopped car with E before it rolls out; painted cars pass
 through both districts on the schedule and keep paying visibility rep.
 Once you're Known, Vesper the gallery scout appears by the Canal Side
 dry dock: sell her freehand canvases for cash and public rep — and
-watch your crew rep pay the price. At the safehouse, E on the crew
-board opens the blackbook's Crew page.
+watch your crew rep pay the price. Locals now walk small loops in both
+districts, stop to clock nearby fresh player paint for a tiny one-time
+crowd rep bump, and scatter when their block gets Hot. At the
+safehouse, E on the crew board opens the blackbook's Crew page.
 
 The player character is the Kronako Iconz neon rooster. `player.gd`
 prefers the animated action set in `Assets/Characters/`: idle, walk,
@@ -236,6 +238,8 @@ Caps and Metro, and the presentation pass is in (Milestone 23) with
 alias/title flow, controller bindings, ambience, and rooster idle
 polish. World/data hardening is in (Milestone 24) with cached generated
 materials, JSON character visual manifests, and interactable line of
-sight; what remains is the rest of that list
-(battles, procedural graffiti, crowd reactions) — deliberately out of
+sight. Ambient NPC life is in (Milestone 25) with waypoint locals,
+crowd-reaction rep ticks, and district-scoped heat scatter; what
+remains is the rest of that list
+(battles, procedural graffiti, deeper crowd simulation) — deliberately out of
 prototype scope per Plan.md §47.

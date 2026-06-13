@@ -1,0 +1,116 @@
+[
+  {
+    "npcId": "local_mill_01",
+    "label": "MILL LOCAL",
+    "districtId": "district_mill_yard",
+    "color": "#7fd6c2",
+    "speed": 1.45,
+    "reactRange": 28.0,
+    "waypoints": [[-20, 0, 5.6], [-8, 0, 5.8], [2, 0, 6.1], [-12, 0, 6.4]],
+    "visuals": {
+      "containerName": "MillLocalModel",
+      "sourceHeight": 1.7,
+      "rotationY": 180,
+      "initialState": "idle",
+      "states": {
+        "idle": {"model": "res://Assets/Characters/lookout_meerkat_idle.glb", "clip": "Armature|clip0|baselayer"},
+        "walk": {"model": "res://Assets/Characters/lookout_meerkat_walking.glb", "clip": "Armature|walking_man|baselayer"}
+      }
+    }
+  },
+  {
+    "npcId": "local_mill_02",
+    "label": "SHIFT KID",
+    "districtId": "district_mill_yard",
+    "color": "#f08ca8",
+    "speed": 1.55,
+    "reactRange": 26.0,
+    "waypoints": [[9, 0, 6.2], [17, 0, 6.4], [19, 0, -4.8], [7, 0, -5.6]],
+    "visuals": {
+      "containerName": "MillShiftKidModel",
+      "sourceHeight": 1.7,
+      "rotationY": 180,
+      "initialState": "idle",
+      "states": {
+        "idle": {"model": "res://Assets/Characters/neon_rooster_character_output.glb", "clip": "Armature|clip0|baselayer"},
+        "walk": {"model": "res://Assets/Characters/neon_rooster_walking.glb", "clip": "Armature|walking_man|baselayer"}
+      }
+    }
+  },
+  {
+    "npcId": "local_mill_03",
+    "label": "LOITERER",
+    "districtId": "district_mill_yard",
+    "color": "#8aa4ff",
+    "speed": 1.25,
+    "reactRange": 24.0,
+    "waypoints": [[-4, 0, -12.0], [3.8, 0, -12.5], [5.5, 0, -6.0], [-7, 0, -6.5]],
+    "visuals": {
+      "containerName": "MillLoitererModel",
+      "sourceHeight": 1.7,
+      "rotationY": 180,
+      "initialState": "idle",
+      "states": {
+        "idle": {"model": "res://Assets/Characters/prime_gori_idle.glb", "clip": "Armature|clip0|baselayer"},
+        "walk": {"model": "res://Assets/Characters/prime_gori_walking.glb", "clip": "Armature|walking_man|baselayer"}
+      }
+    }
+  },
+  {
+    "npcId": "local_canal_01",
+    "label": "DOCK LOCAL",
+    "districtId": "district_canal_side",
+    "color": "#d8c45f",
+    "speed": 1.35,
+    "reactRange": 30.0,
+    "waypoints": [[102, 0, 5.9], [116, 0, 6.2], [132, 0, 5.7], [120, 0, -5.8]],
+    "visuals": {
+      "containerName": "CanalLocalModel",
+      "sourceHeight": 1.7,
+      "rotationY": 180,
+      "initialState": "idle",
+      "states": {
+        "idle": {"model": "res://Assets/Characters/lupe_rat_idle.glb", "clip": "Armature|clip0|baselayer"},
+        "walk": {"model": "res://Assets/Characters/lupe_rat_walking.glb", "clip": "Armature|walking_man|baselayer"}
+      }
+    }
+  },
+  {
+    "npcId": "local_canal_02",
+    "label": "YARD RUNNER",
+    "districtId": "district_canal_side",
+    "color": "#aee46b",
+    "speed": 1.65,
+    "reactRange": 30.0,
+    "waypoints": [[138, 0, -6.0], [150, 0, -6.0], [152, 0, 5.4], [137, 0, 5.7]],
+    "visuals": {
+      "containerName": "CanalRunnerModel",
+      "sourceHeight": 1.7,
+      "rotationY": 180,
+      "initialState": "idle",
+      "states": {
+        "idle": {"model": "res://Assets/Characters/lookout_meerkat_idle.glb", "clip": "Armature|clip0|baselayer"},
+        "walk": {"model": "res://Assets/Characters/lookout_meerkat_walking.glb", "clip": "Armature|walking_man|baselayer"}
+      }
+    }
+  },
+  {
+    "npcId": "local_canal_03",
+    "label": "COMMUTER",
+    "districtId": "district_canal_side",
+    "color": "#ffbc6b",
+    "speed": 1.4,
+    "reactRange": 28.0,
+    "waypoints": [[54, 0, 4.0], [63, 0, 4.2], [64, 0, -4.8], [53, 0, -4.5]],
+    "visuals": {
+      "containerName": "CanalCommuterModel",
+      "sourceHeight": 1.7,
+      "rotationY": 180,
+      "initialState": "idle",
+      "states": {
+        "idle": {"model": "res://Assets/Characters/neon_rooster_character_output.glb", "clip": "Armature|clip0|baselayer"},
+        "walk": {"model": "res://Assets/Characters/neon_rooster_walking.glb", "clip": "Armature|walking_man|baselayer"}
+      }
+    }
+  }
+]
