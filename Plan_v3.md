@@ -242,6 +242,10 @@ Review focus:
 * Avoid turning Rooftop Row into a tutorial wall of text.
 * Controller and keyboard prompts both remain accurate.
 
+**Status:** complete in PR #28. Rooftop Row climb/descent prompts are
+context-aware, first entry gives a return-route hint, and the generated
+deck now includes non-text edge/wind hazard tells with smoke coverage.
+
 ## Milestone 31: Performance & Runtime Budget Pass
 
 Purpose: know the cost of the current city before adding another major

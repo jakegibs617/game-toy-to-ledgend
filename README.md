@@ -74,7 +74,8 @@ cools twice as fast. Glowing drainpipes mark climb routes (E to climb,
 slip risk shown) up to the rooftop roller spots — security won't follow
 you up, but a fall costs rep. A fire escape at the Canal Side rail
 edge climbs into Rooftop Row, the third district: all parapets, high
-wind, and roller-sized walls with no footbridge gate. At Canal Side's
+wind, edge-warning paint, and roller-sized walls with no footbridge gate.
+Use the Canal Descent climb to get back down. At Canal Side's
 east-edge train siding, paint a stopped car with E before it rolls out;
 painted cars pass through all three districts on the schedule and keep
 paying visibility rep.

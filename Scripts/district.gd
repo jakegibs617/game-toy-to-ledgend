@@ -174,8 +174,22 @@ func _build_rooftop_row() -> void:
 	_add_box(Vector3(180, 18.65, -16.8), Vector3(52, 1.0, 0.8), Color("#32363a"), "RooftopRowNorthParapet")
 	_add_box(Vector3(180, 18.65, 16.8), Vector3(52, 1.0, 0.8), Color("#32363a"), "RooftopRowSouthParapet")
 	_add_box(Vector3(154, 9, -3), Vector3(0.4, 18, 3), Color("#202328"), "RooftopRowTrainBelow")
+	_add_rooftop_hazard_tells()
 	for lamp_pos in [Vector3(164, 18.4, 9), Vector3(180, 18.4, -9), Vector3(196, 18.4, 8)]:
 		_add_street_lamp(lamp_pos)
+
+func _add_rooftop_hazard_tells() -> void:
+	for z in [-15.4, 15.4]:
+		_add_flat_box(Vector3(180, 18.46, z), Vector3(48.0, 0.018, 0.12),
+			Color("#e0c34a", 0.85), "RooftopEdgeWarning")
+		for x in [160.0, 168.0, 176.0, 184.0, 192.0, 200.0]:
+			_add_flat_box(Vector3(x, 18.48, z), Vector3(1.8, 0.02, 0.14),
+				Color("#1f2327", 0.9), "RooftopEdgeStripe")
+	for x in [166.0, 178.0, 190.0]:
+		_add_flat_box(Vector3(x, 18.49, -4.0), Vector3(4.4, 0.014, 0.055),
+			Color("#9fd8e8", 0.55), "RooftopWindTell")
+		_add_flat_box(Vector3(x + 1.4, 18.5, -2.9), Vector3(3.0, 0.014, 0.045),
+			Color("#9fd8e8", 0.38), "RooftopWindTell")
 
 ## First outside-street art pass: readable asphalt, sidewalks, gutters,
 ## lane/crosswalk paint, metal covers, drains, stains, and small litter.
@@ -1408,8 +1422,16 @@ func _smoke_rooftop_row() -> void:
 	var player := _smoke_player()
 	var climb := get_node_or_null("ClimbZone_climb_rooftop_row_access")
 	assert(climb != null)
+	assert(climb.prompt_text().contains("Climb to Rooftop Row"))
+	assert(find_child("RooftopEdgeWarning", true, false) != null)
+	assert(find_child("RooftopWindTell", true, false) != null)
+	var climb_events: Array = []
+	GameState.player_event.connect(func(message: String) -> void:
+		climb_events.append(message))
 	climb.resolve(true)
 	assert(GameState.current_district_id == "district_rooftop_row")
+	assert(not climb_events.is_empty())
+	assert(String(climb_events[-1]).contains("CANAL DESCENT"))
 	assert(player.global_position.distance_to(Vector3(174, 18.9, 0)) < 1.2)
 	assert(String(MissionManager.current_chain().get("chainId", "")) == "rooftop_row")
 	assert(String(MissionManager.current_mission().get("missionId", "")) == "m10_updraft")
@@ -1425,11 +1447,13 @@ func _smoke_rooftop_row() -> void:
 	assert("district_rooftop_row" in TrainManager.train_def("canal_ghost_local")["serviceDistricts"])
 	var down := get_node_or_null("ClimbZone_climb_rooftop_row_descent")
 	assert(down != null)
+	assert(down.prompt_text().contains("Descend to Canal Side"))
 	down.resolve(true)
 	assert(GameState.current_district_id == "district_canal_side")
+	assert(String(climb_events[-1]).contains("Canal Side"))
 	player.global_position = PLAYER_SPAWN
 	GameState.set_district("district_mill_yard")
-	print("SMOKE: Rooftop Row — climb entry, roller claim, train route")
+	print("SMOKE: Rooftop Row — climb prompts, hazard tells, roller claim, train route")
 
 ## Assumes: rank is Known+ (mill chain), the canal chain is done (the
 ## gallery chain activated on its rank trigger), the piece can is
