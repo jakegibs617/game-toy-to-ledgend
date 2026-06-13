@@ -468,6 +468,7 @@ func _run_smoke_test() -> void:
 	_smoke_history_cap()
 	_smoke_ambient_npc_life()
 	_smoke_player_model()
+	_smoke_rival_tagger_model()
 	_smoke_balance_invariants()
 	_smoke_playtest_metrics()
 	print("SMOKE: OK")
@@ -1429,6 +1430,11 @@ func _smoke_ladder_climb() -> void:
 		player._advance_climb(1.0, 0.1)
 	assert(not player._climb_active)
 	assert(player.global_position.distance_to(exit) < 0.5)
+	# Topping out plays the over-the-ledge finish clip (Product_reqs.md).
+	if ResourceLoader.exists(Player.CLIMB_FINISH_MODEL_PATH):
+		assert(player._visual_models.has("climb_finish"))
+		assert(player._action_visual_state == "climb_finish")
+		assert(player._action_visual_time_left > 0.0)
 	# Stepping back down to the foot drops off without summiting.
 	player.begin_climb(entry, exit, climb)
 	for _i in 30:
@@ -1720,18 +1726,46 @@ func _smoke_player_model() -> void:
 				assert(player._idle_states.has(variant))
 				assert(String(player._visual_animation_names[variant]) == String(spec[1]))
 		if not player._idle_states.is_empty():
-			player._set_idle_state(0.0)
+			player._set_idle_state()
 			var first_idle := player._idle_choice
 			assert(player._idle_states.has(first_idle))
 			assert(player._active_visual_state == first_idle)
-			# Letting the swap timer elapse rotates to a different idle.
-			player._set_idle_state(Player.IDLE_SWAP_MAX + 1.0)
+			# Staying idle holds the same stance — it must not rotate while
+			# standing still (Product_reqs.md).
+			for _i in range(20):
+				player._set_idle_state()
+				assert(player._idle_choice == first_idle)
+			# Moving away and settling back re-rolls the idle stance.
+			player._set_visual_state("walk")
+			player._set_idle_state()
 			assert(player._idle_states.has(player._idle_choice))
-			if player._idle_states.size() > 1:
-				assert(player._idle_choice != first_idle)
+			assert(player._active_visual_state == player._idle_choice)
 	print("SMOKE: player visual = %s (%d idle variants)" % [
 		"animated rooster action set" if has_model else "capsule fallback",
 		player._idle_states.size()])
+
+## A spawned rival tagger wears the Hooded Fox Warrior model and swaps to
+## the spray-beat idle when it reaches the wall (Product_reqs.md), falling
+## back to the colored capsule when the GLBs aren't imported.
+func _smoke_rival_tagger_model() -> void:
+	var wall: PaintableWall = WallManager.wall_nodes[_first_wall_id()]
+	var tagger := RivalTaggerScript.new()
+	add_child(tagger)
+	tagger.begin(wall, {"tag": "VEK", "fillColor": "#d94f6c"}, func() -> void: pass)
+	var animated := ResourceLoader.exists(RivalTaggerScript.RUN_MODEL_PATH)
+	if animated:
+		assert(tagger.get_node_or_null("HoodedFoxModel") != null)
+		for state in ["idle", "walk", "run", "run_fast"]:
+			assert(tagger._visual_animation_players.has(state))
+		# Running in shows the run clip; the spray beat settles into idle.
+		tagger._update_visual_animation()
+		assert(tagger._active_visual_state == "run")
+		tagger._state = tagger.State.TAG
+		tagger._update_visual_animation()
+		assert(tagger._active_visual_state == "idle")
+	tagger.queue_free()
+	print("SMOKE: rival tagger visual = %s" % [
+		"hooded fox warrior" if animated else "capsule fallback"])
 
 ## Plan_v3.md Milestone 27: the smoke path doubles as a repeatable
 ## baseline capture. The recorder is passive in normal play; this

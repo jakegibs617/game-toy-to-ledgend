@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-06-13 — Climb Finish, Ladder Pose, Rival Fox Model (Product_reqs.md)
+
+Polish pass on the climb and rival visuals.
+
+- Topping out a ladder now plays an over-the-ledge finish clip. The
+  Kronako `Ladder_Climb_Finish` GLB is imported as
+  `neon_rooster_ladder_climb_finish.glb` and registered as the
+  `climb_finish` visual state; `player.gd` plays it on summit
+  (`_summit_climb`), skipping silently if the GLB isn't imported.
+- The climbing pose is nudged onto the ladder. `CLIMB_VISUAL_OFFSET`
+  shifts just the climb model left and a touch toward the wall so the
+  body no longer floats off to the right of the rungs.
+- Rival taggers wear the Hooded Fox Warrior model instead of a colored
+  capsule. Four clips (`Idle_02`, `walking_man`, `running`, `RunFast`)
+  import as `hooded_fox_warrior_*.glb`; `rival_tagger.gd` runs in on the
+  run clip and settles into idle for the spray beat, falling back to the
+  capsule when the GLBs are missing. The crew color still rides on the
+  spray can and name tag.
+- Smoke coverage asserts the climb finish triggers on summit and that a
+  spawned tagger builds the fox model and swaps run→idle for the tag.
+
 ## 2026-06-13 — Random Idle Animations (Product_reqs.md)
 
 The main character no longer stands in a single breathing pose.
@@ -7,13 +28,14 @@ The main character no longer stands in a single breathing pose.
 - Three Kronako idle clips (`Idle_4`, `Idle_6`, `Idle_11`) are imported
   to `Assets/Characters/` as `neon_rooster_idle_*.glb` and registered as
   extra idle visual states alongside the legacy idle.
-- `player.gd` picks a random idle when the player stops moving and
-  swaps to a different random one every few seconds (`_set_idle_state`,
-  3–6s timer). Each idle clip is forced to loop so it never freezes
-  between swaps. Missing imports just shrink the pool — with none, it
-  falls back to the single legacy idle.
-- Smoke coverage asserts the idle variants build with their clips and
-  that letting the swap timer elapse rotates to a different idle.
+- `player.gd` picks a random idle when the player settles from movement
+  and holds that stance for the whole idle (`_set_idle_state`); the pose
+  only changes the next time idle re-activates, not while standing still.
+  Each idle clip is forced to loop so it never freezes. Missing imports
+  just shrink the pool — with none, it falls back to the legacy idle.
+- Smoke coverage asserts the idle variants build with their clips, that
+  the stance holds across repeated idle frames, and that moving away and
+  settling back re-rolls it.
 
 ## 2026-06-13 — Rival Tagger Run-Up + Retaliation Floor (Product_reqs.md)
 
