@@ -11,6 +11,7 @@ const TravelPointScript := preload("res://Scripts/World/travel_point.gd")
 const ClimbZoneScript := preload("res://Scripts/World/climb_zone.gd")
 const AmbientNpcScript := preload("res://Scripts/World/ambient_npc.gd")
 const RivalGraffitiStyle := preload("res://Scripts/Walls/rival_graffiti_style.gd")
+const GraffitiFonts := preload("res://Scripts/Walls/graffiti_font_library.gd")
 const RivalTaggerScript := preload("res://Scripts/Rivals/rival_tagger.gd")
 
 var _material_cache: Dictionary = {}
@@ -468,6 +469,8 @@ func _run_smoke_test() -> void:
 	_smoke_history_cap()
 	_smoke_ambient_npc_life()
 	_smoke_player_model()
+	_smoke_rival_tagger_model()
+	_smoke_scripted_cross_out()
 	_smoke_balance_invariants()
 	_smoke_playtest_metrics()
 	print("SMOKE: OK")
@@ -1167,6 +1170,23 @@ func _smoke_graffiti_types() -> void:
 	saints["responseType"] = saved_response
 	print("SMOKE: rival surface fallback — roller response became a throw-up")
 
+	# Each type only renders a font capable for that style (Product_reqs.md):
+	# a marker hand letters a tag, but a throw-up/piece/stencil falls back to
+	# a capable font instead of showing the hand on the wrong form.
+	assert(GraffitiFonts.resolve_for_families("ff_comma_trial", ["hand", "scratch_hand"]) == "ff_comma_trial")
+	var throw_font := GraffitiFonts.resolve_for_families("ff_comma_trial", ["throw"])
+	assert(throw_font != "ff_comma_trial")
+	assert(String(GraffitiFonts.style_def(throw_font).get("family", "")) == "throw")
+	assert(String(GraffitiFonts.style_def(
+		GraffitiFonts.resolve_for_families("ff_comma_trial", ["stencil_art"])).get("family", "")) == "stencil_art")
+	assert(GraffitiFonts.resolve_for_families("ff_comma_trial", []) == "ff_comma_trial")
+	# A fresh tag renders bare — just the lettering, no drips and no panel.
+	GameState.add_paint(5)
+	assert(WallManager.paint_wall(wall, "tag")["ok"])
+	var tag_holder: Node = wall._graffiti_anchor.get_child(wall._graffiti_anchor.get_child_count() - 1)
+	assert(tag_holder.get_child_count() == 1)
+	print("SMOKE: type-capable fonts + bare drip-free tag")
+
 ## Milestone 29: rival graffiti gets deterministic visual variety from
 ## crew/id/type seeds. The rendered output is built at display time, so
 ## wall history and saves keep only lightweight graffiti metadata.
@@ -1429,6 +1449,11 @@ func _smoke_ladder_climb() -> void:
 		player._advance_climb(1.0, 0.1)
 	assert(not player._climb_active)
 	assert(player.global_position.distance_to(exit) < 0.5)
+	# Topping out plays the over-the-ledge finish clip (Product_reqs.md).
+	if ResourceLoader.exists(Player.CLIMB_FINISH_MODEL_PATH):
+		assert(player._visual_models.has("climb_finish"))
+		assert(player._action_visual_state == "climb_finish")
+		assert(player._action_visual_time_left > 0.0)
 	# Stepping back down to the foot drops off without summiting.
 	player.begin_climb(entry, exit, climb)
 	for _i in 30:
@@ -1711,7 +1736,85 @@ func _smoke_player_model() -> void:
 		for state in ["idle", "walk", "walk_back", "run", "run_fast", "jump", "climb", "vault"]:
 			assert(player._visual_animation_players.has(state))
 			assert(String(player._visual_animation_names[state]) != "")
-	print("SMOKE: player visual = %s" % ("animated rooster action set" if has_model else "capsule fallback"))
+		# Idle variants build and the selector rotates among them
+		# (Product_reqs.md). Each imported variant registers its own clip;
+		# _set_idle_state must land on one of them.
+		for variant in Player.IDLE_VARIANTS:
+			var spec: Array = Player.IDLE_VARIANTS[variant]
+			if ResourceLoader.exists(String(spec[0])):
+				assert(player._idle_states.has(variant))
+				assert(String(player._visual_animation_names[variant]) == String(spec[1]))
+		if not player._idle_states.is_empty():
+			player._set_idle_state()
+			var first_idle := player._idle_choice
+			assert(player._idle_states.has(first_idle))
+			assert(player._active_visual_state == first_idle)
+			# Staying idle holds the same stance — it must not rotate while
+			# standing still (Product_reqs.md).
+			for _i in range(20):
+				player._set_idle_state()
+				assert(player._idle_choice == first_idle)
+			# Moving away and settling back re-rolls the idle stance.
+			player._set_visual_state("walk")
+			player._set_idle_state()
+			assert(player._idle_states.has(player._idle_choice))
+			assert(player._active_visual_state == player._idle_choice)
+	print("SMOKE: player visual = %s (%d idle variants)" % [
+		"animated rooster action set" if has_model else "capsule fallback",
+		player._idle_states.size()])
+
+## A spawned rival tagger wears the Hooded Fox Warrior model and swaps to
+## the spray-beat idle when it reaches the wall (Product_reqs.md), falling
+## back to the colored capsule when the GLBs aren't imported.
+func _smoke_rival_tagger_model() -> void:
+	var wall: PaintableWall = WallManager.wall_nodes[_first_wall_id()]
+	var tagger := RivalTaggerScript.new()
+	add_child(tagger)
+	tagger.begin(wall, {"tag": "VEK", "fillColor": "#d94f6c"}, func() -> void: pass)
+	var animated := ResourceLoader.exists(RivalTaggerScript.RUN_MODEL_PATH)
+	if animated:
+		assert(tagger.get_node_or_null("HoodedFoxModel") != null)
+		for state in ["idle", "walk", "run", "run_fast"]:
+			assert(tagger._visual_animation_players.has(state))
+		# Running in shows the run clip; the spray beat settles into idle.
+		tagger._update_visual_animation()
+		assert(tagger._active_visual_state == "run")
+		tagger._state = tagger.State.TAG
+		tagger._update_visual_animation()
+		assert(tagger._active_visual_state == "idle")
+	tagger.queue_free()
+	print("SMOKE: rival tagger visual = %s" % [
+		"hooded fox warrior" if animated else "capsule fallback"])
+
+## Scripted mission cross-outs route through the visible tagger when one is
+## available, and never cross out work the writer repainted while the rival
+## was en route (Product_reqs.md). A stub spawner drives both branches
+## deterministically.
+func _smoke_scripted_cross_out() -> void:
+	var wall_id := _first_wall_id()
+	var crew: Dictionary = RivalManager.crews["buff_kings"]
+	var captured := {"cb": Callable()}
+	RivalManager.set_tagger_spawner(
+		func(_wid: String, _crew: Dictionary, on_arrive: Callable) -> void:
+			captured["cb"] = on_arrive)
+
+	# Wall holds the player's work; the rival runs up and the cross-out lands.
+	WallManager.paint_wall(WallManager.wall_nodes[wall_id], "tag")
+	RivalManager.scripted_cross_out(wall_id, crew, "TOY")
+	assert(captured["cb"].is_valid())
+	captured["cb"].call()
+	assert(String(WallManager.wall_states[wall_id].get("state", "")) == "crossed_out")
+
+	# Writer repaints before the rival arrives: the run-up is a no-op.
+	WallManager.paint_wall(WallManager.wall_nodes[wall_id], "tag")
+	RivalManager.scripted_cross_out(wall_id, crew, "TOY")
+	var pending: Callable = captured["cb"]
+	WallManager.paint_wall(WallManager.wall_nodes[wall_id], "throwup")
+	pending.call()
+	assert(String(WallManager.wall_states[wall_id].get("state", "")) == "player_throwup")
+
+	RivalManager.set_tagger_spawner(Callable())  # restore headless default
+	print("SMOKE: scripted cross-out — visible tagger + skips repainted work")
 
 ## Plan_v3.md Milestone 27: the smoke path doubles as a repeatable
 ## baseline capture. The recorder is passive in normal play; this

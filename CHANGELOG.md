@@ -1,5 +1,71 @@
 # Changelog
 
+## 2026-06-13 — Tag Rendering: No Drips/Panels, Type-Capable Fonts, Letter Reveal (Product_reqs.md)
+
+Graffiti rendering changes from Product_reqs.md.
+
+- **No more paint drips.** `paintable_wall.gd` no longer draws the
+  hanging paint runs under any graffiti — player or rival, every type.
+  The `_add_drips` helper and its `drip_spread`/`letter_bottom`
+  bookkeeping are gone.
+- **No more rectangular background panels.** Throw-ups, pieces,
+  stencils, rollers, and murals (player and rival) are now bare
+  lettering like tags — the solid color/dark panel quads behind the
+  letters are removed. Rival work keeps its crew color, slant, and
+  stripes/chips/cut-marks (Milestone 29 variety) but no panel. Buff
+  patches still use panels (they are meant to be rectangles).
+- **Each type only renders a font capable for that style.** Every
+  graffiti type now carries a `fontFamilies` list in
+  `graffiti_styles.json` (tag → hand/scratch, throw-up → throw, piece →
+  wildstyle/throw, stencil → stencil_art, roller → throw, mural →
+  wildstyle/throw). New `GraffitiFonts.resolve_for_families` keeps the
+  selected style if its family fits the type, otherwise falls back to
+  the simplest capable style — so a marker hand never letters a
+  throw-up, piece, roller, etc. Rival lettering uses the same rule.
+- **Letters spray on one at a time.** A fresh player paint reveals its
+  lettering character by character (`show_graffiti(graffiti, true)` →
+  `_reveal_label_letters` tween); reloads and visual refreshes still
+  render instantly, and the reveal is skipped headless.
+- Smoke coverage asserts type-capable font resolution and that a fresh
+  tag renders bare (single label node, no drip/panel children).
+
+## 2026-06-13 — Climb Finish, Ladder Pose, Rival Fox Model (Product_reqs.md)
+
+Polish pass on the climb and rival visuals.
+
+- Topping out a ladder now plays an over-the-ledge finish clip. The
+  Kronako `Ladder_Climb_Finish` GLB is imported as
+  `neon_rooster_ladder_climb_finish.glb` and registered as the
+  `climb_finish` visual state; `player.gd` plays it on summit
+  (`_summit_climb`), skipping silently if the GLB isn't imported.
+- The climbing pose is nudged onto the ladder. `CLIMB_VISUAL_OFFSET`
+  shifts just the climb model left and a touch toward the wall so the
+  body no longer floats off to the right of the rungs.
+- Rival taggers wear the Hooded Fox Warrior model instead of a colored
+  capsule. Four clips (`Idle_02`, `walking_man`, `running`, `RunFast`)
+  import as `hooded_fox_warrior_*.glb`; `rival_tagger.gd` runs in on the
+  run clip and settles into idle for the spray beat, falling back to the
+  capsule when the GLBs are missing. The crew color still rides on the
+  spray can and name tag.
+- Smoke coverage asserts the climb finish triggers on summit and that a
+  spawned tagger builds the fox model and swaps run→idle for the tag.
+
+## 2026-06-13 — Random Idle Animations (Product_reqs.md)
+
+The main character no longer stands in a single breathing pose.
+
+- Three Kronako idle clips (`Idle_4`, `Idle_6`, `Idle_11`) are imported
+  to `Assets/Characters/` as `neon_rooster_idle_*.glb` and registered as
+  extra idle visual states alongside the legacy idle.
+- `player.gd` picks a random idle when the player settles from movement
+  and holds that stance for the whole idle (`_set_idle_state`); the pose
+  only changes the next time idle re-activates, not while standing still.
+  Each idle clip is forced to loop so it never freezes. Missing imports
+  just shrink the pool — with none, it falls back to the legacy idle.
+- Smoke coverage asserts the idle variants build with their clips, that
+  the stance holds across repeated idle frames, and that moving away and
+  settling back re-rolls it.
+
 ## 2026-06-13 — Rival Tagger Run-Up + Retaliation Floor (Product_reqs.md)
 
 Rival retaliation is now something the player watches happen, and it can

@@ -14,17 +14,35 @@ const WALK_BACK_MODEL_PATH := "res://Assets/Characters/neon_rooster_walk_backwar
 const RUN_FAST_MODEL_PATH := "res://Assets/Characters/neon_rooster_run_fast.glb"
 const JUMP_MODEL_PATH := "res://Assets/Characters/neon_rooster_jump.glb"
 const CLIMB_MODEL_PATH := "res://Assets/Characters/neon_rooster_ladder_climb.glb"
+const CLIMB_FINISH_MODEL_PATH := "res://Assets/Characters/neon_rooster_ladder_climb_finish.glb"
 const VAULT_MODEL_PATH := "res://Assets/Characters/neon_rooster_vault.glb"
 const STATIC_MODEL_PATH := "res://Assets/Characters/neon_rooster.glb"
 const ANIMATED_MODEL_SOURCE_HEIGHT := 1.7  # animated GLBs have feet at local y=0
 const STATIC_MODEL_SOURCE_HEIGHT := 1.913  # static fallback GLB is origin-centered
 const IDLE_ANIMATION_NAME := "Armature|clip0|baselayer"
+# Extra idle clips (Product_reqs.md): the rooster picks one at random each
+# time it settles from movement and holds that stance for the whole idle —
+# the pose only changes the next time idle re-activates, not while standing
+# still. Keyed visual-state -> (GLB path, clip name). Missing imports just
+# shrink the pool.
+const IDLE_VARIANTS := {
+	"idle_4": ["res://Assets/Characters/neon_rooster_idle_4.glb", "Armature|Idle_4|baselayer"],
+	"idle_6": ["res://Assets/Characters/neon_rooster_idle_6.glb", "Armature|Idle_6|baselayer"],
+	"idle_11": ["res://Assets/Characters/neon_rooster_idle_11.glb", "Armature|Idle_11|baselayer"],
+}
 const WALK_ANIMATION_NAME := "Armature|walking_man|baselayer"
 const WALK_BACK_ANIMATION_NAME := "Armature|Walk_Backward_inplace|baselayer"
 const RUN_ANIMATION_NAME := "Armature|running|baselayer"
 const RUN_FAST_ANIMATION_NAME := "Armature|RunFast|baselayer"
 const JUMP_ANIMATION_NAME := "Armature|Regular_Jump|baselayer"
 const CLIMB_ANIMATION_NAME := "Armature|Fast_Ladder_Climb|baselayer"
+const CLIMB_FINISH_ANIMATION_NAME := "Armature|Ladder_Climb_Finish|baselayer"
+# The ladder-climb clip is authored gripping a rail off to one side, so the
+# body reads as floating to the right of our rung mesh. Shift just the climb
+# model left (and a touch toward the wall) so the hands land on the ladder
+# (Product_reqs ladder feature). Local to the PI-rotated model container, so
+# +x is screen-left while climbing.
+const CLIMB_VISUAL_OFFSET := Vector3(0.45, 0.0, -0.1)
 const VAULT_ANIMATION_NAME := "Armature|Parkour_Vault_2|baselayer"
 const AnimatedModelSet := preload("res://Scripts/Characters/animated_model_set.gd")
 
@@ -49,6 +67,9 @@ var _visual_animation_names: Dictionary = {}
 var _active_visual_state := ""
 var _action_visual_state := ""
 var _action_visual_time_left := 0.0
+var _idle_states: Array[String] = []  # built idle variants, picked from on settle
+var _idle_choice := ""                # the idle currently being shown
+var _idle_rng := RandomNumberGenerator.new()
 # Interactive ladder climb (Product_reqs ladder feature). While active the
 # player rides the entry→exit line by hand instead of free movement.
 var _climb_active := false
@@ -118,6 +139,16 @@ func _try_build_animated_visual() -> bool:
 	var built := false
 	built = _add_animated_model(
 		container, IDLE_MODEL_PATH, "idle", IDLE_ANIMATION_NAME) or built
+	_idle_rng.randomize()
+	for variant in IDLE_VARIANTS:
+		var spec: Array = IDLE_VARIANTS[variant]
+		if _add_animated_model(container, String(spec[0]), variant, String(spec[1])):
+			_idle_states.append(variant)
+			# Loop each idle so it never freezes between random swaps.
+			var ap: AnimationPlayer = _visual_animation_players[variant]
+			var clip := ap.get_animation(_visual_animation_names[variant])
+			if clip != null:
+				clip.loop_mode = Animation.LOOP_LINEAR
 	built = _add_animated_model(
 		container, WALK_MODEL_PATH, "walk", WALK_ANIMATION_NAME) or built
 	built = _add_animated_model(
@@ -130,6 +161,11 @@ func _try_build_animated_visual() -> bool:
 		container, JUMP_MODEL_PATH, "jump", JUMP_ANIMATION_NAME) or built
 	built = _add_animated_model(
 		container, CLIMB_MODEL_PATH, "climb", CLIMB_ANIMATION_NAME) or built
+	if _visual_models.has("climb"):
+		_visual_models["climb"].position += CLIMB_VISUAL_OFFSET
+	built = _add_animated_model(
+		container, CLIMB_FINISH_MODEL_PATH, "climb_finish",
+		CLIMB_FINISH_ANIMATION_NAME) or built
 	built = _add_animated_model(
 		container, VAULT_MODEL_PATH, "vault", VAULT_ANIMATION_NAME) or built
 	if not built:
@@ -168,7 +204,7 @@ func _apply_static_visual_transform(model: Node3D) -> void:
 	model.position = Vector3(0, STATIC_MODEL_SOURCE_HEIGHT * 0.5 * s, 0)
 	model.rotation.y = PI  # glTF forward is +Z; Godot's is -Z
 
-func _update_visual_animation(is_moving: bool, is_running: bool) -> void:
+func _update_visual_animation(delta: float, is_moving: bool, is_running: bool) -> void:
 	if _visual_animation_players.is_empty():
 		return
 	if _action_visual_time_left > 0.0 and _visual_models.has(_action_visual_state):
@@ -186,7 +222,29 @@ func _update_visual_animation(is_moving: bool, is_running: bool) -> void:
 		else:
 			_set_visual_state("walk")
 	else:
+		_set_idle_state()
+
+## Plays an idle clip, picking a fresh random variant only when the player
+## has just settled from movement and holding it for the whole idle stretch
+## (Product_reqs.md: the stance stays put until idle re-activates). With no
+## extra idle variants imported this falls back to the single legacy idle.
+func _set_idle_state() -> void:
+	if _idle_states.is_empty():
 		_set_visual_state("idle")
+		return
+	if not _idle_states.has(_active_visual_state):  # just arrived from movement → pick one
+		_idle_choice = _next_idle()
+	_set_visual_state(_idle_choice)
+
+## A random idle, always different from the current one when there is a
+## choice, so each swap is visibly a new animation.
+func _next_idle() -> String:
+	if _idle_states.size() == 1:
+		return _idle_states[0]
+	var pick := _idle_choice
+	while pick == _idle_choice:
+		pick = _idle_states[_idle_rng.randi_range(0, _idle_states.size() - 1)]
+	return pick
 
 func _set_visual_state(state: String) -> void:
 	var target := state
@@ -200,7 +258,7 @@ func _set_visual_state(state: String) -> void:
 		_active_visual_state = target
 	var player: AnimationPlayer = _visual_animation_players[target]
 	var animation: StringName = _visual_animation_names[target]
-	player.speed_scale = 0.65 if state == "idle" else 1.0
+	player.speed_scale = 0.65 if state.begins_with("idle") else 1.0
 	if not player.is_playing() or String(player.current_animation) != String(animation):
 		player.play(animation)
 
@@ -259,6 +317,12 @@ func _summit_climb() -> void:
 	_end_climb()
 	if zone != null and is_instance_valid(zone) and zone.has_method("complete_climb"):
 		zone.complete_climb()
+	# Pull up and over the ledge as the climb tops out (Product_reqs ladder
+	# feature). Optional clip — skipped silently if the GLB isn't imported.
+	if _visual_models.has("climb_finish"):
+		var ap: AnimationPlayer = _visual_animation_players["climb_finish"]
+		var clip := ap.get_animation(_visual_animation_names["climb_finish"])
+		play_context_animation("climb_finish", clip.length if clip != null else 1.0)
 
 func _end_climb() -> void:
 	if not _climb_active:
@@ -335,7 +399,7 @@ func _physics_process(delta: float) -> void:
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, speed)
 		velocity.z = move_toward(velocity.z, 0.0, speed)
-	_update_visual_animation(direction != Vector3.ZERO, is_running)
+	_update_visual_animation(delta, direction != Vector3.ZERO, is_running)
 	move_and_slide()
 	_update_focus()
 

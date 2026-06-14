@@ -282,7 +282,9 @@ func _apply_effects(effects: Dictionary) -> void:
 		var wall_id := _resolve_wall(String(co.get("wall", "")))
 		var crew: Dictionary = RivalManager.crews.get(String(co.get("crewId", "buff_kings")), {})
 		if wall_id != "" and not crew.is_empty():
-			WallManager.cross_out_wall(wall_id, crew, String(co.get("text", "TOY")))
+			# Route through the visible tagger so the rival runs up and tags
+			# it (falls back to an instant cross-out headless/no world).
+			RivalManager.scripted_cross_out(wall_id, crew, String(co.get("text", "TOY")))
 	if effects.has("message"):
 		mission_event.emit(String(effects["message"]))
 

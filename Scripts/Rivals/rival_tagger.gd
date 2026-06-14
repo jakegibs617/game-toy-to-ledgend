@@ -7,8 +7,20 @@ extends CharacterBody3D
 ## instantly. The actual wall mutation runs through the on_arrive
 ## callback (RivalManager.respond) the moment the tagger reaches the
 ## wall, so WallManager's signal flow is unchanged; this is just its
-## body. Built in code with a capsule fallback like AmbientNpc — rival
-## crews carry colors, not character GLBs.
+## body. Rival crews wear the Hooded Fox Warrior model (Product_reqs.md),
+## falling back to a colored capsule like AmbientNpc when the GLBs are
+## missing; either way the crew color rides on the spray can and name tag.
+
+const MODEL_SOURCE_HEIGHT := 1.7
+const IDLE_MODEL_PATH := "res://Assets/Characters/hooded_fox_warrior_idle.glb"
+const WALK_MODEL_PATH := "res://Assets/Characters/hooded_fox_warrior_walking.glb"
+const RUN_MODEL_PATH := "res://Assets/Characters/hooded_fox_warrior_running.glb"
+const RUN_FAST_MODEL_PATH := "res://Assets/Characters/hooded_fox_warrior_run_fast.glb"
+const IDLE_ANIMATION_NAME := "Armature|Idle_02|baselayer"
+const WALK_ANIMATION_NAME := "Armature|walking_man|baselayer"
+const RUN_ANIMATION_NAME := "Armature|running|baselayer"
+const RUN_FAST_ANIMATION_NAME := "Armature|RunFast|baselayer"
+const AnimatedModelSet := preload("res://Scripts/Characters/animated_model_set.gd")
 
 const RUN_SPEED := 5.5
 const ARRIVE_DIST := 0.6
@@ -35,6 +47,10 @@ var _state_time := 0.0            # seconds spent in the current state
 var _crew_color := Color("#d94f6c")
 var _arm: Node3D
 var _puff: MeshInstance3D
+var _visual_models: Dictionary = {}
+var _visual_animation_players: Dictionary = {}
+var _visual_animation_names: Dictionary = {}
+var _active_visual_state := ""
 
 ## wall: the PaintableWall (any Node3D); crew: the rival crew def;
 ## on_arrive: applies the actual graffiti when the tagger reaches the wall.
@@ -79,10 +95,11 @@ func _physics_process(delta: float) -> void:
 			_tag_timer -= delta
 			if _puff != null:
 				_puff.scale = Vector3.ONE * (1.0 + 0.4 * sin(_tag_timer * 30.0))
-			# Put the paint up halfway through the spray beat.
-			if _tag_timer <= TAG_DURATION * 0.5:
-				_fire_arrival()
+			# The paint lands only when the rival finishes the spray beat:
+			# the writer watches them run up, stand in front, and tag before
+			# TOY appears — never before the body is there (Product_reqs.md).
 			if _tag_timer <= 0.0:
+				_fire_arrival()
 				if _puff != null:
 					_puff.visible = false
 				if _arm != null:
@@ -92,6 +109,15 @@ func _physics_process(delta: float) -> void:
 			# Don't linger forever if the exit is blocked.
 			if _move_toward(_retreat_point) or _state_time >= MAX_RETREAT_TIME:
 				queue_free()
+				return
+	# Run while moving, settle into idle for the spray beat (the floating
+	# can/puff sell the actual tag in both the animated and capsule bodies).
+	_update_visual_animation()
+
+func _update_visual_animation() -> void:
+	if _visual_animation_players.is_empty():
+		return
+	_set_visual_state("idle" if _state == State.TAG else "run")
 
 ## Applies the actual graffiti exactly once, however we got to the wall.
 func _fire_arrival() -> void:
@@ -127,6 +153,62 @@ func _face(point: Vector3) -> void:
 		rotation.y = atan2(-to.x, -to.z)
 
 func _build_body(tag_text: String) -> void:
+	if not _try_build_animated_visual():
+		_build_capsule_body()
+	_build_spray_fx()
+	_build_collision()
+	_build_label(tag_text)
+
+## The Hooded Fox Warrior crew model (Product_reqs.md). Runs in on the
+## RUN clip and stands on IDLE for the spray beat; returns false when the
+## GLBs aren't imported so the caller drops to the capsule fallback.
+func _try_build_animated_visual() -> bool:
+	if not ResourceLoader.exists(RUN_MODEL_PATH) and not ResourceLoader.exists(IDLE_MODEL_PATH):
+		return false
+	var container := Node3D.new()
+	container.name = "HoodedFoxModel"
+	var s := 1.8 / MODEL_SOURCE_HEIGHT
+	container.scale = Vector3.ONE * s
+	container.rotation.y = PI  # glTF forward is +Z; Godot's is -Z
+	var built := false
+	for spec in [
+			[IDLE_MODEL_PATH, "idle", IDLE_ANIMATION_NAME],
+			[WALK_MODEL_PATH, "walk", WALK_ANIMATION_NAME],
+			[RUN_MODEL_PATH, "run", RUN_ANIMATION_NAME],
+			[RUN_FAST_MODEL_PATH, "run_fast", RUN_FAST_ANIMATION_NAME]]:
+		if AnimatedModelSet.add_animated_model(container, String(spec[0]),
+				String(spec[1]), String(spec[2]), _visual_models,
+				_visual_animation_players, _visual_animation_names):
+			built = true
+			# Loop each clip so a short run-up or spray beat never freezes.
+			var ap: AnimationPlayer = _visual_animation_players[spec[1]]
+			var clip := ap.get_animation(_visual_animation_names[spec[1]])
+			if clip != null:
+				clip.loop_mode = Animation.LOOP_LINEAR
+	if not built:
+		container.queue_free()
+		return false
+	add_child(container)
+	_set_visual_state("run")
+	return true
+
+func _set_visual_state(visual_state: String) -> void:
+	var target := visual_state
+	if not _visual_models.has(target):
+		target = "run" if _visual_models.has("run") else (
+			"walk" if _visual_models.has("walk") else "idle")
+	if not _visual_models.has(target):
+		return
+	if _active_visual_state != target:
+		for key in _visual_models:
+			_visual_models[key].visible = String(key) == target
+		_active_visual_state = target
+	var ap: AnimationPlayer = _visual_animation_players[target]
+	var anim: StringName = _visual_animation_names[target]
+	if not ap.is_playing() or String(ap.current_animation) != String(anim):
+		ap.play(anim)
+
+func _build_capsule_body() -> void:
 	var mesh := MeshInstance3D.new()
 	var capsule := CapsuleMesh.new()
 	capsule.height = 1.7
@@ -149,6 +231,7 @@ func _build_body(tag_text: String) -> void:
 	head.material_override = head_mat
 	add_child(head)
 
+func _build_spray_fx() -> void:
 	# Spray-can arm — raises while tagging.
 	_arm = Node3D.new()
 	_arm.position = Vector3(0.32, 1.25, 0.0)
@@ -182,6 +265,7 @@ func _build_body(tag_text: String) -> void:
 	_puff.visible = false
 	add_child(_puff)
 
+func _build_collision() -> void:
 	var col := CollisionShape3D.new()
 	var shape := CapsuleShape3D.new()
 	shape.height = 1.7
@@ -190,6 +274,7 @@ func _build_body(tag_text: String) -> void:
 	col.position = Vector3(0, 0.85, 0)
 	add_child(col)
 
+func _build_label(tag_text: String) -> void:
 	var label := Label3D.new()
 	label.text = tag_text.to_upper()
 	label.font_size = 40

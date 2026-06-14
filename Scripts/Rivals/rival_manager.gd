@@ -117,6 +117,28 @@ func _try_respond(wall_id: String, crew_id: String) -> void:
 func set_tagger_spawner(spawner: Callable) -> void:
 	_tagger_spawner = spawner
 
+## A scripted cross-out (mission story beats) routed through the same
+## visible tagger as a retaliation, so the writer watches the rival run up
+## and tag instead of "TOY" snapping on instantly (Product_reqs.md). With
+## no spawner (headless/no world) it crosses out immediately, unchanged.
+func scripted_cross_out(wall_id: String, crew: Dictionary, text := "TOY") -> void:
+	if _tagger_spawner.is_valid() and not _in_flight.has(wall_id):
+		var expected_id := _current_graffiti_id(wall_id)
+		_in_flight[wall_id] = true
+		_tagger_spawner.call(wall_id, crew, func() -> void:
+			_in_flight.erase(wall_id)
+			# Don't cross out fresh work: if the writer repainted this wall
+			# while the rival was en route, the run-up is a no-op.
+			if _current_graffiti_id(wall_id) == expected_id:
+				WallManager.cross_out_wall(wall_id, crew, text))
+	else:
+		WallManager.cross_out_wall(wall_id, crew, text)
+
+func _current_graffiti_id(wall_id: String) -> String:
+	var state: Dictionary = WallManager.wall_states.get(wall_id, {})
+	var current = state.get("currentGraffiti")
+	return String(current.get("graffitiId", "")) if current != null else ""
+
 ## Spawns the rival who runs up and tags the wall, applying the paint
 ## only when they arrive. With no spawner (headless/no world) the paint
 ## lands immediately, preserving the original instant behavior.

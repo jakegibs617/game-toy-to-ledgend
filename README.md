@@ -94,13 +94,16 @@ safehouse, E on the crew board opens the blackbook's Crew page.
 
 The player character is the Kronako Iconz neon rooster. `player.gd`
 prefers the animated action set in `Assets/Characters/`: idle, walk,
-walk backward, run-fast, jump, ladder climb, and vault. Normal WASD
-movement walks, S without Shift uses the backward walk, Shift+WASD
-runs, Space plays the jump clip while airborne, idle breathes instead
-of freezing, and the ladder-climb clip plays continuously while riding a
-ladder — forward up, reversed when climbing down, paused between rungs.
-The vault clip is imported for future use but has no gameplay
-trigger yet. If Godot asset import has not run once (opening the editor, or
+walk backward, run-fast, jump, ladder climb, ladder-climb finish, and
+vault. Normal WASD movement walks, S without Shift uses the backward
+walk, Shift+WASD runs, Space plays the jump clip while airborne, and the
+ladder-climb clip plays continuously while riding a
+ladder — forward up, reversed when climbing down, paused between rungs;
+topping out plays an over-the-ledge finish clip. Standing still picks a
+random idle clip instead of a single breathing pose and holds it for the
+whole idle — the stance only changes the next time the player settles
+back into idle. The vault clip is imported for future use but has no
+gameplay trigger yet. If Godot asset import has not run once (opening the editor, or
 `Godot --headless --path . --import`), the game falls back to the
 static rooster GLB, then the old debug capsule.
 
@@ -123,8 +126,8 @@ static rooster GLB, then the old debug capsule.
   throw-ups/pieces, and a strike bar on cross-outs (Milestone 8 art pass).
 - **Player** (`Scripts/Player/player.gd`) — third-person controller with
   spring-arm camera, raycast wall focusing, and a runtime-loaded
-  rooster animation state table for idle/walk/backpedal/run/jump/climb
-  movement. The fallback nearby-interactable search is line-of-sight
+  rooster animation state table for idle/walk/backpedal/run/jump/climb/
+  climb-finish movement. The fallback nearby-interactable search is line-of-sight
   checked so pickups/zones cannot be focused through walls.
 - **HUD** (`Scripts/UI/hud.gd`) — styled stat/mission/prompt panels,
   feedback messages, rank-up notice, rival event notifications, a
@@ -143,9 +146,13 @@ static rooster GLB, then the old debug capsule.
   Milestone 4) — loads `Data/crews.json` (The Buff Kings, Ghost Line,
   Chrome Saints). Crews claim their home walls at session start. When
   the player paints in crew territory or over crew work, a retaliation
-  is queued and resolved on a 12-second simulation tick (Plan.md §33):
-  tags or low-rank work get **"TOY"** crossed out, stronger work gets
-  covered by the crew's own graffiti. Repainting reclaims the wall.
+  is queued and resolved on a 12-second simulation tick (Plan.md §33),
+  no sooner than 30 seconds after the player paints: tags or low-rank
+  work get **"TOY"** crossed out, stronger work gets covered by the
+  crew's own graffiti. Repainting reclaims the wall. When a response is
+  due, a rival tagger wearing the Hooded Fox Warrior model runs in from
+  the side, sprays the wall, and flees (`Scripts/Rivals/rival_tagger.gd`,
+  capsule fallback when the GLBs are missing).
 - **CrewManager** (autoload, `Scripts/Crew/crew_manager.gd`,
   Milestones 5 and 22) — loads `Data/npc_data.json`. Mina "Moth"
   joins as your Lookout (rivals back off more often and she warns you
