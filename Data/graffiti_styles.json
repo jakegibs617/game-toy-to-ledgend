@@ -5,7 +5,8 @@
     "paintCost": 1,
     "heatValue": 4,
     "fillColor": "#f2f2f2",
-    "outlineColor": "#1a1a1a"
+    "outlineColor": "#1a1a1a",
+    "fontFamilies": ["hand", "scratch_hand"]
   },
   "throwup": {
     "label": "Throw-up",
@@ -13,7 +14,8 @@
     "paintCost": 3,
     "heatValue": 7,
     "fillColor": "#ff4f79",
-    "outlineColor": "#16161d"
+    "outlineColor": "#16161d",
+    "fontFamilies": ["throw"]
   },
   "piece": {
     "label": "Piece",
@@ -21,7 +23,8 @@
     "paintCost": 5,
     "heatValue": 11,
     "fillColor": "#ffd23f",
-    "outlineColor": "#202033"
+    "outlineColor": "#202033",
+    "fontFamilies": ["wildstyle", "throw"]
   },
   "stencil": {
     "label": "Stencil",
@@ -30,6 +33,7 @@
     "heatValue": 3,
     "fillColor": "#9fd8e8",
     "outlineColor": "#10202b",
+    "fontFamilies": ["stencil_art"],
     "lockedHint": "Lupe sells the kit",
     "notes": "fast & clean"
   },
@@ -41,6 +45,7 @@
     "fillColor": "#f2f2f2",
     "outlineColor": "#16161d",
     "surfaces": ["rooftop"],
+    "fontFamilies": ["throw"],
     "lockedHint": "make your name first",
     "notes": "rooftop only"
   },
@@ -53,6 +58,7 @@
     "outlineColor": "#202033",
     "requiresCrew": true,
     "exposure": 2.0,
+    "fontFamilies": ["wildstyle", "throw"],
     "lockedHint": "make your name first",
     "notes": "needs crew with you · slow work, stay sharp"
   }

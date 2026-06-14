@@ -49,6 +49,36 @@ static func style_def(style_id: String) -> Dictionary:
 	_ensure_loaded()
 	return _styles.get(resolve_style_id(style_id), {})
 
+## Picks a style whose family is capable for a graffiti type. If the
+## requested style already fits (or the type lists no families) it is
+## kept; otherwise we fall back to the simplest capable style so a
+## marker hand never renders a throw-up, a piece, a roller, etc.
+## (Product_reqs.md: each type only shows fonts capable for that style.)
+static func resolve_for_families(style_id: String, families: Array) -> String:
+	_ensure_loaded()
+	var resolved := resolve_style_id(style_id)
+	if families.is_empty():
+		return resolved if _styles.has(resolved) else DEFAULT_STYLE_ID
+	var style: Dictionary = _styles.get(resolved, {})
+	if _styles.has(resolved) and String(style.get("family", "")) in families:
+		return resolved
+	return default_style_for_families(families)
+
+## The lowest-level (most basic) catalog style matching one of the
+## families — a stable, deterministic default per type.
+static func default_style_for_families(families: Array) -> String:
+	_ensure_loaded()
+	var best := ""
+	var best_level := 1 << 30
+	for sid in _order:
+		var style: Dictionary = _styles[sid]
+		if String(style.get("family", "")) in families:
+			var level := int(style.get("level", 0))
+			if level < best_level:
+				best_level = level
+				best = sid
+	return best if best != "" else DEFAULT_STYLE_ID
+
 static func apply_to_label(label: Label3D, style_id: String) -> void:
 	var font := font_for_style(style_id)
 	if font != null:

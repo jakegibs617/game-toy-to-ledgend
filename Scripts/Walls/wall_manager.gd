@@ -242,7 +242,9 @@ func _commit_player_graffiti(wall: PaintableWall, state: Dictionary, graffiti: D
 	GameState.add_reputation(int(graffiti["repValue"]))
 	if styles.get(String(graffiti["type"]), {}).get("requiresCrew", false):
 		GameState.add_crew_rep(CREW_WORK_CREW_REP)
-	wall.show_graffiti(graffiti)
+	# Fresh player paint sprays the letters on one at a time (Product_reqs.md);
+	# reloads/refreshes render instantly via the default show_graffiti().
+	wall.show_graffiti(graffiti, true)
 	wall_painted.emit(String(graffiti["wallId"]), graffiti)
 
 ## A rival crew paints over whatever is on the wall (Plan.md section 13

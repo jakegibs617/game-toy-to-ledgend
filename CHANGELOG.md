@@ -1,5 +1,34 @@
 # Changelog
 
+## 2026-06-13 — Tag Rendering: No Drips/Panels, Type-Capable Fonts, Letter Reveal (Product_reqs.md)
+
+Graffiti rendering changes from Product_reqs.md.
+
+- **No more paint drips.** `paintable_wall.gd` no longer draws the
+  hanging paint runs under any graffiti — player or rival, every type.
+  The `_add_drips` helper and its `drip_spread`/`letter_bottom`
+  bookkeeping are gone.
+- **No more rectangular background panels.** Throw-ups, pieces,
+  stencils, rollers, and murals (player and rival) are now bare
+  lettering like tags — the solid color/dark panel quads behind the
+  letters are removed. Rival work keeps its crew color, slant, and
+  stripes/chips/cut-marks (Milestone 29 variety) but no panel. Buff
+  patches still use panels (they are meant to be rectangles).
+- **Each type only renders a font capable for that style.** Every
+  graffiti type now carries a `fontFamilies` list in
+  `graffiti_styles.json` (tag → hand/scratch, throw-up → throw, piece →
+  wildstyle/throw, stencil → stencil_art, roller → throw, mural →
+  wildstyle/throw). New `GraffitiFonts.resolve_for_families` keeps the
+  selected style if its family fits the type, otherwise falls back to
+  the simplest capable style — so a marker hand never letters a
+  throw-up, piece, roller, etc. Rival lettering uses the same rule.
+- **Letters spray on one at a time.** A fresh player paint reveals its
+  lettering character by character (`show_graffiti(graffiti, true)` →
+  `_reveal_label_letters` tween); reloads and visual refreshes still
+  render instantly, and the reveal is skipped headless.
+- Smoke coverage asserts type-capable font resolution and that a fresh
+  tag renders bare (single label node, no drip/panel children).
+
 ## 2026-06-13 — Climb Finish, Ladder Pose, Rival Fox Model (Product_reqs.md)
 
 Polish pass on the climb and rival visuals.

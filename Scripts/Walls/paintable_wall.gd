@@ -8,8 +8,11 @@ var def: Dictionary = {}
 
 const RivalGraffitiStyle := preload("res://Scripts/Walls/rival_graffiti_style.gd")
 const GraffitiFonts := preload("res://Scripts/Walls/graffiti_font_library.gd")
+## Seconds between each letter spraying on during an animated paint.
+const LETTER_REVEAL_DELAY := 0.11
 
 var _graffiti_anchor: Node3D
+var _reveal_tween: Tween
 
 func setup(wall_def: Dictionary) -> void:
 	def = wall_def
@@ -43,14 +46,17 @@ func display_name() -> String:
 	return String(def.get("name", def.get("wallId", "Wall")))
 
 func clear_graffiti() -> void:
+	if _reveal_tween != null and _reveal_tween.is_valid():
+		_reveal_tween.kill()
 	for child in _graffiti_anchor.get_children():
 		child.queue_free()
 
 ## Milestone 8 art pass: each graffiti gets a deterministic tilt; bigger
-## work (throw-ups/pieces/etc.) adds paint drips and filled panels, while
-## tags stay bare lettering — all unshaded so the work pops in the dusk
-## lighting.
-func show_graffiti(graffiti: Dictionary) -> void:
+## work (throw-ups/pieces/etc.) gets filled panels behind bare lettering,
+## all unshaded so the work pops in the dusk lighting. No paint drips
+## (Product_reqs.md). When `animate` is set on a fresh player paint, the
+## letters spray on one at a time instead of appearing all at once.
+func show_graffiti(graffiti: Dictionary, animate := false) -> void:
 	clear_graffiti()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(String(graffiti.get("graffitiId", "")) + String(graffiti.get("alias", "")))
@@ -68,65 +74,56 @@ func show_graffiti(graffiti: Dictionary) -> void:
 	if String(graffiti.get("creatorId", "player")) != "player":
 		_show_rival_graffiti(holder, graffiti, fill, outline)
 		return
+	var type := String(graffiti.get("type", "tag"))
 	var label := Label3D.new()
-	label.text = String(graffiti.get("alias", "???"))
+	var full_text := String(graffiti.get("alias", "???"))
+	label.text = full_text
 	label.modulate = fill
 	label.outline_modulate = outline
-	GraffitiFonts.apply_to_label(label, String(graffiti.get("fontStyle", GraffitiFonts.default_style_id())))
-	var letter_bottom := 0.25
-	var drip_spread := 0.8
-	match String(graffiti.get("type", "tag")):
+	# Only render a font that is capable for this graffiti type
+	# (Product_reqs.md): a marker hand never letters a throw-up/piece/etc.
+	GraffitiFonts.apply_to_label(label,
+		GraffitiFonts.resolve_for_families(
+			String(graffiti.get("fontStyle", GraffitiFonts.default_style_id())),
+			_font_families_for_type(type)))
+	# Every type is bare lettering now — just the sized fill + outline, no
+	# rectangular background panel behind the letters (Product_reqs.md).
+	match type:
 		"tag":
 			label.font_size = 96
 			label.outline_size = 18
 			label.pixel_size = 0.004
-			# Tags are bare lettering — just the outline and fill, no drips
-			# or background panel.
-			drip_spread = 0.0
 		"throwup":
 			label.font_size = 160
 			label.outline_size = 48
 			label.pixel_size = 0.006
-			letter_bottom = 0.5
-			drip_spread = 1.2
-			_add_panel(holder, _panel_size(0.55, 0.42), outline.darkened(0.35), -0.012)
 		"piece":
 			label.font_size = 220
 			label.outline_size = 64
 			label.pixel_size = 0.008
-			letter_bottom = 0.85
-			drip_spread = 1.6
-			_add_panel(holder, _panel_size(0.9, 0.84), fill.darkened(0.55), -0.018)
-			_add_panel(holder, _panel_size(0.85, 0.78), Color("#26233a"), -0.015)
 		"stencil":
-			# Crisp single-pass cut: thin outline, no drips (Milestone 16).
+			# Crisp single-pass cut: thin outline (Milestone 16).
 			label.font_size = 110
 			label.outline_size = 10
 			label.pixel_size = 0.004
-			drip_spread = 0.0
-			_add_panel(holder, _panel_size(0.4, 0.3), outline.lightened(0.08), -0.01)
 		"roller":
 			# Blockbuster strip the full width of the parapet.
 			label.font_size = 250
 			label.outline_size = 78
 			label.pixel_size = 0.009
-			letter_bottom = 0.5
-			drip_spread = 2.2
-			_add_panel(holder, _panel_size(0.97, 0.6), outline.darkened(0.2), -0.012)
 		"mural":
-			# Layered color field — the closest placeholder art gets to a
-			# full production (Milestone 16).
 			label.font_size = 230
 			label.outline_size = 60
 			label.pixel_size = 0.009
-			letter_bottom = 0.9
-			drip_spread = 1.4
-			_add_panel(holder, _panel_size(0.94, 0.88), fill.darkened(0.6), -0.021)
-			_add_panel(holder, _panel_size(0.9, 0.8), Color("#1f3a5f"), -0.018)
-			_add_panel(holder, _panel_size(0.6, 0.5), fill.lightened(0.15).darkened(0.1), -0.015)
 	holder.add_child(label)
-	if drip_spread > 0.0:
-		_add_drips(holder, rng, fill, letter_bottom, drip_spread)
+	if animate:
+		_reveal_label_letters(label, full_text)
+
+## The font families this graffiti type is allowed to render with, read
+## from the style def in graffiti_styles.json (empty = no restriction).
+func _font_families_for_type(type: String) -> Array:
+	var style: Dictionary = WallManager.styles.get(type, {})
+	return style.get("fontFamilies", [])
 
 func _show_rival_graffiti(holder: Node3D, graffiti: Dictionary, fill: Color, outline: Color) -> void:
 	var variant := RivalGraffitiStyle.variant_for(graffiti)
@@ -137,43 +134,36 @@ func _show_rival_graffiti(holder: Node3D, graffiti: Dictionary, fill: Color, out
 	holder.position.y = float(variant["yOffset"]) * _panel_size(1.0, 1.0).y
 	var type := String(graffiti.get("type", "tag"))
 	var alias := String(graffiti.get("alias", "???"))
+	# Rivals letter with a font capable for the type too (Product_reqs.md).
+	var font_style := GraffitiFonts.resolve_for_families(
+		String(graffiti.get("fontStyle", GraffitiFonts.default_style_id())),
+		_font_families_for_type(type))
+	# No solid background panel behind rival work either (Product_reqs.md):
+	# crew identity rides on color, slant, stripes/chips/cut-marks and the
+	# deterministic Milestone 29 variant, not a rectangle.
 	match type:
 		"tag":
-			# Bare lettering only — no stripes, drips, or background panel.
-			_add_rival_label(holder, alias, fill, outline, 108, 20, 0.0045, Vector3.ZERO)
+			_add_rival_label(holder, alias, fill, outline, 108, 20, 0.0045, Vector3.ZERO, font_style)
 		"stencil":
-			_add_panel(holder, _panel_size(0.48, 0.34), outline.lightened(0.05), -0.016)
 			_add_rival_cut_marks(holder, rng, variant, fill)
-			_add_rival_label(holder, alias, fill, outline.darkened(0.3), 118, 8, 0.004, Vector3(0, 0, 0.006))
+			_add_rival_label(holder, alias, fill, outline.darkened(0.3), 118, 8, 0.004, Vector3(0, 0, 0.006), font_style)
 		"throwup":
-			_add_panel(holder, _panel_size(0.62, 0.46), outline.darkened(0.25), -0.02)
-			_add_panel(holder, _panel_size(0.54, 0.38), fill.darkened(0.25), -0.015)
 			_add_rival_stripes(holder, rng, variant, fill.lightened(0.08), outline, 0.72)
-			_add_rival_label(holder, alias, fill, outline, 168, 52, 0.006, Vector3(0, 0, 0.01))
+			_add_rival_label(holder, alias, fill, outline, 168, 52, 0.006, Vector3(0, 0, 0.01), font_style)
 			_add_rival_chips(holder, rng, variant, outline)
-			_add_drips(holder, rng, fill, 0.55, 1.2)
 		"piece":
-			_add_panel(holder, _panel_size(0.88, 0.78), outline.darkened(0.35), -0.024)
-			_add_panel(holder, _panel_size(0.8, 0.68), fill.darkened(0.45), -0.018)
 			_add_rival_stripes(holder, rng, variant, fill.lightened(0.18), outline, 0.95)
-			_add_rival_label(holder, alias, fill, outline, 214, 66, 0.008, Vector3(0, 0, 0.012))
+			_add_rival_label(holder, alias, fill, outline, 214, 66, 0.008, Vector3(0, 0, 0.012), font_style)
 			_add_rival_chips(holder, rng, variant, fill.lightened(0.2))
-			_add_drips(holder, rng, fill, 0.78, 1.55)
 		"roller":
-			_add_panel(holder, _panel_size(0.98, 0.58), outline.darkened(0.22), -0.02)
 			_add_rival_stripes(holder, rng, variant, fill, outline, 1.1)
-			_add_rival_label(holder, alias, fill, outline, 252, 80, 0.009, Vector3(0, 0, 0.012))
-			_add_drips(holder, rng, fill, 0.52, 2.1)
+			_add_rival_label(holder, alias, fill, outline, 252, 80, 0.009, Vector3(0, 0, 0.012), font_style)
 		"mural":
-			_add_panel(holder, _panel_size(0.94, 0.88), outline.darkened(0.35), -0.026)
-			_add_panel(holder, _panel_size(0.86, 0.76), fill.darkened(0.5), -0.02)
-			_add_panel(holder, _panel_size(0.58, 0.45), fill.lightened(0.12), -0.015)
 			_add_rival_stripes(holder, rng, variant, fill.lightened(0.16), outline, 1.0)
-			_add_rival_label(holder, alias, fill, outline, 226, 62, 0.009, Vector3(0, 0, 0.014))
+			_add_rival_label(holder, alias, fill, outline, 226, 62, 0.009, Vector3(0, 0, 0.014), font_style)
 			_add_rival_chips(holder, rng, variant, outline.lightened(0.15))
-			_add_drips(holder, rng, fill, 0.86, 1.4)
 		_:
-			_add_rival_label(holder, alias, fill, outline, 120, 24, 0.005, Vector3.ZERO)
+			_add_rival_label(holder, alias, fill, outline, 120, 24, 0.005, Vector3.ZERO, font_style)
 
 func _add_rival_label(parent: Node3D, text: String, fill: Color, outline: Color,
 		font_size: int, outline_size: int, pixel_size: float, pos: Vector3,
@@ -310,23 +300,22 @@ func _add_panel_at(parent: Node3D, pos: Vector3, panel_size: Vector2,
 	mesh.material_override = _flat_material(color)
 	parent.add_child(mesh)
 
-## Thin paint runs hanging below the letters.
-func _add_drips(parent: Node3D, rng: RandomNumberGenerator, color: Color,
-		letter_bottom: float, spread: float) -> void:
-	var wall_width := float(def.get("size", [4, 3, 0.3])[0])
-	spread = minf(spread, wall_width * 0.35)
-	for i in rng.randi_range(2, 4):
-		var length := rng.randf_range(0.15, 0.45)
-		var quad := QuadMesh.new()
-		quad.size = Vector2(0.045, length)
-		var mesh := MeshInstance3D.new()
-		mesh.mesh = quad
-		mesh.material_override = _flat_material(color)
-		mesh.position = Vector3(
-			rng.randf_range(-spread, spread),
-			-(letter_bottom + length / 2.0) + rng.randf_range(0.0, 0.1),
-			0.005)
-		parent.add_child(mesh)
+## Sprays the lettering on one character at a time (Product_reqs.md).
+## Skipped headless — the smoke test sees the finished text immediately.
+func _reveal_label_letters(label: Label3D, full_text: String) -> void:
+	if _reveal_tween != null and _reveal_tween.is_valid():
+		_reveal_tween.kill()
+	if full_text.length() <= 1 or DisplayServer.get_name() == "headless":
+		return
+	label.text = full_text.substr(0, 1)
+	_reveal_tween = create_tween()
+	for i in range(2, full_text.length() + 1):
+		_reveal_tween.tween_interval(LETTER_REVEAL_DELAY)
+		_reveal_tween.tween_callback(_set_label_text.bind(label, full_text.substr(0, i)))
+
+func _set_label_text(label: Label3D, text: String) -> void:
+	if is_instance_valid(label):
+		label.text = text
 
 func _panel_size(width_frac: float, height_frac: float) -> Vector2:
 	var size: Array = def.get("size", [4, 3, 0.3])

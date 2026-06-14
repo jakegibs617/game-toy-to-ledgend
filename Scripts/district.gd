@@ -11,6 +11,7 @@ const TravelPointScript := preload("res://Scripts/World/travel_point.gd")
 const ClimbZoneScript := preload("res://Scripts/World/climb_zone.gd")
 const AmbientNpcScript := preload("res://Scripts/World/ambient_npc.gd")
 const RivalGraffitiStyle := preload("res://Scripts/Walls/rival_graffiti_style.gd")
+const GraffitiFonts := preload("res://Scripts/Walls/graffiti_font_library.gd")
 const RivalTaggerScript := preload("res://Scripts/Rivals/rival_tagger.gd")
 
 var _material_cache: Dictionary = {}
@@ -1168,6 +1169,23 @@ func _smoke_graffiti_types() -> void:
 	assert(WallManager.wall_states["wall_corner_01"]["state"] == "rival_throwup")
 	saints["responseType"] = saved_response
 	print("SMOKE: rival surface fallback — roller response became a throw-up")
+
+	# Each type only renders a font capable for that style (Product_reqs.md):
+	# a marker hand letters a tag, but a throw-up/piece/stencil falls back to
+	# a capable font instead of showing the hand on the wrong form.
+	assert(GraffitiFonts.resolve_for_families("ff_comma_trial", ["hand", "scratch_hand"]) == "ff_comma_trial")
+	var throw_font := GraffitiFonts.resolve_for_families("ff_comma_trial", ["throw"])
+	assert(throw_font != "ff_comma_trial")
+	assert(String(GraffitiFonts.style_def(throw_font).get("family", "")) == "throw")
+	assert(String(GraffitiFonts.style_def(
+		GraffitiFonts.resolve_for_families("ff_comma_trial", ["stencil_art"])).get("family", "")) == "stencil_art")
+	assert(GraffitiFonts.resolve_for_families("ff_comma_trial", []) == "ff_comma_trial")
+	# A fresh tag renders bare — just the lettering, no drips and no panel.
+	GameState.add_paint(5)
+	assert(WallManager.paint_wall(wall, "tag")["ok"])
+	var tag_holder: Node = wall._graffiti_anchor.get_child(wall._graffiti_anchor.get_child_count() - 1)
+	assert(tag_holder.get_child_count() == 1)
+	print("SMOKE: type-capable fonts + bare drip-free tag")
 
 ## Milestone 29: rival graffiti gets deterministic visual variety from
 ## crew/id/type seeds. The rendered output is built at display time, so
