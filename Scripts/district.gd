@@ -7,11 +7,13 @@ const PLAYER_SPAWN := Vector3(0, 0.5, 4)
 const CLIMBS_PATH := "res://Data/climbs.json"
 const AMBIENT_NPCS_PATH := "res://Data/ambient_npcs.json"
 const BENCHES_PATH := "res://Data/benches.json"
+const NIGHTLIFE_PATH := "res://Data/nightlife.json"
 const DataLoader := preload("res://Scripts/Data/data_loader.gd")
 const TravelPointScript := preload("res://Scripts/World/travel_point.gd")
 const ClimbZoneScript := preload("res://Scripts/World/climb_zone.gd")
 const AmbientNpcScript := preload("res://Scripts/World/ambient_npc.gd")
 const BenchScript := preload("res://Scripts/World/bench.gd")
+const NightclubScript := preload("res://Scripts/World/nightclub.gd")
 const RivalGraffitiStyle := preload("res://Scripts/Walls/rival_graffiti_style.gd")
 const GraffitiFonts := preload("res://Scripts/Walls/graffiti_font_library.gd")
 const RivalTaggerScript := preload("res://Scripts/Rivals/rival_tagger.gd")
@@ -30,6 +32,7 @@ func _ready() -> void:
 	_spawn_travel_points()
 	_spawn_climb_zones()
 	_spawn_benches()
+	_spawn_nightclubs()
 	WallManager.spawn_walls(self)
 	TrainManager.spawn_trains(self)
 	RivalManager.claim_initial_territory()
@@ -351,6 +354,20 @@ func _spawn_benches() -> void:
 		bench.setup(def)
 		add_child(bench)
 
+## Rep-gated nightclubs the writer can dance in for Style/crew/cash
+## (Product_reqs.md "dance / club / DJ invite", Data/nightlife.json).
+func _spawn_nightclubs() -> void:
+	var parsed: Variant = DataLoader.load_json(NIGHTLIFE_PATH, "District")
+	if not (parsed is Array):
+		return
+	for def in parsed:
+		if not DataLoader.require_fields(def, ["clubId", "position", "minRank"],
+				"District: nightclub \"%s\"" % String(def.get("clubId", "?"))):
+			continue
+		var club := NightclubScript.new()
+		club.setup(def)
+		add_child(club)
+
 ## One gate per district that has a travel def (districts.json).
 func _spawn_travel_points() -> void:
 	for district_id in TerritoryManager.districts:
@@ -489,6 +506,7 @@ func _run_smoke_test() -> void:
 	_smoke_wildstyle_payoff()
 	_smoke_stickers()
 	_smoke_benches()
+	_smoke_nightclub()
 	_smoke_canal_side()
 	_smoke_rooftop_climbing()
 	_smoke_ladder_climb()
@@ -1527,6 +1545,81 @@ func _smoke_benches() -> void:
 	assert(player._arm.spring_length == Player.CAMERA_DISTANCE)
 	print("SMOKE: bench — sit → first person, sketch styles, stand on close")
 
+## Assumes: Canal Side has The Undertow spawned (nightlife.json) — a
+## rep-gated dance floor (Product_reqs "dance / club / DJ invite"). A toy
+## is waved off at the door; a Known+ writer pays cover and dances a DJ
+## set whose hype scales the Style/crew/cash payout, banked as a best.
+func _smoke_nightclub() -> void:
+	var club := get_node_or_null("club_canal_undertow")
+	assert(club != null and club.is_in_group("interactable"))
+
+	var rep_before := GameState.reputation
+	var rank_before := GameState.rank
+	var cash_before := GameState.cash
+	var crew_before := GameState.crew_rep
+	var best_before := GameState.nightlife_best.duplicate(true)
+
+	var opened := [0]
+	var cb := func(_c: Dictionary) -> void: opened[0] += 1
+	GameState.nightclub_requested.connect(cb)
+
+	# Toy at the door: bouncer waves off, no charge, no modal.
+	GameState.reputation = 0
+	GameState.rank = "Toy"
+	GameState.cash = 100
+	assert(not GameState.rank_meets("Known"))
+	assert(club.prompt_text().to_lower().contains("bouncer"))
+	club.interact()
+	assert(opened[0] == 0)
+	assert(GameState.cash == 100)  # cover untouched when turned away
+
+	# Known writer with cash: the cover is charged and the floor opens.
+	GameState.reputation = 400
+	GameState.rank = "Known"
+	assert(GameState.rank_meets("Known"))
+	assert(club.prompt_text().to_lower().contains("step inside"))
+	club.interact()
+	assert(opened[0] == 1)
+	assert(GameState.cash == 100 - int(club.def.get("cover", 0)))
+	GameState.nightclub_requested.disconnect(cb)
+
+	# The dance model off-tree: a perfect set is 100% hype, full payout.
+	var panel = preload("res://Scripts/UI/nightclub_panel.gd").new()
+	panel.begin(club.def)
+	var beats := int(club.def.get("beats", 12))
+	for i in beats:
+		assert(not panel.is_done())
+		panel.register(true)
+	assert(panel.is_done())
+	assert(panel.hype_pct() == 100)
+	# A late tap after the set is spent must not over-score.
+	assert(bool(panel.register(true)["done"]))
+	var perfect: Dictionary = panel.result()
+	assert(int(perfect["styleXp"]) == int(club.def.get("styleXp", 0)))
+	assert(int(perfect["crewRep"]) == int(club.def.get("crewRep", 0)))
+	assert(int(perfect["cash"]) == int(club.def.get("tipCash", 0)))
+
+	# A sloppy set (every tap off-beat) scores nothing.
+	panel.begin(club.def)
+	for i in beats:
+		panel.register(false)
+	assert(panel.hype_pct() == 0)
+	assert(int(panel.result()["styleXp"]) == 0)
+	panel.free()
+
+	# A personal best is logged only when beaten.
+	assert(GameState.note_nightlife_best("club_canal_undertow", 80))
+	assert(not GameState.note_nightlife_best("club_canal_undertow", 50))
+	assert(int(GameState.nightlife_best["club_canal_undertow"]) == 80)
+
+	# Restore world state for the sections that follow.
+	GameState.reputation = rep_before
+	GameState.rank = rank_before
+	GameState.cash = cash_before
+	GameState.crew_rep = crew_before
+	GameState.nightlife_best = best_before
+	print("SMOKE: nightclub — rep gate, cover, DJ set hype → scaled payout")
+
 ## Assumes: the mill chain is done (canal chain waits on its trigger),
 ## the player stands in Mill Yard, and earlier sections left paint and
 ## cash to spare. Milestone 18 (Plan.md §45, §12): cross the
@@ -1885,7 +1978,7 @@ func _smoke_gallery() -> void:
 
 	# Gallery state and the rep split survive save/load; v4 saves migrate
 	# through the gallery and crew-depth schema bumps.
-	assert(SaveManager.SAVE_VERSION == 6)
+	assert(SaveManager.SAVE_VERSION == 7)
 	assert(SaveManager.quick_save())
 	var saved_crew: int = GameState.crew_rep
 	GameState.crew_rep = 0
@@ -1898,7 +1991,8 @@ func _smoke_gallery() -> void:
 	assert(migrated.has("gallery"))
 	assert(migrated.has("crew") and migrated["crew"].has("getaway_used_levels"))
 	assert(int(migrated["game"]["crew_rep"]) == 0)
-	print("SMOKE: gallery — refusal, sale (score x%.2f), crew rep split, v6 save" % score)
+	assert(migrated["game"].has("nightlife_best"))
+	print("SMOKE: gallery — refusal, sale (score x%.2f), crew rep split, v7 save" % score)
 
 ## Assumes: nothing beyond a paintable wall. Plan_v2.md §3.5: wall
 ## history is capped — repainting past the cap drops the oldest
