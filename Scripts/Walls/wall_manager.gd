@@ -166,10 +166,21 @@ func _begin_player_paint(wall: PaintableWall, type: String,
 	if not GameState.try_spend_paint(SupplyManager.paint_cost(style)):
 		return {"ok": false, "reason": "Not enough paint."}
 	var state: Dictionary = wall_states[wall.def["wallId"]]
-	var rep := int(round(_reputation_for(style, wall.def) * style_mult))
+	var rep := int(round(_reputation_for(style, wall.def) * style_mult
+		* heaven_spot_exposure_bonus(wall.def, GameState.selected_tag_font_style())))
 	if String(state.get("state", "")) == "buffed":
 		rep = int(round(rep * BUFF_RETALIATION_BONUS))
 	return {"ok": true, "style": style, "state": state, "rep": rep}
+
+## Wildstyle heaven-spot payoff (Product_reqs.md): a high-exposure style
+## (wildstyle) on a heaven spot — a high, very visible wall flagged
+## `heavenSpot` in walls.json — pays its exposure as a rep bonus. This is
+## the reward half of the risk exposure already adds to heat and patrol
+## attention; ordinary styles (exposure 1.0) and ordinary walls pay 1x.
+func heaven_spot_exposure_bonus(def: Dictionary, style_id: String) -> float:
+	if not bool(def.get("heavenSpot", false)):
+		return 1.0
+	return GraffitiFonts.style_exposure(style_id)
 
 ## Style multiplier for hand-drawn work: filling the wall and mixing
 ## colors pays up to 2x a stock piece; a few stray dots pay half.

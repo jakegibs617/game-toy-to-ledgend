@@ -109,8 +109,9 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
   on tall glass panels. Enforced via `WallManager.font_style_block_reason`
   + `GraffitiFonts.render_plan`, consumed by `paintable_wall.gd`, with a
   `glass` surface type + a territory-neutral storefront window.
-* 🟡 **Still pending:** `wildstyle` exposure payoff (heaven-spot wiring)
-  is defined in JSON but not yet special-cased.
+* ✅ **Wildstyle exposure fully wired:** exposure raises heat + patrol
+  attention (M16) *and* pays a rep bonus on `heavenSpot` walls
+  (`WallManager.heaven_spot_exposure_bonus` × `GraffitiFonts.style_exposure`).
 
 ### Walls & world memory (Plan.md §9, §31)
 * ✅ Wall state machine (blank/player/rival/crossed-out/buffed) with
@@ -202,7 +203,7 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 | Ladder looks like a ladder, climb anim, reversible up/down | ✅ | Interactive ladder climb |
 | Random idle animations for main character | ✅ | Idle rotation |
 | Tag-style font mapping (against-myself→L1 throw, etc.) | ✅ | `graffiti_font_styles.json` |
-| Hand / throw / wildstyle / vertical-hand / stencil / scratch families | 🟡 | Families render/gate; wildstyle heaven-spot payoff still pending |
+| Hand / throw / wildstyle / vertical-hand / stencil / scratch families | ✅ | Families render/gate; wildstyle exposure → heat/patrol + heaven-spot rep payoff |
 | Stencil art requires carrying a stencil | ✅ | Stencil kit gating + gear suspicion |
 | Scratch hand: glass-only, one color, 50% greyscale | ✅ | Glass gate + greyscale render via `render_plan` |
 | Acid hands on glass, vertical + horizontal orientation | ✅ | Glass gate + vertical-on-portrait render |
@@ -225,8 +226,6 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 * Playtest feedback pass (M33) + demo-candidate freeze (M34).
 
 **Product_reqs gaps:**
-* Wildstyle render + heaven-spot payoff wiring (scratch/acid glass
-  behaviors now shipped).
 * Stickers / wheatpaste system (+ art-school mentor unlock).
 * Dance/club/DJ nightlife invite.
 * Decide drip policy across non-tag types ("lose the paint drip lines").

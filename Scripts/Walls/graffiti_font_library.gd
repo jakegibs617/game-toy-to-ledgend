@@ -64,6 +64,12 @@ static func style_is_one_color(style_id: String) -> bool:
 static func style_opacity(style_id: String) -> float:
 	return clampf(float(style_def(style_id).get("opacity", 1.0)), 0.0, 1.0)
 
+## Exposure multiplier (>= 1.0): wildstyle structure takes the longest to
+## paint, raising heat/patrol attention — and pays off on heaven spots
+## (Product_reqs.md). Clamped to 1.0 so it never reduces heat or rep.
+static func style_exposure(style_id: String) -> float:
+	return maxf(float(style_def(style_id).get("exposure", 1.0)), 1.0)
+
 ## Orientations the style supports; horizontal-only unless the data says
 ## otherwise (acid hands list both horizontal and vertical).
 static func style_orientations(style_id: String) -> Array:

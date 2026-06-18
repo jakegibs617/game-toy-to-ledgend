@@ -43,6 +43,7 @@
   },
   {
     "wallId": "wall_landmark_01",
+    "heavenSpot": true,
     "name": "Landmark: Mill Gate",
     "districtId": "district_mill_yard",
     "position": [16, 3, -7.8],
@@ -138,6 +139,7 @@
   },
   {
     "wallId": "wall_roof_mill_01",
+    "heavenSpot": true,
     "name": "Mill West Rooftop",
     "districtId": "district_mill_yard",
     "position": [-14, 10.8, -8.2],
@@ -264,6 +266,7 @@
   },
   {
     "wallId": "wall_rooftop_row_01",
+    "heavenSpot": true,
     "name": "Rooftop Row West Parapet",
     "districtId": "district_rooftop_row",
     "position": [166, 19.2, -16.9],
@@ -278,6 +281,7 @@
   },
   {
     "wallId": "wall_rooftop_row_02",
+    "heavenSpot": true,
     "name": "Rooftop Row Center Parapet",
     "districtId": "district_rooftop_row",
     "position": [181, 19.2, -16.9],
@@ -292,6 +296,7 @@
   },
   {
     "wallId": "wall_rooftop_row_03",
+    "heavenSpot": true,
     "name": "Rooftop Row East Billboard",
     "districtId": "district_rooftop_row",
     "position": [198, 20.1, 0],
@@ -306,6 +311,7 @@
   },
   {
     "wallId": "wall_rooftop_row_04",
+    "heavenSpot": true,
     "name": "Landmark: Skyline Crown",
     "districtId": "district_rooftop_row",
     "position": [181, 20.2, 16.9],
