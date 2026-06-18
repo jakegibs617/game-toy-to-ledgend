@@ -486,6 +486,7 @@ func _run_smoke_test() -> void:
 	_smoke_rival_graffiti_variety()
 	_smoke_progression()
 	_smoke_bespoke_styles()
+	_smoke_wildstyle_payoff()
 	_smoke_benches()
 	_smoke_canal_side()
 	_smoke_rooftop_climbing()
@@ -1389,6 +1390,25 @@ func _first_label(wall: PaintableWall) -> Label3D:
 		if child is Label3D:
 			return child
 	return null
+
+## Product_reqs.md wildstyle heaven-spot payoff: a high-exposure wildstyle
+## on a high, very visible heaven-spot wall pays its exposure as a rep
+## bonus (the reward half of the heat/patrol risk exposure already adds).
+## Pure checks — no global state touched.
+func _smoke_wildstyle_payoff() -> void:
+	var heaven_def := WallManager.wall_def("wall_landmark_01")
+	var plain_def := WallManager.wall_def("wall_mill_02")
+	assert(bool(heaven_def.get("heavenSpot", false)))
+	assert(not bool(plain_def.get("heavenSpot", false)))
+	# Wildstyle carries exposure > 1; the toy hand and a throw don't.
+	assert(GraffitiFonts.style_exposure("maelstrom") > 1.0)
+	assert(is_equal_approx(GraffitiFonts.style_exposure("ff_comma_trial"), 1.0))
+	# The payoff only lands when both the style and the wall qualify.
+	var exposure := GraffitiFonts.style_exposure("maelstrom")
+	assert(is_equal_approx(WallManager.heaven_spot_exposure_bonus(heaven_def, "maelstrom"), exposure))
+	assert(is_equal_approx(WallManager.heaven_spot_exposure_bonus(heaven_def, "ff_comma_trial"), 1.0))
+	assert(is_equal_approx(WallManager.heaven_spot_exposure_bonus(plain_def, "maelstrom"), 1.0))
+	print("SMOKE: wildstyle heaven-spot payoff — exposure %.2fx on heaven walls" % exposure)
 
 ## Assumes: progression has raised Style so at least one non-toy style is
 ## sketchable. Product_reqs.md benches: a data-driven seat the player

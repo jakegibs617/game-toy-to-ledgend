@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-06-18 — Wildstyle Heaven-Spot Payoff (Product_reqs.md)
+
+Closes the reward half of the wildstyle `exposure` mechanic. Exposure
+already raised heat and patrol attention (Milestone 16); it now also pays
+off when the writer risks a heaven spot.
+
+- New `heavenSpot` wall flag (`Data/walls.json`) on the six high, very
+  visible walls — the Mill Yard landmark + mill roof and the elevated
+  Rooftop Row pieces.
+- `WallManager.heaven_spot_exposure_bonus(def, style_id)` multiplies a
+  player paint's reputation by the font style's exposure (wildstyle
+  `maelstrom` = 1.35x) when, and only when, the wall is a heaven spot.
+  Ordinary styles (exposure 1.0) and ordinary walls pay 1x.
+- New `GraffitiFonts.style_exposure(style_id)` (clamped to >= 1.0) so the
+  payoff and the existing heat/patrol exposure read one source.
+- Smoke coverage (`_smoke_wildstyle_payoff`) — pure, state-neutral checks
+  of the flag, the exposure value, and the bonus gating.
+
 ## 2026-06-18 — Bespoke Tag-Style Behaviors (Product_reqs.md)
 
 The scratch- and acid-hand font styles now behave the way their data
