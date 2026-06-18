@@ -49,6 +49,47 @@ static func style_def(style_id: String) -> Dictionary:
 	_ensure_loaded()
 	return _styles.get(resolve_style_id(style_id), {})
 
+## Bespoke style behaviors (Product_reqs.md): glass-only scratch/acid
+## hands, the greyscale one-color scratch look, and acid orientation.
+
+## True when the style can only be applied to glass (scratch + acid hands).
+static func style_is_glass_only(style_id: String) -> bool:
+	return bool(style_def(style_id).get("glass", false))
+
+## True for the one-color/greyscale scratch hand (renders desaturated).
+static func style_is_one_color(style_id: String) -> bool:
+	return bool(style_def(style_id).get("oneColor", false))
+
+## Render opacity for the style (scratch hands sit at ~0.5); 1.0 default.
+static func style_opacity(style_id: String) -> float:
+	return clampf(float(style_def(style_id).get("opacity", 1.0)), 0.0, 1.0)
+
+## Orientations the style supports; horizontal-only unless the data says
+## otherwise (acid hands list both horizontal and vertical).
+static func style_orientations(style_id: String) -> Array:
+	var orientations: Array = style_def(style_id).get("orientations", [])
+	return orientations.duplicate() if not orientations.is_empty() else ["horizontal"]
+
+## How a style should render on a wall, computed from the style data and
+## the wall shape so paintable_wall (and the smoke test) share one rule:
+##   greyscale  — one-color scratch hand, drawn desaturated
+##   opacity    — label alpha (scratch hands are faint scratches)
+##   orientation— "vertical" when the style allows it and the wall is
+##                taller than wide (acid runs down a tall glass panel),
+##                otherwise the first allowed orientation
+static func render_plan(style_id: String, wall_is_portrait: bool) -> Dictionary:
+	var orientations := style_orientations(style_id)
+	var orientation := String(orientations[0])
+	if wall_is_portrait and orientations.has("vertical"):
+		orientation = "vertical"
+	elif orientations.has("horizontal"):
+		orientation = "horizontal"
+	return {
+		"greyscale": style_is_one_color(style_id),
+		"opacity": style_opacity(style_id),
+		"orientation": orientation,
+	}
+
 ## Picks a style whose family is capable for a graffiti type. If the
 ## requested style already fits (or the type lists no families) it is
 ## kept; otherwise we fall back to the simplest capable style so a

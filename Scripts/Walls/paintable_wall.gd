@@ -115,9 +115,39 @@ func show_graffiti(graffiti: Dictionary, animate := false) -> void:
 			label.font_size = 230
 			label.outline_size = 60
 			label.pixel_size = 0.009
+	# Bespoke style behaviors (Product_reqs.md): glass scratch hands draw
+	# as a faint greyscale scratch, and acid hands run vertical down a tall
+	# glass panel. The plan is shared with the smoke test (GraffitiFonts).
+	_apply_style_render_plan(holder, label,
+		String(graffiti.get("fontStyle", GraffitiFonts.default_style_id())), fill, outline)
 	holder.add_child(label)
 	if animate:
 		_reveal_label_letters(label, full_text)
+
+## Applies the font style's render plan to a freshly built player label:
+## desaturate + fade the one-color scratch hand, and rotate the holder
+## upright for a vertical (acid) orientation. Leaves normal tags untouched.
+func _apply_style_render_plan(holder: Node3D, label: Label3D, font_style: String,
+		fill: Color, outline: Color) -> void:
+	var plan := GraffitiFonts.render_plan(font_style, _is_portrait())
+	if bool(plan["greyscale"]):
+		var op := float(plan["opacity"])
+		var grey := _greyscale(fill, op)
+		label.modulate = grey
+		label.outline_modulate = _greyscale(outline, op).darkened(0.4)
+	if String(plan["orientation"]) == "vertical":
+		holder.rotation_degrees.z += 90.0
+
+## A wall is portrait when its painted face is taller than it is wide —
+## acid hands run vertically down those (storefront glass panels).
+func _is_portrait() -> bool:
+	var size: Array = def.get("size", [4, 3, 0.3])
+	return float(size[1]) > float(size[0])
+
+## Luminance-matched grey at the given alpha (scratch hands are one color).
+func _greyscale(color: Color, alpha: float) -> Color:
+	var lum := color.get_luminance()
+	return Color(lum, lum, lum, alpha)
 
 ## The font families this graffiti type is allowed to render with, read
 ## from the style def in graffiti_styles.json (empty = no restriction).
@@ -351,8 +381,25 @@ func _add_surface_details(box_size: Vector3) -> void:
 			_add_concrete_cuts(box_size)
 		"stucco":
 			_add_stucco_pitting(box_size)
+		"glass":
+			_add_glass_panes(box_size)
 		_:
 			_add_concrete_cuts(box_size)
+
+## Storefront glass (Product_reqs.md scratch/acid surface): a couple of
+## bright diagonal reflection streaks and a frame divider so the pane
+## reads as glass — the only surface scratch/acid hands take to.
+func _add_glass_panes(box_size: Vector3) -> void:
+	var z := box_size.z / 2.0 + 0.006
+	var divider := Color("#cdd6da", 0.5)
+	_add_surface_quad(Vector3(0, 0, z), Vector2(0.05, box_size.y * 0.96), divider, 0.0)
+	_add_surface_quad(Vector3(0, 0, z), Vector2(box_size.x * 0.96, 0.05), divider, 0.0)
+	for i in 2:
+		_add_surface_quad(
+			Vector3(-box_size.x * 0.18 + i * box_size.x * 0.36, 0, z + 0.001),
+			Vector2(0.12, box_size.y * 1.1),
+			Color("#ffffff", 0.12),
+			22.0)
 
 func _add_brick_mortar(box_size: Vector3) -> void:
 	var z := box_size.z / 2.0 + 0.006
