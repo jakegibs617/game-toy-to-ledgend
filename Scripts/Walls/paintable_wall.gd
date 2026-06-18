@@ -136,8 +136,11 @@ func show_graffiti(graffiti: Dictionary, animate := false) -> void:
 	# Bespoke style behaviors (Product_reqs.md): glass scratch hands draw
 	# as a faint greyscale scratch, and acid hands run vertical down a tall
 	# glass panel. The plan is shared with the smoke test (GraffitiFonts).
-	_apply_style_render_plan(holder, label,
-		String(graffiti.get("fontStyle", GraffitiFonts.default_style_id())), fill, outline)
+	# Paper work (stickers/wheatpaste) is printed, not scratched onto glass,
+	# so it keeps its own paper-on-ink look and ignores the scratch plan.
+	if not bool(WallManager.styles.get(type, {}).get("paper", false)):
+		_apply_style_render_plan(holder, label,
+			String(graffiti.get("fontStyle", GraffitiFonts.default_style_id())), fill, outline)
 	holder.add_child(label)
 	if animate:
 		_reveal_label_letters(label, full_text)
