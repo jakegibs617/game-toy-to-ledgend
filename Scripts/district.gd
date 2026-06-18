@@ -662,6 +662,7 @@ func _smoke_crew() -> void:
 	assert(CrewManager.members.has("npc_jay_metro"))
 	assert(CrewManager.members.has("npc_nia_stash"))
 	assert(CrewManager.members.has("npc_tali_echo"))
+	assert(CrewManager.members.has("npc_vale_fix"))
 	var mina: Dictionary = CrewManager.members["npc_mina_moth"]
 	assert(mina["stage"] == "not_met")
 	var chance_before := RivalManager.response_chance("wall_mill_02", "buff_kings")
@@ -696,7 +697,7 @@ func _smoke_crew() -> void:
 	assert(chance_after < chance_before)
 	print("SMOKE: lookout bonus %.2f -> %.2f" % [chance_before, chance_after])
 
-	for member_id in ["npc_rico_caps", "npc_jay_metro", "npc_nia_stash", "npc_tali_echo"]:
+	for member_id in ["npc_rico_caps", "npc_jay_metro", "npc_nia_stash", "npc_tali_echo", "npc_vale_fix"]:
 		var member: Dictionary = CrewManager.members[member_id]
 		CrewManager.interact(member_id)
 		assert(member["stage"] == "mission_active")
@@ -710,22 +711,27 @@ func _smoke_crew() -> void:
 	assert(CrewManager.has_role("getaway"))
 	assert(CrewManager.has_role("supply_runner"))
 	assert(CrewManager.has_role("hype"))
-	assert(GameState.crew_rep == CrewManager.RECRUIT_CREW_REP * 5)
+	assert(CrewManager.has_role("fixer"))
+	assert(GameState.crew_rep == CrewManager.RECRUIT_CREW_REP * 6)
 	assert(get_node_or_null("npc_rico_caps/CharacterVisual/RicoCapsModel") != null)
 	assert(get_node_or_null("npc_jay_metro/CharacterVisual/JayMetroModel") != null)
 	assert(get_node_or_null("npc_nia_stash/CharacterVisual/NiaStashModel") != null)
 	assert(get_node_or_null("npc_tali_echo/CharacterVisual/TaliEchoModel") != null)
+	assert(get_node_or_null("npc_vale_fix/CharacterVisual/ValeFixModel") != null)
 	assert(CrewManager.shop_price_multiplier() < 1.0)
 	assert(CrewManager.delivery_multiplier() > 1.0)
 	assert(CrewManager.crowd_reaction_rep(1) > 1)
 	assert(CrewManager.hype_payout_multiplier() > 1.0)
+	assert(CrewManager.caught_rep_multiplier() < 1.0)
+	assert(CrewManager.caught_paint_multiplier() < 1.0)
+	assert(CrewManager.cleanup_chance_multiplier() < 1.0)
 	var migrated_v5 := SaveManager._migrate({
 		"version": 5,
 		"crew": {"stages": {"npc_mina_moth": "recruited"}},
 	})
 	assert(int(migrated_v5["version"]) == SaveManager.SAVE_VERSION)
 	assert(migrated_v5["crew"].has("getaway_used_levels"))
-	print("SMOKE: crew depth — Caps, Metro, Stash, and Echo recruited from data")
+	print("SMOKE: crew depth — Caps, Metro, Stash, Echo, and Fix recruited from data")
 
 	# The recruited lookout warns when a new retaliation is queued.
 	var events: Array = []
@@ -891,9 +897,11 @@ func _smoke_patrols() -> void:
 	PatrolManager.resolve_catch(guard)
 	assert(caught_guards == [guard])
 	assert(GameState.reputation == rep_before_catch
-		- mini(int(PatrolManager.config.get("caughtRepPenalty", 25)), rep_before_catch))
+		- mini(roundi(int(PatrolManager.config.get("caughtRepPenalty", 25))
+			* CrewManager.caught_rep_multiplier()), rep_before_catch))
 	assert(GameState.paint == paint_before_catch
-		- mini(int(PatrolManager.config.get("caughtPaintPenalty", 3)), paint_before_catch))
+		- mini(roundi(int(PatrolManager.config.get("caughtPaintPenalty", 3))
+			* CrewManager.caught_paint_multiplier()), paint_before_catch))
 	assert(HeatManager.heat <= 25.0)
 	assert(PatrolManager.guard_count() ==
 		PatrolManager.guards_for_level(HeatManager.level_name()))
@@ -1081,6 +1089,7 @@ func _smoke_blackbook() -> void:
 	assert(crew_page.contains("Metro") and crew_page.contains("Getaway"))
 	assert(crew_page.contains("Stash") and crew_page.contains("Supply Runner"))
 	assert(crew_page.contains("Echo") and crew_page.contains("Hype"))
+	assert(crew_page.contains("Fix") and crew_page.contains("Fixer"))
 	var city_page: String = blackbook.page_text(3)
 	assert(city_page.contains("The Buff Kings") and city_page.contains("VEK"))
 	assert(city_page.contains("Your name is on"))

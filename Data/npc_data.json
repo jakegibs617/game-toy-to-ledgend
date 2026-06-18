@@ -195,5 +195,46 @@
       "position": [98, 0.6, 18],
       "color": "#ff4f79"
     }
+  },
+  {
+    "memberId": "npc_vale_fix",
+    "name": "Vale",
+    "alias": "Fix",
+    "role": "fixer",
+    "roleLabel": "Fixer",
+    "loyalty": 30,
+    "style": 2,
+    "specialAbility": "quiet_favors",
+    "caughtRepMultiplier": 0.75,
+    "caughtPaintMultiplier": 0.5,
+    "cleanupChanceMultiplier": 0.75,
+    "bonusDescription": "Softens caught penalties and slows cleanup sweeps against your walls.",
+    "hint": "Waits by the service gate with a pocket full of favors.",
+    "missionDescription": "Recover their city-service pass from the rooftop stairwell.",
+    "color": "#9fd8e8",
+    "position": [26, 0, 17],
+    "visuals": {
+      "containerName": "ValeFixModel",
+      "sourceHeight": 1.7,
+      "rotationY": 180,
+      "initialState": "idle",
+      "states": {
+        "idle": {"model": "res://Assets/Characters/prime_gori_idle_02.glb", "clip": "Armature|Idle_02|baselayer"},
+        "walk": {"model": "res://Assets/Characters/prime_gori_walking.glb", "clip": "Armature|walking_man|baselayer"},
+        "run": {"model": "res://Assets/Characters/prime_gori_running.glb", "clip": "Armature|running|baselayer"}
+      }
+    },
+    "dialogueId": "fix",
+    "dialogue": {
+      "meet": "Fix. I can make a bad stop cost less and a cleanup truck arrive late. My city-service pass is up by the rooftop stairs. Bring it back and I'll owe you.",
+      "active": "Pass is still by the rooftop stairs. Without it, every favor costs double.",
+      "recovered": "That's the pass. Good. Next time security gets hands on you, it won't bite as deep.",
+      "recruited": "Keep your head down. I know who to call when the city starts buffing."
+    },
+    "item": {
+      "name": "Fix's Service Pass",
+      "position": [45, 0.6, 20],
+      "color": "#9fd8e8"
+    }
   }
 ]
