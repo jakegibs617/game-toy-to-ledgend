@@ -38,6 +38,19 @@ PLAYTEST_METRICS=1 /Applications/Godot.app/Contents/MacOS/Godot --path .
 That writes `user://toy_to_legend_playtest_metrics.json` with first-beat
 timings, caught/fall/starvation counters, and the event ledger for the run.
 
+To profile the runtime cost of the built city (node/mesh/wall counts,
+material cache size, character-visual import status, frame readout),
+launch with the budget enabled:
+
+```sh
+RUNTIME_BUDGET=1 /Applications/Godot.app/Contents/MacOS/Godot --path .
+```
+
+It prints one `RUNTIME_BUDGET: ...` line after the world builds and
+changes nothing else. The headless smoke run prints the same readout
+(`SMOKE: runtime budget — ...`). Budgets and findings are documented in
+[docs/PERFORMANCE_BUDGETS.md](docs/PERFORMANCE_BUDGETS.md).
+
 ## Controls
 
 | Input | Action |

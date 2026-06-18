@@ -221,6 +221,20 @@ func _try_build_static_visual(path: String) -> bool:
 	_visual_root = model
 	return true
 
+## Profiling readout for PlaytestMetrics (Plan_v3.md Milestone 31): which
+## character model set loaded and how many clips it carries. "animated" is
+## the full rooster action set, "static" the single-mesh GLB fallback, and
+## "capsule" the placeholder used when no model imports at all.
+func visual_report() -> Dictionary:
+	var kind := "animated"
+	if _visual_models.is_empty():
+		kind = "capsule" if _visual_root != null and _visual_root.name == "CapsuleFallback" else "static"
+	return {
+		"kind": kind,
+		"clipCount": _visual_models.size(),
+		"activeState": _active_visual_state,
+	}
+
 func _apply_animated_visual_transform(model: Node3D) -> void:
 	var s := 1.8 / ANIMATED_MODEL_SOURCE_HEIGHT
 	model.scale = Vector3.ONE * s

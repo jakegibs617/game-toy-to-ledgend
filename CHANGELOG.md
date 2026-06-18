@@ -1,5 +1,36 @@
 # Changelog
 
+## 2026-06-18 — Milestone 31: Performance & Runtime Budget Pass (Plan_v3.md)
+
+Measures what the current three-district city costs before more content
+is added, per Plan_v3.md §3.4 / Milestone 31.
+
+- Added a runtime budget snapshot to the `PlaytestMetrics` autoload
+  (`runtime_budget_snapshot(scene_root)` / `runtime_budget_summary_text`),
+  next to the Milestone 27 playtest ledger and Milestone 28 balance
+  snapshot. It records world node count, a node-type histogram,
+  `MeshInstance3D` count, spawned wall/train counts, `interactable`
+  count, the Milestone 24 material-cache size, the player's character-
+  visual import status (`animated`/`static`/`capsule` + clip count via
+  new `Player.visual_report()`), and a live `Performance` frame readout
+  (fps, process ms, rendered objects, static MB — 0 on the headless
+  server).
+- Documented soft desktop budgets in `PlaytestMetrics.RUNTIME_BUDGETS`
+  (world nodes, meshes, walls, material cache), set to current usage plus
+  headroom so the snapshot's `overBudget` list flags the next big content
+  addition. The smoke test fails if the built city exceeds them.
+- The profile is dormant in normal play. `RUNTIME_BUDGET=1` prints one
+  `RUNTIME_BUDGET: ...` line after the world finishes building; the
+  headless smoke run always prints `SMOKE: runtime budget — ...`.
+- Added `docs/PERFORMANCE_BUDGETS.md` (how to run, fields, budgets,
+  findings) and a README profiling note. Smoke coverage asserts the
+  snapshot is well-formed, tracks manager spawn counts, and stays within
+  budget (`_smoke_runtime_budget`).
+- Finding: runtime-built street detail is the dominant mesh source
+  (~2100 of ~3660 nodes). No bottleneck is measured, so per Plan_v3.md
+  §3.4 no renderer change is made; MultiMesh instancing is the documented
+  first lever if a fourth district pushes meshes over budget.
+
 ## 2026-06-14 — Benches: Sit to Sketch Styles (Product_reqs.md)
 
 The writer can now sit on a bench to practice tag styles in the
