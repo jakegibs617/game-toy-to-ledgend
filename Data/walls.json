@@ -331,5 +331,20 @@
     "color": "#555d62",
     "cleanupChance": 0.14,
     "rivalResponseChance": 0.2
+  },
+  {
+    "wallId": "wall_mill_glass_01",
+    "name": "Corner Store Window",
+    "districtId": "district_mill_yard",
+    "position": [-1, 1.9, -7.8],
+    "rotationY": 0,
+    "size": [2.4, 3.4, 0.2],
+    "visibility": 2,
+    "risk": 2,
+    "surfaceType": "glass",
+    "color": "#3f5a63",
+    "cleanupChance": 0.3,
+    "rivalResponseChance": 0.1,
+    "territoryNeutral": true
   }
 ]

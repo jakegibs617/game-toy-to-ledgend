@@ -1,5 +1,35 @@
 # Changelog
 
+## 2026-06-18 — Bespoke Tag-Style Behaviors (Product_reqs.md)
+
+The scratch- and acid-hand font styles now behave the way their data
+always described, closing the Product_reqs.md 🟡 items.
+
+- **Glass-only gating:** styles flagged `glass` (the `secret_labs` scratch
+  hand and the `street_toxic`/`the_battle_continuez` acid hands) can only
+  be applied to a `glass` surface. `WallManager.font_style_block_reason`
+  enforces it on the player's selected style inside `paint_block_reason`,
+  with a clear "only takes on glass" message.
+- **Greyscale scratch render:** a one-color scratch hand (`oneColor` +
+  `opacity`) draws as a luminance-matched grey at the style's opacity
+  (~0.5), instead of full color.
+- **Acid orientation:** acid hands list `orientations: [horizontal,
+  vertical]` and now render **vertical** down a tall (portrait) glass
+  panel, horizontal otherwise. The rule lives in
+  `GraffitiFonts.render_plan`, shared by `paintable_wall.gd` and the
+  smoke test.
+- New helpers on the font library (`style_is_glass_only`,
+  `style_is_one_color`, `style_opacity`, `style_orientations`,
+  `render_plan`) keep the behavior data-driven and testable off-tree.
+- Added a `glass` surface type (storefront-window detailing in
+  `paintable_wall.gd`) and a portrait glass wall, the **Corner Store
+  Window** in Mill Yard (`Data/walls.json`). It is `territoryNeutral`:
+  `TerritoryManager` excludes such surfaces from influence/standing
+  weight, so scratching a window doesn't shift who holds the block.
+- Smoke coverage (`_smoke_bespoke_styles`) checks the gate, the render
+  plan, and the live greyscale/vertical rendering — all state-neutral so
+  the rest of the run is unaffected.
+
 ## 2026-06-18 — Milestone 31: Performance & Runtime Budget Pass (Plan_v3.md)
 
 Measures what the current three-district city costs before more content

@@ -188,11 +188,25 @@ func surface_block_reason(type: String, def: Dictionary) -> String:
 			String(style.get("label", type)), "/".join(PackedStringArray(surfaces)), surface]
 	return ""
 
-## Player-side paint rules beyond the unlock: surface fit, plus crew
-## presence for murals (§8 — somebody holds the ladder and watches the
-## street; the filler role specializes this in Milestone 22).
+## Glass-only tag styles (scratch + acid hands, Product_reqs.md) can only
+## bite into a glass surface — a scratch hand on brick makes no sense.
+## Gates the player's selected font style; rivals don't carry these.
+func font_style_block_reason(style_id: String, def: Dictionary) -> String:
+	if GraffitiFonts.style_is_glass_only(style_id):
+		var surface := String(def.get("surfaceType", "plain"))
+		if surface != "glass":
+			return "%s only takes on glass — this is %s." % [
+				GraffitiFonts.style_label(style_id), surface]
+	return ""
+
+## Player-side paint rules beyond the unlock: surface fit, glass-only font
+## styles, plus crew presence for murals (§8 — somebody holds the ladder
+## and watches the street; the filler role specializes this in M22).
 func paint_block_reason(type: String, def: Dictionary) -> String:
 	var block := surface_block_reason(type, def)
+	if block != "":
+		return block
+	block = font_style_block_reason(GameState.selected_tag_font_style(), def)
 	if block != "":
 		return block
 	var style: Dictionary = styles.get(type, {})

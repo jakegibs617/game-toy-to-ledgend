@@ -63,6 +63,10 @@ func influence(district_id: String) -> Dictionary:
 	for def in WallManager.wall_defs:
 		if String(def.get("districtId", "")) != district_id:
 			continue
+		# Territory-neutral surfaces (e.g. a storefront window you scratch)
+		# don't count toward who holds the block (Product_reqs.md glass).
+		if bool(def.get("territoryNeutral", false)):
+			continue
 		var weight := float(def.get("visibility", 1))
 		total += weight
 		var state: Dictionary = WallManager.wall_states.get(String(def["wallId"]), {})
@@ -109,6 +113,8 @@ func standing_player_weight(district_id: String) -> float:
 	var weight := 0.0
 	for def in WallManager.wall_defs:
 		if String(def.get("districtId", "")) != district_id:
+			continue
+		if bool(def.get("territoryNeutral", false)):
 			continue
 		var state: Dictionary = WallManager.wall_states.get(String(def["wallId"]), {})
 		if String(state.get("ownerCrewId", "")) == "player" \

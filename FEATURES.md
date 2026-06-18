@@ -102,13 +102,15 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
   lowers rival cross-out likelihood per practice rep (to a floor).
 * ✅ **Gear suspicion**: `gear_suspicion_multiplier` raises patrol
   suspicion for carrying many cans + a stencil + per-font `gearSuspicion`.
-* 🟡 **Style families have data but not bespoke behavior/rendering:**
-  `scratch_hand` (`glass`, `oneColor`, `opacity: 0.5` greyscale), acid
-  `hand` on glass with `orientations: [horizontal, vertical]`, and
-  `wildstyle` exposure are defined in JSON but the special rendering
-  (greyscale-on-glass, vertical orientation) and surface gating are not
-  yet consumed by `paintable_wall.gd`. Styles are selectable/practiceable
-  today; their distinctive visuals/rules are pending.
+* ✅ **Bespoke style behaviors wired:** `scratch_hand` (`glass`,
+  `oneColor`, `opacity: 0.5`) gates to glass surfaces and renders as a
+  faint greyscale scratch; acid `hand` styles (`glass`,
+  `orientations: [horizontal, vertical]`) gate to glass and run vertical
+  on tall glass panels. Enforced via `WallManager.font_style_block_reason`
+  + `GraffitiFonts.render_plan`, consumed by `paintable_wall.gd`, with a
+  `glass` surface type + a territory-neutral storefront window.
+* 🟡 **Still pending:** `wildstyle` exposure payoff (heaven-spot wiring)
+  is defined in JSON but not yet special-cased.
 
 ### Walls & world memory (Plan.md §9, §31)
 * ✅ Wall state machine (blank/player/rival/crossed-out/buffed) with
@@ -200,10 +202,10 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 | Ladder looks like a ladder, climb anim, reversible up/down | ✅ | Interactive ladder climb |
 | Random idle animations for main character | ✅ | Idle rotation |
 | Tag-style font mapping (against-myself→L1 throw, etc.) | ✅ | `graffiti_font_styles.json` |
-| Hand / throw / wildstyle / vertical-hand / stencil / scratch families | 🟡 | Data + level/practice in; bespoke render/rules pending |
+| Hand / throw / wildstyle / vertical-hand / stencil / scratch families | 🟡 | Families render/gate; wildstyle heaven-spot payoff still pending |
 | Stencil art requires carrying a stencil | ✅ | Stencil kit gating + gear suspicion |
-| Scratch hand: glass-only, one color, 50% greyscale | 🟡 | Flags in data; rendering/surface gate not consumed |
-| Acid hands on glass, vertical + horizontal orientation | 🟡 | `glass`/`orientations` in data; not enforced/rendered |
+| Scratch hand: glass-only, one color, 50% greyscale | ✅ | Glass gate + greyscale render via `render_plan` |
+| Acid hands on glass, vertical + horizontal orientation | ✅ | Glass gate + vertical-on-portrait render |
 | Practice a style 5× in blackbook before outside | ✅ | `practice_tag_font_style` |
 | Sit on a bench to sketch/practice styles | ✅ | `bench.gd` + blackbook practice mode (movement suppressed while seated) |
 | Practice lowers toy-overwrite likelihood (to a floor) | ✅ | `toy_response_multiplier` |
@@ -223,8 +225,8 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 * Playtest feedback pass (M33) + demo-candidate freeze (M34).
 
 **Product_reqs gaps:**
-* Bespoke style behaviors: greyscale-on-glass scratch hands, acid/vertical
-  orientation, wildstyle render + heaven-spot payoff wiring.
+* Wildstyle render + heaven-spot payoff wiring (scratch/acid glass
+  behaviors now shipped).
 * Stickers / wheatpaste system (+ art-school mentor unlock).
 * Dance/club/DJ nightlife invite.
 * Decide drip policy across non-tag types ("lose the paint drip lines").

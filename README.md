@@ -138,6 +138,10 @@ static rooster GLB, then the old debug capsule.
   the full §8 type set — stencil (cheap/fast, needs Lupe's kit), roller
   (rooftop surfaces only) and mural (needs crew present; long exposure
   draws patrol eyes) — with per-style surface rules rivals obey too.
+  Tag-font styles also carry bespoke behavior (Product_reqs.md): scratch
+  and acid hands are **glass-only** (a storefront window, not turf you
+  claim), the scratch hand draws as a faint **greyscale** scratch, and
+  acid hands run **vertical** down a tall glass panel.
 - **PaintableWall** (`Scripts/Walls/paintable_wall.gd`) — data-driven wall
   body; placeholder graffiti rendered as Label3D "decals" (alias text styled
   per graffiti type) with a per-graffiti tilt, paint drips, fill panels for

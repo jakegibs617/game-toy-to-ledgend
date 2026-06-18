@@ -485,6 +485,7 @@ func _run_smoke_test() -> void:
 	_smoke_graffiti_types()
 	_smoke_rival_graffiti_variety()
 	_smoke_progression()
+	_smoke_bespoke_styles()
 	_smoke_benches()
 	_smoke_canal_side()
 	_smoke_rooftop_climbing()
@@ -1325,6 +1326,69 @@ func _smoke_progression() -> void:
 	assert(int(migrated["version"]) == SaveManager.SAVE_VERSION)
 	assert(migrated.has("stats"))
 	print("SMOKE: progression survives save/load; v1 saves migrate forward")
+
+## Product_reqs.md bespoke style behaviors: scratch + acid hands are
+## glass-only, the scratch hand renders as a faint greyscale scratch, and
+## acid hands run vertical down a tall glass panel. Kept fully state-
+## neutral — the gate/plan checks are pure, and the render checks call
+## show_graffiti directly (then clear it) so no rep/XP/selection or wall
+## state leaks into later sections.
+func _smoke_bespoke_styles() -> void:
+	var glass_wall: PaintableWall = WallManager.wall_nodes["wall_mill_glass_01"]
+	var brick_wall: PaintableWall = WallManager.wall_nodes["wall_mill_02"]
+	assert(String(glass_wall.def.get("surfaceType", "")) == "glass")
+	# The storefront window is territory-neutral: it must not move shares.
+	assert(bool(glass_wall.def.get("territoryNeutral", false)))
+
+	# Glass-only gating (pure): a scratch hand bites glass, not brick.
+	assert(WallManager.font_style_block_reason("secret_labs", brick_wall.def) != "")
+	assert(WallManager.font_style_block_reason("secret_labs", glass_wall.def) == "")
+	assert(WallManager.font_style_block_reason("street_toxic", brick_wall.def) != "")
+	# A normal throw hand isn't glass-gated.
+	assert(WallManager.font_style_block_reason("against_myself", brick_wall.def) == "")
+
+	# Render plan (pure, shared with paintable_wall): scratch = greyscale + faint.
+	var scratch_plan := GraffitiFonts.render_plan("secret_labs", false)
+	assert(bool(scratch_plan["greyscale"]) and is_equal_approx(float(scratch_plan["opacity"]), 0.5))
+	# Acid orientation follows the wall shape from its allowed orientations.
+	assert(String(GraffitiFonts.render_plan("street_toxic", true)["orientation"]) == "vertical")
+	assert(String(GraffitiFonts.render_plan("street_toxic", false)["orientation"]) == "horizontal")
+	# A plain throw hand stays full-color and horizontal.
+	assert(not bool(GraffitiFonts.render_plan("against_myself", true)["greyscale"]))
+	assert(String(GraffitiFonts.render_plan("against_myself", true)["orientation"]) == "horizontal")
+
+	# Render directly (no WallManager, so no rep/state) and inspect the node:
+	# the scratch hand draws greyscale at 0.5 alpha.
+	glass_wall.show_graffiti(_smoke_graffiti("secret_labs", "#33aa55"))
+	var scratch_label := _first_label(glass_wall)
+	assert(scratch_label != null)
+	assert(is_equal_approx(scratch_label.modulate.r, scratch_label.modulate.g) \
+		and is_equal_approx(scratch_label.modulate.g, scratch_label.modulate.b))
+	assert(is_equal_approx(scratch_label.modulate.a, 0.5))
+
+	# The acid hand on the same portrait glass runs vertical (~90°).
+	glass_wall.show_graffiti(_smoke_graffiti("street_toxic", "#88ff33"))
+	var acid_holder: Node = glass_wall._graffiti_anchor.get_child(
+		glass_wall._graffiti_anchor.get_child_count() - 1)
+	assert(absf(acid_holder.rotation_degrees.z) > 80.0)
+
+	glass_wall.clear_graffiti()  # leave the window blank for the rest of the run
+	print("SMOKE: bespoke styles — glass-only gate, greyscale scratch, vertical acid")
+
+## A minimal player graffiti dict for render-only smoke checks.
+func _smoke_graffiti(font_style: String, fill: String) -> Dictionary:
+	return {"graffitiId": "smoke_%s" % font_style, "creatorId": "player",
+		"wallId": "wall_mill_glass_01", "type": "tag", "alias": "NOVA",
+		"fillColor": fill, "outlineColor": "#000000", "fontStyle": font_style}
+
+## First Label3D under a wall's most recent graffiti holder, or null.
+func _first_label(wall: PaintableWall) -> Label3D:
+	var holder: Node = wall._graffiti_anchor.get_child(
+		wall._graffiti_anchor.get_child_count() - 1)
+	for child in holder.get_children():
+		if child is Label3D:
+			return child
+	return null
 
 ## Assumes: progression has raised Style so at least one non-toy style is
 ## sketchable. Product_reqs.md benches: a data-driven seat the player
