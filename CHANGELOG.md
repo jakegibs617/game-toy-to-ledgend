@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-06-18 — Hype Crew Role
+
+Adds another crew-depth role using the existing generic recruitment flow and
+reward systems.
+
+- New data-driven crew member **Tali "Echo"** in `Data/npc_data.json`.
+- New `hype` role helpers in `CrewManager`: crowd reactions can pay extra rep,
+  and nightclub set payouts can scale with a member-defined multiplier.
+- Ambient locals now use the crew crowd-reaction helper when paying their
+  one-time fresh-paint rep tick.
+- `NightclubPanel.result()` applies the Hype payout multiplier to Style XP,
+  crew rep, and tip cash while keeping the same beat-scoring model.
+- Smoke coverage recruits Echo, verifies the role effects and model, checks
+  boosted nightclub payouts, confirms blackbook visibility, and asserts crowd
+  reactions pay the crew-modified rep amount.
+
 ## 2026-06-18 — Supply Runner Crew Role
 
 Adds the first remaining crew-role expansion after Moth/Caps/Metro: a

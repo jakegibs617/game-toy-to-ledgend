@@ -661,6 +661,7 @@ func _smoke_crew() -> void:
 	assert(CrewManager.members.has("npc_rico_caps"))
 	assert(CrewManager.members.has("npc_jay_metro"))
 	assert(CrewManager.members.has("npc_nia_stash"))
+	assert(CrewManager.members.has("npc_tali_echo"))
 	var mina: Dictionary = CrewManager.members["npc_mina_moth"]
 	assert(mina["stage"] == "not_met")
 	var chance_before := RivalManager.response_chance("wall_mill_02", "buff_kings")
@@ -695,7 +696,7 @@ func _smoke_crew() -> void:
 	assert(chance_after < chance_before)
 	print("SMOKE: lookout bonus %.2f -> %.2f" % [chance_before, chance_after])
 
-	for member_id in ["npc_rico_caps", "npc_jay_metro", "npc_nia_stash"]:
+	for member_id in ["npc_rico_caps", "npc_jay_metro", "npc_nia_stash", "npc_tali_echo"]:
 		var member: Dictionary = CrewManager.members[member_id]
 		CrewManager.interact(member_id)
 		assert(member["stage"] == "mission_active")
@@ -708,19 +709,23 @@ func _smoke_crew() -> void:
 	assert(CrewManager.has_role("filler"))
 	assert(CrewManager.has_role("getaway"))
 	assert(CrewManager.has_role("supply_runner"))
-	assert(GameState.crew_rep == CrewManager.RECRUIT_CREW_REP * 4)
+	assert(CrewManager.has_role("hype"))
+	assert(GameState.crew_rep == CrewManager.RECRUIT_CREW_REP * 5)
 	assert(get_node_or_null("npc_rico_caps/CharacterVisual/RicoCapsModel") != null)
 	assert(get_node_or_null("npc_jay_metro/CharacterVisual/JayMetroModel") != null)
 	assert(get_node_or_null("npc_nia_stash/CharacterVisual/NiaStashModel") != null)
+	assert(get_node_or_null("npc_tali_echo/CharacterVisual/TaliEchoModel") != null)
 	assert(CrewManager.shop_price_multiplier() < 1.0)
 	assert(CrewManager.delivery_multiplier() > 1.0)
+	assert(CrewManager.crowd_reaction_rep(1) > 1)
+	assert(CrewManager.hype_payout_multiplier() > 1.0)
 	var migrated_v5 := SaveManager._migrate({
 		"version": 5,
 		"crew": {"stages": {"npc_mina_moth": "recruited"}},
 	})
 	assert(int(migrated_v5["version"]) == SaveManager.SAVE_VERSION)
 	assert(migrated_v5["crew"].has("getaway_used_levels"))
-	print("SMOKE: crew depth — Caps, Metro, and Stash recruited from data")
+	print("SMOKE: crew depth — Caps, Metro, Stash, and Echo recruited from data")
 
 	# The recruited lookout warns when a new retaliation is queued.
 	var events: Array = []
@@ -1075,6 +1080,7 @@ func _smoke_blackbook() -> void:
 	assert(crew_page.contains("Caps") and crew_page.contains("Filler"))
 	assert(crew_page.contains("Metro") and crew_page.contains("Getaway"))
 	assert(crew_page.contains("Stash") and crew_page.contains("Supply Runner"))
+	assert(crew_page.contains("Echo") and crew_page.contains("Hype"))
 	var city_page: String = blackbook.page_text(3)
 	assert(city_page.contains("The Buff Kings") and city_page.contains("VEK"))
 	assert(city_page.contains("Your name is on"))
@@ -1602,9 +1608,11 @@ func _smoke_nightclub() -> void:
 	# A late tap after the set is spent must not over-score.
 	assert(bool(panel.register(true)["done"]))
 	var perfect: Dictionary = panel.result()
-	assert(int(perfect["styleXp"]) == int(club.def.get("styleXp", 0)))
-	assert(int(perfect["crewRep"]) == int(club.def.get("crewRep", 0)))
-	assert(int(perfect["cash"]) == int(club.def.get("tipCash", 0)))
+	var hype_mult := CrewManager.hype_payout_multiplier()
+	assert(int(perfect["styleXp"]) == roundi(float(club.def.get("styleXp", 0)) * hype_mult))
+	assert(int(perfect["crewRep"]) == roundi(float(club.def.get("crewRep", 0)) * hype_mult))
+	assert(int(perfect["cash"]) == roundi(float(club.def.get("tipCash", 0)) * hype_mult))
+	assert(int(perfect["cash"]) < int(club.def.get("cover", 0)))
 
 	# A sloppy set (every tap off-beat) scores nothing.
 	panel.begin(club.def)
@@ -2033,7 +2041,7 @@ func _smoke_ambient_npc_life() -> void:
 	assert(local.crowd_target_wall_id() == "wall_mill_01")
 	local.global_position = wall.global_position
 	local._physics_process(0.016)
-	assert(GameState.reputation == rep_before + int(result["rep"]) + 1)
+	assert(GameState.reputation == rep_before + int(result["rep"]) + CrewManager.crowd_reaction_rep(1))
 	assert(local.crowd_target_wall_id() == "")
 	GameState.add_paint(3)
 	var repeat_rep_before: int = GameState.reputation

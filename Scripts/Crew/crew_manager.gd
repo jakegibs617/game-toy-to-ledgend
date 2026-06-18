@@ -177,6 +177,21 @@ func delivery_multiplier() -> float:
 		return 1.0
 	return maxf(float(runner.get("deliveryMultiplier", 1.0)), 1.0)
 
+## Hype role: turns spectators into louder street credit and helps club
+## sets travel further. Crowd rep is a tiny integer tick, so data uses
+## an additive bonus there and a multiplier for nightlife payouts.
+func crowd_reaction_rep(base := 1) -> int:
+	var hype := first_with_role("hype")
+	if hype.is_empty():
+		return base
+	return maxi(base, base + int(hype.get("crowdRepBonus", 1)))
+
+func hype_payout_multiplier() -> float:
+	var hype := first_with_role("hype")
+	if hype.is_empty():
+		return 1.0
+	return maxf(float(hype.get("nightlifeMultiplier", 1.0)), 1.0)
+
 func save_state() -> Dictionary:
 	var stages := {}
 	for member_id in members:
