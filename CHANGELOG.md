@@ -18,11 +18,16 @@ and tip cash.
 - **Dance / DJ set:** `Scripts/UI/nightclub_panel.gd` is a modal whose
   dance model (`begin`/`register`/`result`) lives off the UI nodes so the
   smoke test can drive it headless. A marker sweeps a bar; tapping on-beat
-  builds hype, and final hype (hits ÷ beats) scales the Style XP / crew rep /
-  tip-cash payout. A late tap after the set ends can't over-score.
+  builds hype, and final hype (hits ÷ beats) scales the payout. A late tap
+  after the set ends can't over-score.
+- **Reward design (no farm):** Style XP (level-capped) and DJ tip cash pay
+  every set, but the cover charge is kept above the max tip so dancing is a
+  cash sink, not a money printer. Crew rep — the only unbounded reward —
+  pays **only when the writer beats their own floor record**, so re-dancing
+  the same hype can't grind it.
 - **Personal best:** `GameState.nightlife_best` remembers each club's top
-  hype across sessions; `SAVE_VERSION` bumps to **7** with a migration that
-  seeds the ledger empty for older saves.
+  hype across sessions (and gates the crew-rep payout); `SAVE_VERSION` bumps
+  to **7** with a migration that seeds the ledger empty for older saves.
 - Smoke coverage (`_smoke_nightclub`): the bouncer gate, cover charge, a
   perfect set paying full and a sloppy set paying nothing, and best-hype
   bookkeeping.

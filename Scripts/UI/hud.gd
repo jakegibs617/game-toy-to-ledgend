@@ -632,21 +632,25 @@ func _on_nightclub_requested(club: Dictionary) -> void:
 	_nightclub.begin(club)
 	_nightclub.visible = true
 
-## The DJ set wrapped: pay out by hype, log a new personal best, close.
+## The DJ set wrapped: pay out by hype, then close. Style XP (level-capped)
+## and DJ tips (kept under the cover charge in nightlife.json) pay every
+## set; crew rep — the unbounded reward — pays only when the writer beats
+## their own floor record, so re-dancing the same hype can't farm it.
 func _on_nightclub_finished(payout: Dictionary) -> void:
-	var club_id := String(_nightclub._club.get("clubId", ""))
-	var best := GameState.note_nightlife_best(club_id, int(payout.get("hypePct", 0)))
+	var hype := int(payout.get("hypePct", 0))
+	var new_best := GameState.note_nightlife_best(
+		String(_nightclub._club.get("clubId", "")), hype)
 	_close_nightclub()
 	if int(payout.get("styleXp", 0)) > 0:
 		StatsManager.add_xp("style", int(payout["styleXp"]))
-	GameState.add_crew_rep(int(payout.get("crewRep", 0)))
 	GameState.add_cash(int(payout.get("cash", 0)))
+	var crew_gain := int(payout.get("crewRep", 0)) if new_best else 0
+	GameState.add_crew_rep(crew_gain)
 	Sfx.play("claim")
-	var msg := "Danced %d%% hype — +%d Style XP, +%d crew rep, +$%d tips." % [
-		int(payout.get("hypePct", 0)), int(payout.get("styleXp", 0)),
-		int(payout.get("crewRep", 0)), int(payout.get("cash", 0))]
-	if best:
-		msg += "  New floor record!"
+	var msg := "Danced %d%% hype — +%d Style XP, +$%d tips." % [
+		hype, int(payout.get("styleXp", 0)), int(payout.get("cash", 0))]
+	if new_best:
+		msg += "  New floor record! +%d crew rep." % crew_gain
 	_show_message(msg, 5.0)
 	_refresh_prompt()
 

@@ -115,8 +115,10 @@ Once your name carries (rank Known), **The Undertow** opens in Canal Side
 — a rep-gated nightclub. The bouncer waves off toys; reach the rank and
 pay the cover (E) to step onto the dance floor. A marker sweeps a beat
 bar — tap E/Space on-beat to build hype across the DJ's set, and your
-final hype scales the payout: Style XP, crew rep, and tip cash. The club
-remembers your best floor record across sessions.
+final hype scales the payout. Style XP and tip cash pay every set (the
+cover is more than the tips, so it's a cash sink, not a printer), while
+crew rep pays only when you beat your own floor record — the club
+remembers your best across sessions.
 
 The player character is the Kronako Iconz neon rooster. `player.gd`
 prefers the animated action set in `Assets/Characters/`: idle, walk,

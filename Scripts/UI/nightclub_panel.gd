@@ -146,7 +146,9 @@ func _tap() -> void:
 		_refresh_ui()
 
 func _process(delta: float) -> void:
-	if is_done() or _bar == null:
+	# Only sweep while the floor is actually showing an unfinished set — a
+	# set bailed early (Esc) leaves the model unfinished but the panel hidden.
+	if is_done() or not visible or _bar == null:
 		return
 	_clock += delta
 	var phase := fmod(_clock, BEAT_PERIOD) / BEAT_PERIOD
