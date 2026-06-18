@@ -115,5 +115,45 @@
       "position": [18, 0.6, 14.5],
       "color": "#ffd23f"
     }
+  },
+  {
+    "memberId": "npc_nia_stash",
+    "name": "Nia",
+    "alias": "Stash",
+    "role": "supply_runner",
+    "roleLabel": "Supply Runner",
+    "loyalty": 35,
+    "style": 2,
+    "specialAbility": "supply_routes",
+    "shopPriceMultiplier": 0.9,
+    "deliveryMultiplier": 1.2,
+    "bonusDescription": "Cuts Lupe's shop prices by 10% and finds better-paying delivery routes.",
+    "hint": "Counts cans near the north alley stash door.",
+    "missionDescription": "Recover her route ledger from behind the corner block.",
+    "color": "#ff8f3f",
+    "position": [-18, 0, -9],
+    "visuals": {
+      "containerName": "NiaStashModel",
+      "sourceHeight": 1.7,
+      "rotationY": 140,
+      "initialState": "idle",
+      "states": {
+        "idle": {"model": "res://Assets/Characters/lupe_rat_idle.glb", "clip": "Armature|clip0|baselayer"},
+        "walk": {"model": "res://Assets/Characters/lupe_rat_walking.glb", "clip": "Armature|walking_man|baselayer"},
+        "run": {"model": "res://Assets/Characters/lupe_rat_running.glb", "clip": "Armature|running|baselayer"}
+      }
+    },
+    "dialogueId": "stash",
+    "dialogue": {
+      "meet": "Stash. I know every back-door paint hookup in this ward, but my route ledger got lifted behind the corner block. Bring it back and I'll make your supply runs lighter.",
+      "active": "Ledger's still behind the corner block. Without it, Lupe's paying regular prices and everybody's guessing at routes.",
+      "recovered": "That's the ledger. Good. I can shave prices and steer you toward runs that actually pay.",
+      "recruited": "Check Lupe's board. I marked the routes that don't waste your night."
+    },
+    "item": {
+      "name": "Stash's Route Ledger",
+      "position": [-15.5, 0.6, 20.5],
+      "color": "#ff8f3f"
+    }
   }
 ]

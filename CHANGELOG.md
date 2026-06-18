@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-06-18 — Supply Runner Crew Role
+
+Adds the first remaining crew-role expansion after Moth/Caps/Metro: a
+recruitable supply runner who plugs into Lupe's shop and delivery economy.
+
+- New data-driven crew member **Nia "Stash"** in `Data/npc_data.json`, using
+  the generic recruitment stage machine: meet, recover route ledger, recruit.
+- New `supply_runner` role hooks in `CrewManager`: recruited runners can
+  supply a `shopPriceMultiplier` and `deliveryMultiplier` from JSON.
+- `SupplyManager.item_price` now applies crew shop discounts after Hustle/perk
+  discounts, and delivery payouts apply the crew delivery multiplier.
+- Lupe's shop UI and playtest balance snapshot now show/account for the crew
+  delivery and price multipliers.
+- Smoke coverage recruits Stash from data, verifies the role modifiers, checks
+  the adjusted delivery payout, and confirms the blackbook Crew page lists the
+  Supply Runner.
+
 ## 2026-06-18 — Nightlife: The Undertow (Product_reqs.md)
 
 Closes the Product_reqs.md "dance / club / DJ rep-based invite" item — the

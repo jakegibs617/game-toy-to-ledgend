@@ -136,11 +136,11 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 * ❌ Rival alliances / recruiting rivals / direct challenge duels.
 
 ### Crew (Plan.md §14)
-* ✅ Moth (lookout), Caps (filler), Metro (getaway) with recruitment
-  mini-chains and passive role bonuses.
+* ✅ Moth (lookout), Caps (filler), Metro (getaway), Stash (supply runner)
+  with recruitment mini-chains and passive role bonuses.
 * ✅ Crew board in safehouse (opens blackbook Crew page).
-* ❌ Remaining roles: Supply Runner, Hype, Battle Specialist, Fixer;
-  loyalty/morale/upgrade paths.
+* 🟡 Remaining roles: Hype, Battle Specialist, Fixer; loyalty/morale/upgrade
+  paths.
 
 ### Missions (Plan.md §15, §16)
 * ✅ Data-driven mission chains (`missions.json`), triggered in order
