@@ -192,6 +192,27 @@ func hype_payout_multiplier() -> float:
 		return 1.0
 	return maxf(float(hype.get("nightlifeMultiplier", 1.0)), 1.0)
 
+## Fixer role: knows which guard takes a warning and which city crew can
+## be slowed down. Penalty multipliers lower caught costs; cleanup
+## multiplier lowers sweep odds for player-owned walls.
+func caught_rep_multiplier() -> float:
+	var fixer := first_with_role("fixer")
+	if fixer.is_empty():
+		return 1.0
+	return clampf(float(fixer.get("caughtRepMultiplier", 1.0)), 0.0, 1.0)
+
+func caught_paint_multiplier() -> float:
+	var fixer := first_with_role("fixer")
+	if fixer.is_empty():
+		return 1.0
+	return clampf(float(fixer.get("caughtPaintMultiplier", 1.0)), 0.0, 1.0)
+
+func cleanup_chance_multiplier() -> float:
+	var fixer := first_with_role("fixer")
+	if fixer.is_empty():
+		return 1.0
+	return clampf(float(fixer.get("cleanupChanceMultiplier", 1.0)), 0.0, 1.0)
+
 func save_state() -> Dictionary:
 	var stages := {}
 	for member_id in members:

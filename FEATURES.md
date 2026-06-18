@@ -137,9 +137,11 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 
 ### Crew (Plan.md §14)
 * ✅ Moth (lookout), Caps (filler), Metro (getaway), Stash (supply runner),
-  Echo (hype) with recruitment mini-chains and passive role bonuses.
+  Echo (hype), Fix (fixer) with recruitment mini-chains and passive role
+  bonuses.
 * ✅ Crew board in safehouse (opens blackbook Crew page).
-* 🟡 Remaining roles: Battle Specialist, Fixer; loyalty/morale/upgrade paths.
+* 🟡 Remaining role: Battle Specialist (blocked on battle prototype);
+  loyalty/morale/upgrade paths.
 
 ### Missions (Plan.md §15, §16)
 * ✅ Data-driven mission chains (`missions.json`), triggered in order

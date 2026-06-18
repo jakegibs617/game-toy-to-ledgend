@@ -89,10 +89,12 @@ func resolve_catch(guard: PatrolGuard) -> void:
 		patrol_event.emit("Metro ghosts you through a service route — no fine this time.")
 		return
 	guard.end_chase()
-	var rep_loss := mini(int(config.get("caughtRepPenalty", 25)), GameState.reputation)
+	var rep_loss := mini(roundi(int(config.get("caughtRepPenalty", 25))
+		* CrewManager.caught_rep_multiplier()), GameState.reputation)
 	if rep_loss > 0:
 		GameState.add_reputation(-rep_loss)
-	var paint_loss := mini(int(config.get("caughtPaintPenalty", 3)), GameState.paint)
+	var paint_loss := mini(roundi(int(config.get("caughtPaintPenalty", 3))
+		* CrewManager.caught_paint_multiplier()), GameState.paint)
 	if paint_loss > 0:
 		GameState.add_paint(-paint_loss)
 	player_caught.emit(guard)

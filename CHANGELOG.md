@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-06-18 — Fixer Crew Role
+
+Finishes the standalone crew-role backlog that can ship before battles.
+
+- New data-driven crew member **Vale "Fix"** in `Data/npc_data.json`.
+- New `fixer` role helpers in `CrewManager`: caught rep loss, caught paint
+  loss, and city cleanup sweep chance can all be reduced by member data.
+- Patrol catches now apply the Fixer caught-penalty multipliers after Metro's
+  one-free-escape route has been spent.
+- Cleanup sweeps now apply the Fixer cleanup multiplier when rolling against
+  player-owned walls.
+- Smoke coverage recruits Fix, verifies the role modifiers and model, checks
+  blackbook visibility, and asserts the reduced caught penalty through the
+  live patrol catch path.
+
 ## 2026-06-18 — Hype Crew Role
 
 Adds another crew-depth role using the existing generic recruitment flow and

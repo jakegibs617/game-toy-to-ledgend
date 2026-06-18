@@ -149,6 +149,7 @@ func _run_cleanup_sweep() -> void:
 		var chance := float(def.get("cleanupChance", 0.1))
 		if String(state.get("ownerCrewId", "")) == "player":
 			chance *= 1.0 + heat_in(String(def.get("districtId", ""))) / 40.0
+			chance *= CrewManager.cleanup_chance_multiplier()
 		if _rng.randf() <= minf(chance, 0.85):
 			force_cleanup(String(wall_id))
 			return
