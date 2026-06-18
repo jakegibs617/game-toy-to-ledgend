@@ -162,6 +162,21 @@ func try_getaway_escape(heat_level: String) -> bool:
 		String(getaway.get("alias", "Metro")), heat_level])
 	return true
 
+## Supply Runner role: a recruited runner knows who sells clean cans and
+## which drop routes pay better. Multipliers are data-driven per member
+## so future runners can tune the economy without changing code.
+func shop_price_multiplier() -> float:
+	var runner := first_with_role("supply_runner")
+	if runner.is_empty():
+		return 1.0
+	return maxf(float(runner.get("shopPriceMultiplier", 1.0)), 0.5)
+
+func delivery_multiplier() -> float:
+	var runner := first_with_role("supply_runner")
+	if runner.is_empty():
+		return 1.0
+	return maxf(float(runner.get("deliveryMultiplier", 1.0)), 1.0)
+
 func save_state() -> Dictionary:
 	var stages := {}
 	for member_id in members:

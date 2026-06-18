@@ -660,6 +660,7 @@ func _smoke_crew() -> void:
 	assert(CrewManager.members.has("npc_mina_moth"))
 	assert(CrewManager.members.has("npc_rico_caps"))
 	assert(CrewManager.members.has("npc_jay_metro"))
+	assert(CrewManager.members.has("npc_nia_stash"))
 	var mina: Dictionary = CrewManager.members["npc_mina_moth"]
 	assert(mina["stage"] == "not_met")
 	var chance_before := RivalManager.response_chance("wall_mill_02", "buff_kings")
@@ -694,7 +695,7 @@ func _smoke_crew() -> void:
 	assert(chance_after < chance_before)
 	print("SMOKE: lookout bonus %.2f -> %.2f" % [chance_before, chance_after])
 
-	for member_id in ["npc_rico_caps", "npc_jay_metro"]:
+	for member_id in ["npc_rico_caps", "npc_jay_metro", "npc_nia_stash"]:
 		var member: Dictionary = CrewManager.members[member_id]
 		CrewManager.interact(member_id)
 		assert(member["stage"] == "mission_active")
@@ -706,16 +707,20 @@ func _smoke_crew() -> void:
 		assert(member["stage"] == "recruited")
 	assert(CrewManager.has_role("filler"))
 	assert(CrewManager.has_role("getaway"))
-	assert(GameState.crew_rep == CrewManager.RECRUIT_CREW_REP * 3)
+	assert(CrewManager.has_role("supply_runner"))
+	assert(GameState.crew_rep == CrewManager.RECRUIT_CREW_REP * 4)
 	assert(get_node_or_null("npc_rico_caps/CharacterVisual/RicoCapsModel") != null)
 	assert(get_node_or_null("npc_jay_metro/CharacterVisual/JayMetroModel") != null)
+	assert(get_node_or_null("npc_nia_stash/CharacterVisual/NiaStashModel") != null)
+	assert(CrewManager.shop_price_multiplier() < 1.0)
+	assert(CrewManager.delivery_multiplier() > 1.0)
 	var migrated_v5 := SaveManager._migrate({
 		"version": 5,
 		"crew": {"stages": {"npc_mina_moth": "recruited"}},
 	})
 	assert(int(migrated_v5["version"]) == SaveManager.SAVE_VERSION)
 	assert(migrated_v5["crew"].has("getaway_used_levels"))
-	print("SMOKE: crew depth — Caps and Metro recruited from data")
+	print("SMOKE: crew depth — Caps, Metro, and Stash recruited from data")
 
 	# The recruited lookout warns when a new retaliation is queued.
 	var events: Array = []
@@ -970,7 +975,8 @@ func _smoke_supplies() -> void:
 	SupplyManager.resolve_delivery()
 	assert(not SupplyManager.delivery_active)
 	var expected_delivery_cash := roundi(int(SupplyManager.delivery.get("cash", 0))
-		* StatsManager.delivery_multiplier())
+		* StatsManager.delivery_multiplier()
+		* CrewManager.delivery_multiplier())
 	assert(GameState.cash == cash_now + expected_delivery_cash)
 	assert(HeatManager.heat > heat_now)
 	print("SMOKE: delivery run paid $%d, heat %.1f -> %.1f" % [
@@ -1068,6 +1074,7 @@ func _smoke_blackbook() -> void:
 	assert(crew_page.contains("Moth") and crew_page.contains("Recruited"))
 	assert(crew_page.contains("Caps") and crew_page.contains("Filler"))
 	assert(crew_page.contains("Metro") and crew_page.contains("Getaway"))
+	assert(crew_page.contains("Stash") and crew_page.contains("Supply Runner"))
 	var city_page: String = blackbook.page_text(3)
 	assert(city_page.contains("The Buff Kings") and city_page.contains("VEK"))
 	assert(city_page.contains("Your name is on"))

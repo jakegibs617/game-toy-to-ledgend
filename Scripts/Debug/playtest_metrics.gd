@@ -349,6 +349,8 @@ func _stats_balance() -> Dictionary:
 			"spotRange": StatsManager.spot_range_multiplier(),
 			"price": StatsManager.price_multiplier(),
 			"delivery": StatsManager.delivery_multiplier(),
+			"crewPrice": CrewManager.shop_price_multiplier(),
+			"crewDelivery": CrewManager.delivery_multiplier(),
 			"payout": StatsManager.payout_multiplier(),
 			"decay": StatsManager.decay_multiplier(),
 		},

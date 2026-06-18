@@ -106,7 +106,9 @@ func buy(item_id: String) -> Dictionary:
 
 ## Sticker price after the Hustle stat and supply perks (Milestone 17).
 func item_price(def: Dictionary) -> int:
-	return maxi(1, roundi(int(def.get("price", 0)) * StatsManager.price_multiplier()))
+	return maxi(1, roundi(int(def.get("price", 0))
+		* StatsManager.price_multiplier()
+		* CrewManager.shop_price_multiplier()))
 
 ## Effective paint cost of a graffiti style with owned cap upgrades
 ## applied (Plan.md section 21: caps modify spray behavior). Never
@@ -147,7 +149,9 @@ func resolve_delivery() -> void:
 	_active_drop = -1
 	_clear_drop_zone()
 	# Hustle raises the pay (Milestone 17).
-	var cash := roundi(int(delivery.get("cash", 0)) * StatsManager.delivery_multiplier())
+	var cash := roundi(int(delivery.get("cash", 0))
+		* StatsManager.delivery_multiplier()
+		* CrewManager.delivery_multiplier())
 	GameState.add_cash(cash)
 	HeatManager.add_heat(float(delivery.get("heat", 0.0)))
 	delivery_completed.emit(cash)
