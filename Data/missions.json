@@ -98,6 +98,20 @@
       ],
       "dialogueId": "vesper",
       "minRank": "Known"
+    },
+    {
+      "actorId": "indigo",
+      "kind": "npc",
+      "name": "Indigo",
+      "roleLabel": "Printmaker",
+      "color": "#6c5ce7",
+      "position": [
+        -4,
+        0,
+        6.5
+      ],
+      "dialogueId": "indigo",
+      "minRank": "Up"
     }
   ],
   "chains": [

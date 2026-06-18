@@ -487,6 +487,7 @@ func _run_smoke_test() -> void:
 	_smoke_progression()
 	_smoke_bespoke_styles()
 	_smoke_wildstyle_payoff()
+	_smoke_stickers()
 	_smoke_benches()
 	_smoke_canal_side()
 	_smoke_rooftop_climbing()
@@ -1409,6 +1410,65 @@ func _smoke_wildstyle_payoff() -> void:
 	assert(is_equal_approx(WallManager.heaven_spot_exposure_bonus(heaven_def, "ff_comma_trial"), 1.0))
 	assert(is_equal_approx(WallManager.heaven_spot_exposure_bonus(plain_def, "maelstrom"), 1.0))
 	print("SMOKE: wildstyle heaven-spot payoff — exposure %.2fx on heaven walls" % exposure)
+
+## Assumes: progression ran (rank is past Up), so Indigo's wheatpaste
+## lesson is reachable. Product_reqs.md stickers/wheatpaste: an art-school
+## printmaker teaches the player to cut slaps and cook wheatpaste — fast,
+## low-heat paper work that goes up anywhere (glass included), pays a paper
+## backing render, and adds its own gear-suspicion cost.
+func _smoke_stickers() -> void:
+	assert(not GameState.is_type_unlocked("sticker"))
+	assert(not GameState.is_type_unlocked("wheatpaste"))
+	var base_gear := GameState.gear_suspicion_multiplier()
+	# Indigo only appears (and teaches) once the writer's name is Up.
+	var indigo := get_node_or_null("indigo")
+	assert(indigo != null and indigo.visible)
+	assert(DialogueManager.start("indigo"))
+	assert(String(DialogueManager.current_node()["speaker"]) == "Indigo")
+	var real_rank := GameState.rank
+	GameState.rank = "Toy"
+	assert(DialogueManager.visible_choices()[1]["locked"])  # "Teach me to paste."
+	assert(not DialogueManager.choose(1))                   # locked choices refuse
+	GameState.rank = real_rank
+	var rep_before: int = GameState.reputation
+	assert(DialogueManager.choose(1))                        # take the lesson
+	assert(GameState.is_type_unlocked("sticker"))
+	assert(GameState.is_type_unlocked("wheatpaste"))
+	assert(GameState.reputation == rep_before + 20)
+	assert(DialogueManager.flags.get("indigo_lesson", false))
+	assert(DialogueManager.choose(0))                        # ends the chat
+	assert(not DialogueManager.is_active())
+	# One-time lesson: re-asking teaches nothing and pays nothing.
+	rep_before = GameState.reputation
+	assert(DialogueManager.start("indigo"))
+	assert(DialogueManager.choose(1))
+	assert(GameState.reputation == rep_before)
+	DialogueManager.end_dialogue()
+	# Carrying paste gear reads bulkier than before the lesson.
+	assert(GameState.gear_suspicion_multiplier() > base_gear)
+	print("SMOKE: Indigo dialogue — rank gate + one-time paste lesson OK")
+
+	# Paper work is cheap and cool: a sticker costs/heats less than a tag,
+	# a wheatpaste pays more rep than a slap for still-modest heat.
+	var styles: Dictionary = WallManager.styles
+	assert(int(styles["sticker"]["heatValue"]) < int(styles["tag"]["heatValue"]))
+	assert(int(styles["sticker"]["paintCost"]) <= int(styles["tag"]["paintCost"]))
+	assert(int(styles["wheatpaste"]["baseValue"]) > int(styles["sticker"]["baseValue"]))
+	GameState.add_paint(10)
+	var lot: PaintableWall = WallManager.wall_nodes["wall_lot_01"]
+	var result: Dictionary = WallManager.paint_wall(lot, "sticker")
+	assert(result["ok"])
+	assert(WallManager.wall_states["wall_lot_01"]["state"] == "player_sticker")
+	# Paper render: a paper backing (border + stock) plus the lettering.
+	var holder := lot._graffiti_anchor.get_child(lot._graffiti_anchor.get_child_count() - 1)
+	assert(holder.get_child_count() == 3)
+	# Slaps go where a fill won't bite — the storefront glass takes one.
+	var glass: PaintableWall = WallManager.wall_nodes["wall_mill_glass_01"]
+	assert(WallManager.paint_wall(glass, "sticker")["ok"])
+	result = WallManager.paint_wall(lot, "wheatpaste")
+	assert(result["ok"])
+	assert(WallManager.wall_states["wall_lot_01"]["state"] == "player_wheatpaste")
+	print("SMOKE: sticker + wheatpaste painted — cheap, low-heat paper work")
 
 ## Assumes: progression has raised Style so at least one non-toy style is
 ## sketchable. Product_reqs.md benches: a data-driven seat the player

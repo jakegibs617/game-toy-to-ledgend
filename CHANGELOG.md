@@ -1,5 +1,33 @@
 # Changelog
 
+## 2026-06-18 — Stickers & Wheatpaste Posters (Product_reqs.md)
+
+Closes the Product_reqs.md "stickers and wheat pasting posters" item — the
+art-school printmaking unlock. Adds a fast, low-heat **paper** lane that
+complements spray work: cheap presence-spreading that goes up anywhere and
+buffs easily.
+
+- Two data-driven graffiti types in `graffiti_styles.json`: `sticker`
+  (baseValue 8, paintCost 1, heatValue 1 — a two-second slap) and
+  `wheatpaste` (baseValue 35, paintCost 2, heatValue 4 — a poster that pays
+  more rep for its size). Both carry a `paper` flag and no surface
+  restriction, so they stick to glass, doors, and poles a fill won't bite.
+- **Unlock via a mentor, not the shop:** new art-school printmaker actor
+  **Indigo** (`missions.json`, rank-gated to `Up`) near the Mill Yard
+  safehouse, with a dialogue tree (`dialogue.json`) whose one-time lesson
+  teaches both types. `DialogueManager._apply_effects` now honors
+  `unlockTypes`, the same unlock the mission rewards use.
+- **Paper render:** `PaintableWall._add_paper_backing` draws a paper stock
+  panel + thin torn border behind the lettering (ink = the style's outline
+  color, paper = its fill), visually distinct from drip-free spray work.
+- **Gear suspicion:** carrying the bulky paste bucket adds
+  `wheatpaste.gearSuspicion` (0.06) on top of the per-can tally
+  (`GameState.gear_suspicion_multiplier`); flat stickers add no extra bulk.
+- Reachable in-world via `[`/`]` can cycling (past the six number slots).
+- Smoke coverage (`_smoke_stickers`): rank-gated one-time lesson, the unlock,
+  rising gear suspicion, cheap/low-heat data, the paper-backed render, and a
+  slap on the storefront glass.
+
 ## 2026-06-18 — Wildstyle Heaven-Spot Payoff (Product_reqs.md)
 
 Closes the reward half of the wildstyle `exposure` mechanic. Exposure

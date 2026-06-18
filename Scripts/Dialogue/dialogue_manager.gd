@@ -156,6 +156,10 @@ func _is_locked(choice: Dictionary) -> bool:
 	return false
 
 func _apply_effects(effects: Dictionary) -> void:
+	# A mentor can teach a new graffiti type (Indigo's wheatpaste lesson,
+	# Product_reqs.md) — same unlock the mission rewards use, paid once.
+	for type in effects.get("unlockTypes", []):
+		GameState.unlock_type(String(type))
 	if effects.has("rep"):
 		GameState.add_reputation(int(effects["rep"]))
 	if effects.has("cash"):
