@@ -115,11 +115,32 @@ func show_graffiti(graffiti: Dictionary, animate := false) -> void:
 			label.font_size = 230
 			label.outline_size = 60
 			label.pixel_size = 0.009
+		"sticker":
+			# A slap: small printed label on a paper backing (Product_reqs.md).
+			# The fill color is the paper stock; the outline color is the ink,
+			# so the name reads dark-on-paper instead of vanishing into it.
+			_add_paper_backing(holder, _panel_size(0.34, 0.2), fill)
+			label.modulate = outline
+			label.outline_modulate = fill
+			label.font_size = 60
+			label.outline_size = 12
+			label.pixel_size = 0.0032
+		"wheatpaste":
+			# A pasted poster: bigger paper panel behind the lettering.
+			_add_paper_backing(holder, _panel_size(0.6, 0.74), fill)
+			label.modulate = outline
+			label.outline_modulate = fill
+			label.font_size = 150
+			label.outline_size = 34
+			label.pixel_size = 0.006
 	# Bespoke style behaviors (Product_reqs.md): glass scratch hands draw
 	# as a faint greyscale scratch, and acid hands run vertical down a tall
 	# glass panel. The plan is shared with the smoke test (GraffitiFonts).
-	_apply_style_render_plan(holder, label,
-		String(graffiti.get("fontStyle", GraffitiFonts.default_style_id())), fill, outline)
+	# Paper work (stickers/wheatpaste) is printed, not scratched onto glass,
+	# so it keeps its own paper-on-ink look and ignores the scratch plan.
+	if not bool(WallManager.styles.get(type, {}).get("paper", false)):
+		_apply_style_render_plan(holder, label,
+			String(graffiti.get("fontStyle", GraffitiFonts.default_style_id())), fill, outline)
 	holder.add_child(label)
 	if animate:
 		_reveal_label_letters(label, full_text)
@@ -318,6 +339,15 @@ func _show_freehand(parent: Node3D, graffiti: Dictionary) -> bool:
 ## Filled quad behind the letters (throw-up halo / piece background).
 func _add_panel(parent: Node3D, panel_size: Vector2, color: Color, z_offset: float) -> void:
 	_add_panel_at(parent, Vector3(0, 0, z_offset), panel_size, color, 0.0)
+
+## Paper stock behind a slap/poster (Product_reqs.md): unlike sprayed work,
+## stickers and wheatpastes are physical paper, so they read as a panel —
+## a paper-colored rectangle with a thin torn-looking dark border behind the
+## lettering. Sits just off the wall so the ink can layer on top.
+func _add_paper_backing(parent: Node3D, panel_size: Vector2, paper: Color) -> void:
+	_add_panel_at(parent, Vector3(0, 0, -0.004),
+		panel_size * 1.08, paper.darkened(0.55), 0.0)
+	_add_panel_at(parent, Vector3(0, 0, -0.003), panel_size, paper, 0.0)
 
 func _add_panel_at(parent: Node3D, pos: Vector3, panel_size: Vector2,
 		color: Color, rot_degrees: float) -> void:

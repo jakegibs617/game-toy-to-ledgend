@@ -64,7 +64,7 @@ changes nothing else. The headless smoke run prints the same readout
 | W/S (on a ladder) | Climb up / down — reverse any time; ride to the top to summit, back to the foot to step off |
 | Space (on a ladder) | Hop off the ladder |
 | 1–6 | Select can: Tag / Throw-up / Piece / Stencil / Roller / Mural (in shop: buy/delivery; in dialogue: choose; in blackbook: flip pages; seated on a bench: sketch that tag style) |
-| [ / ] | Previous / next unlocked can |
+| [ / ] | Previous / next unlocked can — also how you reach Sticker & Wheatpaste, which sit past the six number slots |
 | C | Cycle fill color after Lupe unlocks colors (also in the freehand canvas) |
 | F | Freehand piece on the focused wall (needs the Piece can): hold LMB to spray, E/Enter commit, Esc bail |
 | P | Perk chooser (spend rank-up perk points; stats level by doing) |
@@ -144,7 +144,13 @@ static rooster GLB, then the old debug capsule.
   acid hands run **vertical** down a tall glass panel. **Wildstyle** takes
   the longest to paint — more heat and patrol attention — but pays an
   exposure rep bonus on **heaven spots** (the high, very visible
-  landmark/rooftop walls).
+  landmark/rooftop walls). **Stickers & wheatpaste** (Product_reqs.md) are
+  paper work, not spray: a slap goes up cheap and near heat-free, a poster
+  pays more rep for the size, both render on a paper backing, stick to
+  surfaces a fill won't bite (glass included), and buff easily. They unlock
+  by meeting **Indigo**, an art-school printmaker, near the Mill Yard
+  safehouse once you're an Up writer; lugging the paste bucket raises your
+  gear suspicion.
 - **PaintableWall** (`Scripts/Walls/paintable_wall.gd`) — data-driven wall
   body; placeholder graffiti rendered as Label3D "decals" (alias text styled
   per graffiti type) with a per-graffiti tilt, paint drips, fill panels for

@@ -61,5 +61,30 @@
     "fontFamilies": ["wildstyle", "throw"],
     "lockedHint": "make your name first",
     "notes": "needs crew with you · slow work, stay sharp"
+  },
+  "sticker": {
+    "label": "Sticker",
+    "baseValue": 8,
+    "paintCost": 1,
+    "heatValue": 1,
+    "fillColor": "#f4efe2",
+    "outlineColor": "#16161d",
+    "fontFamilies": ["hand"],
+    "paper": true,
+    "lockedHint": "learn paste from the art-school printmaker",
+    "notes": "slap it anywhere · cheap & fast · easily buffed"
+  },
+  "wheatpaste": {
+    "label": "Wheatpaste",
+    "baseValue": 35,
+    "paintCost": 2,
+    "heatValue": 4,
+    "fillColor": "#f4efe2",
+    "outlineColor": "#202033",
+    "fontFamilies": ["throw", "wildstyle", "hand"],
+    "paper": true,
+    "gearSuspicion": 0.06,
+    "lockedHint": "learn paste from the art-school printmaker",
+    "notes": "printed poster · low heat for the size · easily buffed"
   }
 }

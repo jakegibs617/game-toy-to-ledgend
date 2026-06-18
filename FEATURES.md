@@ -189,6 +189,14 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 * ✅ Versioned save (`SAVE_VERSION`, currently v6 era) with per-version
   migration; wall_states round-trip wholesale.
 
+### Stickers & wheatpaste (Product_reqs.md)
+* ✅ **Paper lane:** `sticker` (cheap, near heat-free slap) and `wheatpaste`
+  (poster, more rep for the size) types, both `paper`-flagged with no surface
+  restriction and a paper-backed render.
+* ✅ **Art-school unlock:** Indigo the printmaker (rank-gated to Up) teaches
+  both via a one-time dialogue lesson (`unlockTypes` dialogue effect).
+* ✅ **Gear suspicion:** the paste bucket adds bulk; stickers stay flat.
+
 ### Battles & nightlife (Plan.md §19, §20; Product_reqs.md)
 * ❌ Graffiti battles, dance battles, rap battles — unbuilt (Milestone 32
   is a paper-cut decision, not yet started).
@@ -214,7 +222,7 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 | Lose the paint drip lines | ✅ | All drips removed for every type, player and rival |
 | Each type renders only a font capable for that style | ✅ | `fontFamilies` per type + `GraffitiFonts.resolve_for_families` |
 | Paint-applied lettering reveals one letter at a time | ✅ | `_reveal_label_letters` on fresh player paint (skipped headless) |
-| Stickers & wheatpaste posters (art-school printmaking unlock) | ❌ | Not implemented |
+| Stickers & wheatpaste posters (art-school printmaking unlock) | ✅ | `sticker`/`wheatpaste` paper types; Indigo the printmaker teaches them at rank Up |
 | Dance / club / DJ rep-based invite | ❌ | Not implemented |
 
 ---
@@ -226,7 +234,6 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 * Playtest feedback pass (M33) + demo-candidate freeze (M34).
 
 **Product_reqs gaps:**
-* Stickers / wheatpaste system (+ art-school mentor unlock).
 * Dance/club/DJ nightlife invite.
 * Decide drip policy across non-tag types ("lose the paint drip lines").
 

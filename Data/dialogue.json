@@ -151,5 +151,45 @@
         ]
       }
     }
+  },
+  "indigo": {
+    "start": "hub",
+    "nodes": {
+      "hub": {
+        "speaker": "Indigo",
+        "text": "Indigo. Printmaking, second year. I screen posters and cut slaps when I'm not in the studio. Saw your throwies — you'd kill it on paper.",
+        "choices": [
+          {"text": "Posters? On the street?", "next": "why"},
+          {"text": "Teach me to paste.", "next": "lesson",
+            "requires": {"minRank": "Up"},
+            "lockedText": "(Get your name up first — come back when you're an Up writer)"},
+          {"text": "Maybe later.", "action": "end"}
+        ]
+      },
+      "why": {
+        "speaker": "Indigo",
+        "text": "Cans get you nicked. A slap goes up in two seconds, a wheatpaste in twenty — flat, quiet, and it sticks to glass, doors, poles, anything a fill won't bite. They buff easy, sure, but you can paper a whole block before anyone smells the glue.",
+        "choices": [
+          {"text": "Show me how.", "next": "lesson",
+            "requires": {"minRank": "Up"},
+            "lockedText": "(Get your name up first — come back when you're an Up writer)"},
+          {"text": "Good looks.", "action": "end"}
+        ]
+      },
+      "lesson": {
+        "speaker": "Indigo",
+        "text": "Flour, water, a little sugar — cook it down and it's stronger than most glue. Print your name, slap your stickers, paper the spots cans can't reach. Just know the bucket's bulky; carry it and you read suspicious.",
+        "once": "indigo_lesson",
+        "effects": {
+          "unlockTypes": ["sticker", "wheatpaste"],
+          "rep": 20,
+          "message": "Indigo taught you to cut slaps and cook wheatpaste. Stickers and posters unlocked. (+20 rep)"
+        },
+        "choices": [
+          {"text": "Appreciate it, Indigo.", "action": "end"},
+          {"text": "Anything else?", "next": "hub"}
+        ]
+      }
+    }
   }
 }

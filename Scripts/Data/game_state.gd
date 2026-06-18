@@ -276,6 +276,10 @@ func gear_suspicion_multiplier() -> float:
 	var multiplier := 1.0 + maxf(carried_cans - 1, 0) * 0.03
 	if is_type_unlocked("stencil"):
 		multiplier += 0.08
+	# A wheatpaste bucket and roll of posters is bulky to lug (Product_reqs.md);
+	# stickers are flat, so they only count toward the can tally above.
+	if is_type_unlocked("wheatpaste"):
+		multiplier += float(WallManager.styles.get("wheatpaste", {}).get("gearSuspicion", 0.0))
 	var font_style := GraffitiFonts.style_def(selected_tag_font_style())
 	multiplier += float(font_style.get("gearSuspicion", 0.0))
 	return multiplier
