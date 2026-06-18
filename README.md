@@ -47,10 +47,10 @@ timings, caught/fall/starvation counters, and the event ledger for the run.
 | Controller left/right stick | Move / look |
 | Shift | Run |
 | Space | Jump |
-| E | Paint focused wall / talk / shop / pick up / grab a ladder (in a conversation: walk away) |
+| E | Paint focused wall / talk / shop / pick up / grab a ladder / sit on a bench (in a conversation: walk away) |
 | W/S (on a ladder) | Climb up / down — reverse any time; ride to the top to summit, back to the foot to step off |
 | Space (on a ladder) | Hop off the ladder |
-| 1–6 | Select can: Tag / Throw-up / Piece / Stencil / Roller / Mural (in shop: buy/delivery; in dialogue: choose; in blackbook: flip pages) |
+| 1–6 | Select can: Tag / Throw-up / Piece / Stencil / Roller / Mural (in shop: buy/delivery; in dialogue: choose; in blackbook: flip pages; seated on a bench: sketch that tag style) |
 | [ / ] | Previous / next unlocked can |
 | C | Cycle fill color after Lupe unlocks colors (also in the freehand canvas) |
 | F | Freehand piece on the focused wall (needs the Piece can): hold LMB to spray, E/Enter commit, Esc bail |
@@ -90,7 +90,12 @@ dry dock: sell her freehand canvases for cash and public rep — and
 watch your crew rep pay the price. Locals now walk small loops in both
 districts, stop to clock nearby fresh player paint for a tiny one-time
 crowd rep bump, and scatter when their block gets Hot. At the
-safehouse, E on the crew board opens the blackbook's Crew page.
+safehouse, E on the crew board opens the blackbook's Crew page. Benches
+on the sidewalks face the street — sit down (E) and the view drops to
+first person, then your blackbook opens to sketch tag styles: number
+keys fill in a page of a locked style, and after enough practice it
+unlocks for the street. You can only practice while seated; closing the
+book stands you back up and returns to third person.
 
 The player character is the Kronako Iconz neon rooster. `player.gd`
 prefers the animated action set in `Assets/Characters/`: idle, walk,

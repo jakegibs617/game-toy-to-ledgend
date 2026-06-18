@@ -6,10 +6,12 @@ extends Node3D
 const PLAYER_SPAWN := Vector3(0, 0.5, 4)
 const CLIMBS_PATH := "res://Data/climbs.json"
 const AMBIENT_NPCS_PATH := "res://Data/ambient_npcs.json"
+const BENCHES_PATH := "res://Data/benches.json"
 const DataLoader := preload("res://Scripts/Data/data_loader.gd")
 const TravelPointScript := preload("res://Scripts/World/travel_point.gd")
 const ClimbZoneScript := preload("res://Scripts/World/climb_zone.gd")
 const AmbientNpcScript := preload("res://Scripts/World/ambient_npc.gd")
+const BenchScript := preload("res://Scripts/World/bench.gd")
 const RivalGraffitiStyle := preload("res://Scripts/Walls/rival_graffiti_style.gd")
 const GraffitiFonts := preload("res://Scripts/Walls/graffiti_font_library.gd")
 const RivalTaggerScript := preload("res://Scripts/Rivals/rival_tagger.gd")
@@ -27,6 +29,7 @@ func _ready() -> void:
 	_build_street_details()
 	_spawn_travel_points()
 	_spawn_climb_zones()
+	_spawn_benches()
 	WallManager.spawn_walls(self)
 	TrainManager.spawn_trains(self)
 	RivalManager.claim_initial_territory()
@@ -326,6 +329,20 @@ func _spawn_climb_zones() -> void:
 		zone.setup(def)
 		add_child(zone)
 
+## Benches the writer can sit on to sketch styles (Product_reqs.md,
+## Data/benches.json).
+func _spawn_benches() -> void:
+	var parsed: Variant = DataLoader.load_json(BENCHES_PATH, "District")
+	if not (parsed is Array):
+		return
+	for def in parsed:
+		if not DataLoader.require_fields(def, ["benchId", "position"],
+				"District: bench \"%s\"" % String(def.get("benchId", "?"))):
+			continue
+		var bench := BenchScript.new()
+		bench.setup(def)
+		add_child(bench)
+
 ## One gate per district that has a travel def (districts.json).
 func _spawn_travel_points() -> void:
 	for district_id in TerritoryManager.districts:
@@ -460,6 +477,7 @@ func _run_smoke_test() -> void:
 	_smoke_graffiti_types()
 	_smoke_rival_graffiti_variety()
 	_smoke_progression()
+	_smoke_benches()
 	_smoke_canal_side()
 	_smoke_rooftop_climbing()
 	_smoke_ladder_climb()
@@ -1299,6 +1317,63 @@ func _smoke_progression() -> void:
 	assert(migrated.has("stats"))
 	print("SMOKE: progression survives save/load; v1 saves migrate forward")
 
+## Assumes: progression has raised Style so at least one non-toy style is
+## sketchable. Product_reqs.md benches: a data-driven seat the player
+## interacts with to sit (movement suppressed) and practice tag styles in
+## the blackbook; closing that book stands them back up.
+func _smoke_benches() -> void:
+	var player := _smoke_player()
+	var bench := get_node_or_null("bench_mill_yard_1")
+	assert(bench != null and bench.is_in_group("interactable"))
+	assert(String(bench.prompt_text()).to_lower().contains("sketch"))
+
+	# Interacting seats the player in third person; the practice book and
+	# first-person view wait for the sit animation to settle.
+	var requested := [false]
+	GameState.sit_practice_requested.connect(func() -> void: requested[0] = true)
+	bench.interact()
+	assert(player._sit_active and not player._sit_settled)
+	assert(not requested[0])
+	assert(player._arm.spring_length == Player.CAMERA_DISTANCE)  # still third person
+	if player._visual_models.has("sit"):
+		assert(player._active_visual_state == "sit")
+	# Let the sit settle: now first person, and the practice book is asked for.
+	player._physics_process(2.0)
+	assert(player._sit_settled)
+	assert(requested[0])
+	assert(player._arm.spring_length == 0.0)  # first person
+
+	# Practice mode lists styles still worth sketching, and a slot delegates
+	# to GameState.practice_tag_font_style (one page per press).
+	var book = preload("res://Scripts/UI/blackbook_panel.gd").new()
+	book.practice_mode = true
+	var ids := book.practiceable_style_ids()
+	assert(not ids.is_empty())
+	assert(book.page_text(1).to_lower().contains("sketching"))
+	var slot := -1
+	for i in ids.size():
+		if StatsManager.level("style") >= int(GraffitiFonts.style_def(String(ids[i])).get("level", 0)):
+			slot = i
+			break
+	assert(slot >= 0)
+	var target := String(ids[slot])
+	var before := GameState.practice_count_for_tag_font_style(target)
+	var result: Dictionary = book.sketch(slot)
+	assert(bool(result["ok"]))
+	assert(GameState.practice_count_for_tag_font_style(target) == before + 1)
+	# The sketch page previews the style just sketched.
+	assert(book._preview_style == target)
+	# A bad slot is rejected, not a crash.
+	assert(not bool(book.sketch(99)["ok"]))
+	book.free()
+
+	# Closing the practice book (HUD emits this) stands the player up and
+	# returns the camera to third person.
+	GameState.sit_practice_ended.emit()
+	assert(not player._sit_active)
+	assert(player._arm.spring_length == Player.CAMERA_DISTANCE)
+	print("SMOKE: bench — sit → first person, sketch styles, stand on close")
+
 ## Assumes: the mill chain is done (canal chain waits on its trigger),
 ## the player stands in Mill Yard, and earlier sections left paint and
 ## cash to spare. Milestone 18 (Plan.md §45, §12): cross the
@@ -1733,7 +1808,7 @@ func _smoke_player_model() -> void:
 	assert(has_model != has_capsule)  # exactly one visual
 	if ResourceLoader.exists(Player.WALK_MODEL_PATH) and ResourceLoader.exists(Player.RUN_MODEL_PATH):
 		assert(has_model)
-		for state in ["idle", "walk", "walk_back", "run", "run_fast", "jump", "climb", "vault"]:
+		for state in ["idle", "walk", "walk_back", "run", "run_fast", "jump", "climb", "vault", "sit"]:
 			assert(player._visual_animation_players.has(state))
 			assert(String(player._visual_animation_names[state]) != "")
 		# Idle variants build and the selector rotates among them
