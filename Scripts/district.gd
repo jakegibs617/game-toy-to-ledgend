@@ -50,6 +50,14 @@ func _ready() -> void:
 
 	if OS.get_environment("SMOKE_TEST") == "1":
 		_run_smoke_test.call_deferred()
+	elif OS.get_environment("RUNTIME_BUDGET") == "1":
+		# Plan_v3.md Milestone 31: dump the runtime budget once the world is
+		# fully built (deferred so spawns/HUD settle first). Dormant unless
+		# the env var is set, so normal play pays nothing.
+		_print_runtime_budget.call_deferred()
+
+func _print_runtime_budget() -> void:
+	print("RUNTIME_BUDGET: %s" % PlaytestMetrics.runtime_budget_summary_text(self))
 
 ## Gives RivalManager a way to spawn the visible rival who runs up and
 ## tags a wall (Product_reqs.md). Skipped headless so the smoke test
@@ -491,6 +499,7 @@ func _run_smoke_test() -> void:
 	_smoke_scripted_cross_out()
 	_smoke_balance_invariants()
 	_smoke_playtest_metrics()
+	_smoke_runtime_budget()
 	print("SMOKE: OK")
 	get_tree().quit()
 
@@ -1919,6 +1928,30 @@ func _smoke_playtest_metrics() -> void:
 	assert(not (balance["stats"] as Dictionary).is_empty())
 	print("SMOKE: playtest metrics — %s" % PlaytestMetrics.summary_text())
 	print("SMOKE: balance snapshot — %s" % PlaytestMetrics.balance_summary_text())
+
+## Plan_v3.md Milestone 31: the runtime budget snapshot reads the live
+## city — node/mesh/wall/material counts, character-visual import status,
+## and a frame readout. Asserts the snapshot is well-formed and tracks
+## what the managers actually spawned; the over-budget detector is
+## exercised against a deliberately tiny budget so it can never silently
+## stop flagging. The real city must stay inside the documented budgets.
+func _smoke_runtime_budget() -> void:
+	var snapshot := PlaytestMetrics.runtime_budget_snapshot(self)
+	# Counts come from the live tree and managers, not guesses.
+	assert(int(snapshot["worldNodeCount"]) > 0)
+	assert(int(snapshot["meshInstances"]) > 0)
+	assert(int(snapshot["walls"]) == WallManager.wall_nodes.size())
+	assert(int(snapshot["trains"]) == TrainManager.train_nodes.size())
+	assert(int(snapshot["interactables"]) >= 1)  # benches/travel/climb gates
+	assert(int(snapshot["materialCacheSize"]) > 0)  # district owns the cache
+	# Character visual report round-trips the player's actual model set.
+	var visual: Dictionary = snapshot["characterVisual"]
+	assert(["animated", "static", "capsule"].has(String(visual.get("kind", ""))))
+	assert(snapshot["nodeTypes"] is Dictionary)
+	assert(snapshot["frame"] is Dictionary)
+	# The prototype city must stay inside the documented desktop budgets.
+	assert((snapshot["overBudget"] as Array).is_empty())
+	print("SMOKE: runtime budget — %s" % PlaytestMetrics.runtime_budget_summary_text(self))
 
 ## Milestone 28: soft-lock invariants for the target main path. These
 ## guard the data tuning knobs instead of asserting one exact route.

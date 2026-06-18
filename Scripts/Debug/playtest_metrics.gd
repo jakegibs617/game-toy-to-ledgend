@@ -113,6 +113,105 @@ func balance_summary_text() -> String:
 		float((snapshot["heat"] as Dictionary).get("tickSeconds", 0.0)),
 	]
 
+## Plan_v3.md Milestone 31: documented desktop budgets for the prototype.
+## These are soft ceilings — `runtime_budget_snapshot` flags anything over
+## so we notice runtime waste before adding another district or crowd
+## system, not hard limits that fail the build.
+const RUNTIME_BUDGETS := {
+	"worldNodeCount": 4000,   # nodes under the active district root
+	"meshInstances": 2500,    # MeshInstance3D under the district root
+	"walls": 80,              # spawned paintable walls
+	"materialCacheSize": 64,  # district street/material cache entries
+}
+
+## Plan_v3.md Milestone 31 profiling pass. Returns a JSON-serializable
+## picture of what the running city costs: node counts, spawned
+## wall/train/prop counts, material cache size, character-visual import
+## status, and a frame snapshot where the renderer is live. `root` is the
+## active district node (it owns the material cache); pass the scene root.
+func runtime_budget_snapshot(root: Node) -> Dictionary:
+	var histogram := {}
+	var world_nodes := _node_type_histogram(root, histogram) if root != null else 0
+	var tree := root.get_tree() if root != null else null
+	var interactables := tree.get_nodes_in_group("interactable").size() if tree != null else 0
+	var snapshot := {
+		"worldNodeCount": world_nodes,
+		"meshInstances": int(histogram.get("MeshInstance3D", 0)),
+		"walls": WallManager.wall_nodes.size(),
+		"trains": TrainManager.train_nodes.size(),
+		"interactables": interactables,
+		"materialCacheSize": _material_cache_size(root),
+		"nodeTypes": histogram,
+		"characterVisual": _character_visual_report(tree),
+		"frame": _frame_snapshot(),
+	}
+	snapshot["overBudget"] = _over_budget(snapshot)
+	return snapshot
+
+## Compact one-line readout for smoke logs and the RUNTIME_BUDGET print.
+func runtime_budget_summary_text(root: Node) -> String:
+	var snapshot := runtime_budget_snapshot(root)
+	var over: Array = snapshot["overBudget"]
+	var visual: Dictionary = snapshot["characterVisual"]
+	return "world_nodes=%d meshes=%d walls=%d trains=%d interactables=%d material_cache=%d visual=%s%s" % [
+		int(snapshot["worldNodeCount"]),
+		int(snapshot["meshInstances"]),
+		int(snapshot["walls"]),
+		int(snapshot["trains"]),
+		int(snapshot["interactables"]),
+		int(snapshot["materialCacheSize"]),
+		String(visual.get("kind", "?")),
+		"" if over.is_empty() else "; OVER BUDGET: %s" % ", ".join(over),
+	]
+
+## Recursively tally descendants of `root` by engine class. Returns the
+## total node count (inclusive of `root`) and fills `histogram` in place.
+func _node_type_histogram(root: Node, histogram: Dictionary) -> int:
+	var cls := root.get_class()
+	histogram[cls] = int(histogram.get(cls, 0)) + 1
+	var total := 1
+	for child in root.get_children():
+		total += _node_type_histogram(child, histogram)
+	return total
+
+## The district node owns the street/building material cache (Milestone
+## 24). Returns its entry count, or -1 when the root doesn't expose one.
+func _material_cache_size(root: Node) -> int:
+	if root != null and "_material_cache" in root:
+		return (root.get("_material_cache") as Dictionary).size()
+	return -1
+
+## Which player model set actually loaded: the animated rooster clips, the
+## static GLB fallback, or the capsule placeholder (import unavailable).
+func _character_visual_report(tree: SceneTree) -> Dictionary:
+	if tree == null:
+		return {"kind": "none"}
+	var player := tree.get_first_node_in_group("player")
+	if player == null or not player.has_method("visual_report"):
+		return {"kind": "none"}
+	return player.visual_report()
+
+## Live renderer frame snapshot. Process/render monitors read 0 on the
+## headless server, which is exactly what we want recorded there.
+func _frame_snapshot() -> Dictionary:
+	return {
+		"fps": Engine.get_frames_per_second(),
+		"processMsec": Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0,
+		"renderObjects": int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)),
+		"staticMemMb": Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0,
+		"treeNodeCount": int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)),
+	}
+
+## Names of the budget categories currently exceeded (materialCacheSize of
+## -1 means "not measurable here" and never counts as over).
+func _over_budget(snapshot: Dictionary) -> Array:
+	var over: Array = []
+	for key in RUNTIME_BUDGETS:
+		var value := int(snapshot.get(key, 0))
+		if value >= 0 and value > int(RUNTIME_BUDGETS[key]):
+			over.append(key)
+	return over
+
 func _connect_signals() -> void:
 	GameState.rank_changed.connect(func(rank: String) -> void:
 		mark_first("first_rank_up", {"rank": rank, "rep": GameState.reputation}))

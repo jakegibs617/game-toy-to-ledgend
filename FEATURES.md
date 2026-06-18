@@ -64,7 +64,7 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 | 28 | Balance pass 1 — main path (`docs/BALANCE_TARGETS.md`) | ✅ PR #26 |
 | 29 | Procedural rival graffiti variety (deterministic, seeded) | ✅ PR #27 |
 | 30 | Rooftop traversal polish (context prompts, hazard tells) | ✅ PR #28 |
-| 31 | Performance & runtime budget pass | ❌ not started |
+| 31 | Performance & runtime budget pass | ✅ PR #34 |
 | 32 | Battle prototype paper cut (dance/rap) | ❌ not started |
 | 33 | Playtest feedback pass | ❌ not started |
 | 34 | v3 demo candidate (freeze + tag) | ❌ not started |
@@ -219,7 +219,6 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 ## 4. Not yet implemented — consolidated backlog
 
 **Near-term (v3 remaining):**
-* Performance/runtime budget pass (M31).
 * Battle paper-cut decision (M32).
 * Playtest feedback pass (M33) + demo-candidate freeze (M34).
 
