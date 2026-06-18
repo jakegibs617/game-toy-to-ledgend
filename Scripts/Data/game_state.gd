@@ -21,6 +21,10 @@ signal district_changed(district_id: String)
 ## without each one needing its own manager.
 signal player_event(message: String)
 signal crew_board_requested
+## A bench asks the HUD to open the blackbook in style-practice mode; the
+## HUD fires sit_practice_ended when that book closes so the player stands.
+signal sit_practice_requested
+signal sit_practice_ended
 
 const RANKS := [
 	{"name": "Toy", "min_rep": 0},

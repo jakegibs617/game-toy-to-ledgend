@@ -16,6 +16,7 @@ const JUMP_MODEL_PATH := "res://Assets/Characters/neon_rooster_jump.glb"
 const CLIMB_MODEL_PATH := "res://Assets/Characters/neon_rooster_ladder_climb.glb"
 const CLIMB_FINISH_MODEL_PATH := "res://Assets/Characters/neon_rooster_ladder_climb_finish.glb"
 const VAULT_MODEL_PATH := "res://Assets/Characters/neon_rooster_vault.glb"
+const SIT_MODEL_PATH := "res://Assets/Characters/neon_rooster_sit.glb"
 const STATIC_MODEL_PATH := "res://Assets/Characters/neon_rooster.glb"
 const ANIMATED_MODEL_SOURCE_HEIGHT := 1.7  # animated GLBs have feet at local y=0
 const STATIC_MODEL_SOURCE_HEIGHT := 1.913  # static fallback GLB is origin-centered
@@ -44,6 +45,9 @@ const CLIMB_FINISH_ANIMATION_NAME := "Armature|Ladder_Climb_Finish|baselayer"
 # +x is screen-left while climbing.
 const CLIMB_VISUAL_OFFSET := Vector3(0.45, 0.0, -0.1)
 const VAULT_ANIMATION_NAME := "Armature|Parkour_Vault_2|baselayer"
+# Bench sit-idle (Product_reqs.md): looped so the seated pose breathes
+# instead of freezing while the player sketches in the blackbook.
+const SIT_ANIMATION_NAME := "Armature|Chair_Sit_Idle_M|baselayer"
 const AnimatedModelSet := preload("res://Scripts/Characters/animated_model_set.gd")
 
 const WALK_SPEED := 4.0
@@ -55,10 +59,18 @@ const JOY_LOOK_SENSITIVITY := 2.4
 const JOY_LOOK_DEADZONE := 0.18
 const INTERACT_RANGE := 3.5
 const CAMERA_DISTANCE := 3.5
+# Camera rig offsets: third-person trails behind/right; first-person sits
+# at the eyes looking forward (used when seated on a bench, Product_reqs.md).
+const THIRD_PERSON_ARM_POS := Vector3(0.4, 0.2, 0)
+const FIRST_PERSON_ARM_POS := Vector3(0, 0.15, -0.18)
+# Seconds the rooster sits in third person before the view drops to first.
+const SIT_SETTLE_DELAY := 1.2
 
 var _pivot: Node3D
 var _camera: Camera3D
+var _arm: SpringArm3D
 var _ray: RayCast3D
+var _visual_root: Node3D = null  # the character model container, hidden in first person
 var _focused: Node3D = null
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var _visual_models: Dictionary = {}
@@ -77,10 +89,18 @@ var _climb_entry := Vector3.ZERO
 var _climb_exit := Vector3.ZERO
 var _climb_zone: Node = null
 var _climb_t := 0.0
+# Sitting on a bench to sketch styles (Product_reqs.md). Movement and
+# world actions are suppressed until the practice blackbook closes. Once
+# the sit animation settles we flip to first person and open the book.
+var _sit_active := false
+var _sit_settled := false
+var _sit_settle_left := 0.0
 
 func _ready() -> void:
 	name = "Player"
 	add_to_group("player")  # managers (e.g. SupplyManager) look us up here
+	# Closing the practice blackbook (HUD) stands us back up.
+	GameState.sit_practice_ended.connect(end_sit)
 	var col := CollisionShape3D.new()
 	var capsule := CapsuleShape3D.new()
 	capsule.height = 1.8
@@ -94,14 +114,14 @@ func _ready() -> void:
 	_pivot = Node3D.new()
 	_pivot.position = Vector3(0, 1.6, 0)
 	add_child(_pivot)
-	var arm := SpringArm3D.new()
-	arm.spring_length = CAMERA_DISTANCE
-	arm.position = Vector3(0.4, 0.2, 0)
-	arm.add_excluded_object(get_rid())
-	_pivot.add_child(arm)
+	_arm = SpringArm3D.new()
+	_arm.spring_length = CAMERA_DISTANCE
+	_arm.position = THIRD_PERSON_ARM_POS
+	_arm.add_excluded_object(get_rid())
+	_pivot.add_child(_arm)
 	_camera = Camera3D.new()
 	_camera.current = true
-	arm.add_child(_camera)
+	_arm.add_child(_camera)
 
 	_ray = RayCast3D.new()
 	_ray.target_position = Vector3(0, 0, -(INTERACT_RANGE + CAMERA_DISTANCE))
@@ -129,6 +149,7 @@ func _build_visual() -> void:
 	mat.albedo_color = Color("#3aa0c8")
 	mesh.material_override = mat
 	add_child(mesh)
+	_visual_root = mesh
 
 func _try_build_animated_visual() -> bool:
 	if not ResourceLoader.exists(WALK_MODEL_PATH) and not ResourceLoader.exists(RUN_MODEL_PATH):
@@ -168,9 +189,16 @@ func _try_build_animated_visual() -> bool:
 		CLIMB_FINISH_ANIMATION_NAME) or built
 	built = _add_animated_model(
 		container, VAULT_MODEL_PATH, "vault", VAULT_ANIMATION_NAME) or built
+	if _add_animated_model(container, SIT_MODEL_PATH, "sit", SIT_ANIMATION_NAME):
+		# Loop the sit-idle so the seated pose never freezes mid-sketch.
+		var sit_ap: AnimationPlayer = _visual_animation_players["sit"]
+		var sit_clip := sit_ap.get_animation(_visual_animation_names["sit"])
+		if sit_clip != null:
+			sit_clip.loop_mode = Animation.LOOP_LINEAR
 	if not built:
 		return false
 	add_child(container)
+	_visual_root = container
 	_set_visual_state("idle")
 	return true
 
@@ -190,6 +218,7 @@ func _try_build_static_visual(path: String) -> bool:
 	model.name = "CharacterModel"
 	_apply_static_visual_transform(model)
 	add_child(model)
+	_visual_root = model
 	return true
 
 func _apply_animated_visual_transform(model: Node3D) -> void:
@@ -334,6 +363,47 @@ func _end_climb() -> void:
 	_action_visual_state = ""
 	_action_visual_time_left = 0.0
 
+## Park the player on a bench seat (Product_reqs.md): snap to the seat
+## anchor, face out at the street, and freeze movement. The sit animation
+## plays in third person; once it settles we flip to first person and open
+## the practice blackbook (see _physics_process). Uses a "sit" clip if
+## imported, otherwise idle.
+func begin_sit(seat_pos: Vector3, face_yaw: float) -> void:
+	_sit_active = true
+	_sit_settled = false
+	velocity = Vector3.ZERO
+	global_position = seat_pos
+	rotation.y = face_yaw
+	_action_visual_state = ""
+	_action_visual_time_left = 0.0
+	# Short beat to watch the rooster settle onto the bench in third person
+	# before the view drops to first person (the sit-idle clip itself loops).
+	_sit_settle_left = SIT_SETTLE_DELAY
+	if _visual_models.has("sit"):
+		_set_visual_state("sit")
+	else:
+		_set_idle_state()
+
+## Stand up (bench practice book closed). Safe to call when not seated.
+func end_sit() -> void:
+	if not _sit_active:
+		return
+	_sit_active = false
+	_sit_settled = false
+	set_first_person(false)
+	_action_visual_state = ""
+	_set_idle_state()
+
+## Swap the camera between the trailing third-person rig and a first-person
+## view at the eyes; the body is hidden in first person so it doesn't clip.
+func set_first_person(on: bool) -> void:
+	if _arm == null:
+		return
+	_arm.spring_length = 0.0 if on else CAMERA_DISTANCE
+	_arm.position = FIRST_PERSON_ARM_POS if on else THIRD_PERSON_ARM_POS
+	if _visual_root != null:
+		_visual_root.visible = not on
+
 func _update_climb_visual(axis: float) -> void:
 	if not _visual_models.has("climb"):
 		return
@@ -357,6 +427,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		# On the ladder, world actions are suppressed; only look and the
 		# mouse toggle above stay live. Up/down and detach are polled in
 		# _process_climb.
+		return
+	elif _sit_active:
+		# Seated on a bench: world actions are suppressed. Standing up
+		# happens when the practice blackbook closes (HUD → end_sit).
 		return
 	elif event.is_action_pressed("interact"):
 		_try_interact()
@@ -383,6 +457,15 @@ func _physics_process(delta: float) -> void:
 	_apply_controller_look(delta)
 	if _climb_active:
 		_process_climb(delta)
+		return
+	if _sit_active:
+		velocity = Vector3.ZERO  # parked on the bench; only look stays live
+		if not _sit_settled:
+			_sit_settle_left -= delta
+			if _sit_settle_left <= 0.0:
+				_sit_settled = true
+				set_first_person(true)  # sit animation done → first-person view
+				GameState.sit_practice_requested.emit()  # HUD opens the practice book
 		return
 	if not is_on_floor():
 		velocity.y -= _gravity * delta

@@ -205,6 +205,7 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 | Scratch hand: glass-only, one color, 50% greyscale | 🟡 | Flags in data; rendering/surface gate not consumed |
 | Acid hands on glass, vertical + horizontal orientation | 🟡 | `glass`/`orientations` in data; not enforced/rendered |
 | Practice a style 5× in blackbook before outside | ✅ | `practice_tag_font_style` |
+| Sit on a bench to sketch/practice styles | ✅ | `bench.gd` + blackbook practice mode (movement suppressed while seated) |
 | Practice lowers toy-overwrite likelihood (to a floor) | ✅ | `toy_response_multiplier` |
 | More cans/gear → bulky → higher suspicion; stencil adds | ✅ | `gear_suspicion_multiplier` |
 | Lose the paint drip lines | ✅ | All drips removed for every type, player and rival |

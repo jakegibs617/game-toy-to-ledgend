@@ -233,6 +233,7 @@ func _ready() -> void:
 	GameState.player_event.connect(func(message: String) -> void:
 		_show_message(message, 4.0))
 	GameState.crew_board_requested.connect(_open_crew_board)
+	GameState.sit_practice_requested.connect(_open_practice)
 	MissionManager.mission_started.connect(_on_mission_started)
 	MissionManager.objective_changed.connect(_on_objective_changed)
 	MissionManager.mission_completed.connect(_on_mission_completed)
@@ -279,7 +280,7 @@ func _register_modals() -> void:
 			"input": _handle_shop_input},
 		{"name": "blackbook",
 			"is_open": func() -> bool: return _blackbook.visible,
-			"close": func() -> void: _blackbook.visible = false,
+			"close": _close_blackbook,
 			"open": _open_blackbook,
 			"input": _handle_blackbook_input},
 		{"name": "perks",
@@ -312,6 +313,29 @@ func _commit_alias(alias_text := "") -> void:
 func _open_crew_board() -> void:
 	open_modal("blackbook")
 	_blackbook.set_page(2)
+
+## Opened from a bench (Product_reqs.md): the blackbook lands on the
+## Styles page in practice mode so the number keys sketch tag styles.
+func _open_practice() -> void:
+	open_modal("blackbook")
+	_blackbook.practice_mode = true
+	_blackbook.set_page(1)
+	_blackbook.refresh()
+
+## The blackbook's modal "close" — also leaves practice mode and stands
+## the player up if this book was opened from a bench.
+func _close_blackbook() -> void:
+	_blackbook.visible = false
+	if _blackbook.practice_mode:
+		_blackbook.practice_mode = false
+		GameState.sit_practice_ended.emit()
+
+func _practice_message(result: Dictionary) -> String:
+	if not bool(result.get("ok", false)):
+		return String(result.get("reason", "Can't sketch that yet."))
+	if bool(result.get("unlocked", false)):
+		return "Style locked in — practiced enough to take it outside."
+	return "Sketched a page: %d/%d." % [int(result.get("count", 0)), int(result.get("required", 5))]
 
 func _open_perks() -> void:
 	_perks.visible = true
@@ -725,11 +749,15 @@ func _handle_perks_input(event: InputEvent) -> bool:
 ## Esc closes; Tab falls through to the toggle branch below.
 func _handle_blackbook_input(event: InputEvent) -> bool:
 	if event.is_action_pressed("toggle_mouse"):
-		_blackbook.visible = false
+		_close_blackbook()
 		return true
 	for i in MODAL_SLOT_ACTIONS.size():
 		if event.is_action_pressed(MODAL_SLOT_ACTIONS[i]):
-			_blackbook.set_page(i)
+			# Seated: the number keys sketch styles; otherwise they flip pages.
+			if _blackbook.practice_mode:
+				_show_message(_practice_message(_blackbook.sketch(i)))
+			else:
+				_blackbook.set_page(i)
 			return true
 	return false
 

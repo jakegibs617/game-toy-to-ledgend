@@ -1,0 +1,23 @@
+[
+  {
+    "benchId": "bench_mill_yard_1",
+    "label": "BENCH",
+    "districtId": "district_mill_yard",
+    "position": [-6, 0, -7],
+    "rotationY": 0
+  },
+  {
+    "benchId": "bench_mill_yard_2",
+    "label": "BENCH",
+    "districtId": "district_mill_yard",
+    "position": [10, 0, 7],
+    "rotationY": 180
+  },
+  {
+    "benchId": "bench_canal_side_1",
+    "label": "BENCH",
+    "districtId": "district_canal_side",
+    "position": [92, 0, -7],
+    "rotationY": 0
+  }
+]

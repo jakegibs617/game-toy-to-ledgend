@@ -1,5 +1,38 @@
 # Changelog
 
+## 2026-06-14 — Benches: Sit to Sketch Styles (Product_reqs.md)
+
+The writer can now sit on a bench to practice tag styles in the
+blackbook.
+
+- Added data-driven benches (`Data/benches.json`, `Scripts/World/bench.gd`)
+  — two in Mill Yard, one in Canal Side — spawned by `district.gd`. They
+  sit on the sidewalk facing the street, each an `interactable` with a
+  "[E] Sit & sketch styles" prompt.
+- Interacting seats the player: `Player.begin_sit` snaps them onto the
+  seat facing the street and suppresses movement/world actions (same
+  pattern as the ladder climb). The Kronako `Chair_Sit_Idle` clip is
+  imported as `neon_rooster_sit.glb` and registered as the looped `sit`
+  visual state; it falls back to idle if the GLB is missing.
+- The view plays the sit in third person, then drops to **first person**
+  (`Player.set_first_person`) once the sit settles, and returns to third
+  person when the player stands up.
+- Settling opens the blackbook in a new **practice mode** on the Styles
+  page: the number keys sketch the tag styles still worth practicing
+  (delegating to `GameState.practice_tag_font_style`, one page per press)
+  instead of flipping pages. Closing the book (`Tab`/`Esc`) stands the
+  player back up via `GameState.sit_practice_ended`.
+- Practice mode shows a white **sketch page** at the top of the book:
+  the writer's tag drawn large in the font of the style being practiced,
+  updating to whichever style you sketch. Blackbook body text now wraps
+  (long lines like the full tag-style list no longer balloon the panel
+  width and push centered content off-screen).
+- Styles can only be practiced while seated — you sketch in your book on
+  a bench, not mid-stride.
+- Smoke covers bench spawn/prompt, seating + movement suppression, the
+  practiceable list, a sketch incrementing the count, a bad-slot reject,
+  and standing up on close.
+
 ## 2026-06-13 — Tag Rendering: No Drips/Panels, Type-Capable Fonts, Letter Reveal (Product_reqs.md)
 
 Graffiti rendering changes from Product_reqs.md.
