@@ -155,5 +155,45 @@
       "position": [-15.5, 0.6, 20.5],
       "color": "#ff8f3f"
     }
+  },
+  {
+    "memberId": "npc_tali_echo",
+    "name": "Tali",
+    "alias": "Echo",
+    "role": "hype",
+    "roleLabel": "Hype",
+    "loyalty": 45,
+    "style": 5,
+    "specialAbility": "crowd_pull",
+    "crowdRepBonus": 1,
+    "nightlifeMultiplier": 1.05,
+    "bonusDescription": "Pulls bigger reactions from locals and boosts nightclub set payouts by 5%.",
+    "hint": "Runs stickers and flyers near the canal underpass.",
+    "missionDescription": "Recover her flyer roll from the canal underpass.",
+    "color": "#ff4f79",
+    "position": [92, 0, 9],
+    "visuals": {
+      "containerName": "TaliEchoModel",
+      "sourceHeight": 1.7,
+      "rotationY": 220,
+      "initialState": "idle",
+      "states": {
+        "idle": {"model": "res://Assets/Characters/neon_rooster_idle_4.glb", "clip": "Armature|Idle_4|baselayer"},
+        "walk": {"model": "res://Assets/Characters/neon_rooster_walking.glb", "clip": "Armature|walking_man|baselayer"},
+        "run": {"model": "res://Assets/Characters/neon_rooster_running.glb", "clip": "Armature|running|baselayer"}
+      }
+    },
+    "dialogueId": "echo",
+    "dialogue": {
+      "meet": "Echo. I can make a quiet wall feel like everybody saw it. My flyer roll vanished under the canal pass — get it back and I'll put eyes on your work.",
+      "active": "Flyer roll's still under the canal pass. Without it, I'm shouting with empty hands.",
+      "recovered": "There it is. Now give me something worth yelling about and I'll make the block look twice.",
+      "recruited": "Paint loud. I'll make sure the room hears it."
+    },
+    "item": {
+      "name": "Echo's Flyer Roll",
+      "position": [98, 0.6, 18],
+      "color": "#ff4f79"
+    }
   }
 ]

@@ -95,9 +95,10 @@ func _pay_crowd_rep(wall_id: String) -> void:
 	if _crowd_paid_walls.has(wall_id):
 		return
 	_crowd_paid_walls[wall_id] = true
-	GameState.add_reputation(1)
-	GameState.player_event.emit("%s stops to check the fresh paint. (+1 rep)" %
-		String(data.get("label", "Someone")))
+	var rep := CrewManager.crowd_reaction_rep(1)
+	GameState.add_reputation(rep)
+	GameState.player_event.emit("%s stops to check the fresh paint. (+%d rep)" %
+		[String(data.get("label", "Someone")), rep])
 
 func _build_body() -> void:
 	if not _try_build_visual():

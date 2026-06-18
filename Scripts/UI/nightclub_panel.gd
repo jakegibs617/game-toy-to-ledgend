@@ -103,17 +103,18 @@ func is_done() -> bool:
 func hype_pct() -> int:
 	return int(round(100.0 * float(_hits) / float(_beats_total)))
 
-## The set's payout, scaled by hype. Computed off the club's max values.
+## The set's payout, scaled by hype and any recruited Hype role.
 func result() -> Dictionary:
 	var frac := float(_hits) / float(_beats_total)
+	var hype_mult := CrewManager.hype_payout_multiplier()
 	return {
 		"hypePct": hype_pct(),
 		"hits": _hits,
 		"beats": _beats_total,
 		"bestCombo": _best_combo,
-		"styleXp": int(round(float(_club.get("styleXp", 0)) * frac)),
-		"crewRep": int(round(float(_club.get("crewRep", 0)) * frac)),
-		"cash": int(round(float(_club.get("tipCash", 0)) * frac)),
+		"styleXp": int(round(float(_club.get("styleXp", 0)) * frac * hype_mult)),
+		"crewRep": int(round(float(_club.get("crewRep", 0)) * frac * hype_mult)),
+		"cash": int(round(float(_club.get("tipCash", 0)) * frac * hype_mult)),
 	}
 
 ## ---- UI / input -----------------------------------------------------

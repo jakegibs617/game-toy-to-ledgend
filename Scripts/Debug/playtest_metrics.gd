@@ -351,6 +351,7 @@ func _stats_balance() -> Dictionary:
 			"delivery": StatsManager.delivery_multiplier(),
 			"crewPrice": CrewManager.shop_price_multiplier(),
 			"crewDelivery": CrewManager.delivery_multiplier(),
+			"crewHype": CrewManager.hype_payout_multiplier(),
 			"payout": StatsManager.payout_multiplier(),
 			"decay": StatsManager.decay_multiplier(),
 		},
