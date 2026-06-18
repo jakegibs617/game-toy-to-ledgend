@@ -14,7 +14,8 @@ const SAVE_PATH := "user://toy_to_legend_save.json"
 ## v4 (Milestone 20): painted train-car service state.
 ## v5 (Milestone 21): gallery sales log; "game" section gains crew_rep.
 ## v6 (Milestone 22): crew section tracks used getaway heat levels.
-const SAVE_VERSION := 6
+## v7 (nightlife): "game" section gains nightlife_best (per-club hype).
+const SAVE_VERSION := 7
 
 var _player: Player
 
@@ -129,6 +130,12 @@ func _migrate(data: Dictionary) -> Dictionary:
 			data["crew"] = {}
 		data["crew"]["getaway_used_levels"] = data["crew"].get("getaway_used_levels", {})
 		version = 6
+	if version < 7:
+		# v6 predates the nightclub: no dance sets danced yet, so the
+		# per-club best-hype ledger starts empty.
+		if data.has("game"):
+			data["game"]["nightlife_best"] = data["game"].get("nightlife_best", {})
+		version = 7
 	data["version"] = version
 	return data
 

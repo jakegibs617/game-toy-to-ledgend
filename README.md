@@ -60,7 +60,8 @@ changes nothing else. The headless smoke run prints the same readout
 | Controller left/right stick | Move / look |
 | Shift | Run |
 | Space | Jump |
-| E | Paint focused wall / talk / shop / pick up / grab a ladder / sit on a bench (in a conversation: walk away) |
+| E | Paint focused wall / talk / shop / pick up / grab a ladder / sit on a bench / step into a club (in a conversation: walk away) |
+| E or Space (in a club) | Hit the beat on the dance floor — land on-beat taps to build hype (Esc leaves) |
 | W/S (on a ladder) | Climb up / down — reverse any time; ride to the top to summit, back to the foot to step off |
 | Space (on a ladder) | Hop off the ladder |
 | 1–6 | Select can: Tag / Throw-up / Piece / Stencil / Roller / Mural (in shop: buy/delivery; in dialogue: choose; in blackbook: flip pages; seated on a bench: sketch that tag style) |
@@ -109,6 +110,13 @@ first person, then your blackbook opens to sketch tag styles: number
 keys fill in a page of a locked style, and after enough practice it
 unlocks for the street. You can only practice while seated; closing the
 book stands you back up and returns to third person.
+
+Once your name carries (rank Known), **The Undertow** opens in Canal Side
+— a rep-gated nightclub. The bouncer waves off toys; reach the rank and
+pay the cover (E) to step onto the dance floor. A marker sweeps a beat
+bar — tap E/Space on-beat to build hype across the DJ's set, and your
+final hype scales the payout: Style XP, crew rep, and tip cash. The club
+remembers your best floor record across sessions.
 
 The player character is the Kronako Iconz neon rooster. `player.gd`
 prefers the animated action set in `Assets/Characters/`: idle, walk,

@@ -1,5 +1,32 @@
 # Changelog
 
+## 2026-06-18 — Nightlife: The Undertow (Product_reqs.md)
+
+Closes the Product_reqs.md "dance / club / DJ rep-based invite" item — the
+last open Product_reqs request. Adds a rep-gated nightclub in Canal Side
+where a writer who's made a name can dance a DJ set for Style XP, crew rep,
+and tip cash.
+
+- Data-driven club in new `Data/nightlife.json` (`clubId`, `label`,
+  `districtId`, `position`, `minRank`, `cover`, `beats`, `styleXp`,
+  `crewRep`, `tipCash`). The shipped club, **The Undertow**, gates to rank
+  `Known`.
+- **Rep-based invite:** `Scripts/World/nightclub.gd` is a world interactable
+  (same protocol as the bench) whose bouncer waves off anyone below
+  `minRank` (new `GameState.rank_meets`). A qualifying writer pays the cash
+  cover and the HUD opens the dance floor (`GameState.nightclub_requested`).
+- **Dance / DJ set:** `Scripts/UI/nightclub_panel.gd` is a modal whose
+  dance model (`begin`/`register`/`result`) lives off the UI nodes so the
+  smoke test can drive it headless. A marker sweeps a bar; tapping on-beat
+  builds hype, and final hype (hits ÷ beats) scales the Style XP / crew rep /
+  tip-cash payout. A late tap after the set ends can't over-score.
+- **Personal best:** `GameState.nightlife_best` remembers each club's top
+  hype across sessions; `SAVE_VERSION` bumps to **7** with a migration that
+  seeds the ledger empty for older saves.
+- Smoke coverage (`_smoke_nightclub`): the bouncer gate, cover charge, a
+  perfect set paying full and a sloppy set paying nothing, and best-hype
+  bookkeeping.
+
 ## 2026-06-18 — Stickers & Wheatpaste Posters (Product_reqs.md)
 
 Closes the Product_reqs.md "stickers and wheat pasting posters" item — the

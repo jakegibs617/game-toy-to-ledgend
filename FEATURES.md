@@ -200,7 +200,11 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 ### Battles & nightlife (Plan.md §19, §20; Product_reqs.md)
 * ❌ Graffiti battles, dance battles, rap battles — unbuilt (Milestone 32
   is a paper-cut decision, not yet started).
-* ❌ **Dance / club / DJ rep-based invite** (Product_reqs) — not implemented.
+* ✅ **Dance / club / DJ rep-based invite** (Product_reqs): rep-gated
+  nightclub (`nightlife.json` + `nightclub.gd`); bouncer turns away writers
+  below `minRank`, cover charge to enter, and a beat-matching DJ-set modal
+  (`nightclub_panel.gd`) whose hype scales a Style/crew/cash payout. Best
+  hype persisted per club (`GameState.nightlife_best`, save v7).
 
 ---
 
@@ -223,7 +227,7 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 | Each type renders only a font capable for that style | ✅ | `fontFamilies` per type + `GraffitiFonts.resolve_for_families` |
 | Paint-applied lettering reveals one letter at a time | ✅ | `_reveal_label_letters` on fresh player paint (skipped headless) |
 | Stickers & wheatpaste posters (art-school printmaking unlock) | ✅ | `sticker`/`wheatpaste` paper types; Indigo the printmaker teaches them at rank Up |
-| Dance / club / DJ rep-based invite | ❌ | Not implemented |
+| Dance / club / DJ rep-based invite | ✅ | The Undertow: rank-gated club, cover charge, beat-matching DJ-set modal pays Style/crew/cash by hype |
 
 ---
 
@@ -234,8 +238,8 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 * Playtest feedback pass (M33) + demo-candidate freeze (M34).
 
 **Product_reqs gaps:**
-* Dance/club/DJ nightlife invite.
-* Decide drip policy across non-tag types ("lose the paint drip lines").
+* _All Product_reqs.md items are now implemented._ (Drip removal across all
+  types shipped with the tag-style pass.)
 
 **Designed in Plan.md, deferred:**
 * Full §6 stat set (Nerve, Speed, Influence, Technique) and full §7 perk

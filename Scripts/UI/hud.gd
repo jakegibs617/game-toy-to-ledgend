@@ -15,6 +15,7 @@ const MODAL_SLOT_ACTIONS := ["slot_1", "slot_2", "slot_3", "slot_4", "slot_5", "
 const BlackbookPanelScript := preload("res://Scripts/UI/blackbook_panel.gd")
 const FreehandPanelScript := preload("res://Scripts/UI/freehand_panel.gd")
 const PerksPanelScript := preload("res://Scripts/UI/perks_panel.gd")
+const NightclubPanelScript := preload("res://Scripts/UI/nightclub_panel.gd")
 const UiKit := preload("res://Scripts/UI/ui_kit.gd")
 const HEAT_COLORS := {
 	"Cold": Color.WHITE,
@@ -48,6 +49,7 @@ var _message_timer: Timer
 var _blackbook  # BlackbookPanelScript instance (untyped: see preload note)
 var _freehand  # FreehandPanelScript instance (untyped: see preload note)
 var _perks  # PerksPanelScript instance (untyped: see preload note)
+var _nightclub  # NightclubPanelScript instance (untyped: see preload note)
 var _map_panel: MapPanel
 var _freehand_wall: PaintableWall = null
 ## True while the open freehand canvas is a gallery commission
@@ -160,6 +162,13 @@ func _ready() -> void:
 	_freehand.cancelled.connect(_close_freehand)
 	root.add_child(_freehand)
 
+	_nightclub = NightclubPanelScript.new()
+	_nightclub.set_anchors_preset(Control.PRESET_CENTER)
+	_nightclub.visible = false
+	_nightclub.finished.connect(_on_nightclub_finished)
+	_nightclub.cancelled.connect(_close_nightclub)
+	root.add_child(_nightclub)
+
 	_shop_panel = UiKit.make_panel(Color("#e0a030"))
 	_shop_panel.set_anchors_preset(Control.PRESET_CENTER)
 	_shop_panel.visible = false
@@ -234,6 +243,7 @@ func _ready() -> void:
 		_show_message(message, 4.0))
 	GameState.crew_board_requested.connect(_open_crew_board)
 	GameState.sit_practice_requested.connect(_open_practice)
+	GameState.nightclub_requested.connect(_on_nightclub_requested)
 	MissionManager.mission_started.connect(_on_mission_started)
 	MissionManager.objective_changed.connect(_on_objective_changed)
 	MissionManager.mission_completed.connect(_on_mission_completed)
@@ -270,6 +280,10 @@ func _register_modals() -> void:
 			"is_open": func() -> bool: return _freehand.visible,
 			"close": _close_freehand,
 			"input": _freehand.handle_input},
+		{"name": "nightclub",
+			"is_open": func() -> bool: return _nightclub.visible,
+			"close": _close_nightclub,
+			"input": _nightclub.handle_input},
 		{"name": "dialogue",
 			"is_open": DialogueManager.is_active,
 			"close": DialogueManager.end_dialogue,
@@ -610,6 +624,36 @@ func _close_freehand() -> void:
 		_freehand_gallery = false
 		GalleryManager.cancel_commission()  # no-op when already submitted
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+
+## The bouncer waved the writer in (Product_reqs nightlife): open the
+## dance floor for this club's DJ set.
+func _on_nightclub_requested(club: Dictionary) -> void:
+	close_modals("nightclub")
+	_nightclub.begin(club)
+	_nightclub.visible = true
+
+## The DJ set wrapped: pay out by hype, log a new personal best, close.
+func _on_nightclub_finished(payout: Dictionary) -> void:
+	var club_id := String(_nightclub._club.get("clubId", ""))
+	var best := GameState.note_nightlife_best(club_id, int(payout.get("hypePct", 0)))
+	_close_nightclub()
+	if int(payout.get("styleXp", 0)) > 0:
+		StatsManager.add_xp("style", int(payout["styleXp"]))
+	GameState.add_crew_rep(int(payout.get("crewRep", 0)))
+	GameState.add_cash(int(payout.get("cash", 0)))
+	Sfx.play("claim")
+	var msg := "Danced %d%% hype — +%d Style XP, +%d crew rep, +$%d tips." % [
+		int(payout.get("hypePct", 0)), int(payout.get("styleXp", 0)),
+		int(payout.get("crewRep", 0)), int(payout.get("cash", 0))]
+	if best:
+		msg += "  New floor record!"
+	_show_message(msg, 5.0)
+	_refresh_prompt()
+
+func _close_nightclub() -> void:
+	_nightclub.visible = false
+	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	_refresh_prompt()
 
 func _on_painted(result: Dictionary) -> void:
 	if result.get("ok", false):

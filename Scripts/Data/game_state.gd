@@ -25,6 +25,9 @@ signal crew_board_requested
 ## HUD fires sit_practice_ended when that book closes so the player stands.
 signal sit_practice_requested
 signal sit_practice_ended
+## A rep-gated nightclub asks the HUD to open the dance-floor modal once the
+## bouncer has waved the writer in (Product_reqs "dance / club / DJ invite").
+signal nightclub_requested(club: Dictionary)
 
 const RANKS := [
 	{"name": "Toy", "min_rep": 0},
@@ -66,6 +69,9 @@ var colors_unlocked := false
 var fill_color_index := 0
 var extra_fill_colors: Array = []  # rare colors bought from the shop
 var current_district_id := "district_mill_yard"
+## Best dance hype reached per nightclub (clubId -> 0..100), so the club
+## remembers a writer's signature set across sessions.
+var nightlife_best: Dictionary = {}
 
 func _ready() -> void:
 	_setup_input_actions()
@@ -88,6 +94,7 @@ func save_state() -> Dictionary:
 		"fill_color_index": fill_color_index,
 		"extra_fill_colors": extra_fill_colors.duplicate(true),
 		"current_district_id": current_district_id,
+		"nightlife_best": nightlife_best.duplicate(true),
 	}
 
 func load_state(data: Dictionary) -> void:
@@ -114,6 +121,7 @@ func load_state(data: Dictionary) -> void:
 	# patrol respawns) must not react against half-restored state.
 	# SaveManager re-announces the district once the full load is done.
 	current_district_id = String(data.get("current_district_id", current_district_id))
+	nightlife_best = data.get("nightlife_best", nightlife_best).duplicate(true)
 	reputation_changed.emit(reputation, 0)
 	crew_rep_changed.emit(crew_rep, 0)
 	if rank != old_rank:  # otherwise every quick-load announces "RANK UP"
@@ -324,6 +332,20 @@ func rank_index(rank_name: String) -> int:
 		if String(RANKS[i]["name"]) == rank_name:
 			return i
 	return 0
+
+## True once the writer's current rank is at least `min_rank` — the
+## rep-based invite check shared by gated content (nightclub bouncer).
+## An unknown `min_rank` reads as "no gate" (index 0).
+func rank_meets(min_rank: String) -> bool:
+	return rank_index(rank) >= rank_index(min_rank)
+
+## Records a dance set if it beats the writer's stored best for that club,
+## returning true when a new personal best was set.
+func note_nightlife_best(club_id: String, hype_pct: int) -> bool:
+	if hype_pct <= int(nightlife_best.get(club_id, 0)):
+		return false
+	nightlife_best[club_id] = hype_pct
+	return true
 
 func _rank_for(rep: int) -> String:
 	var result: String = RANKS[0]["name"]

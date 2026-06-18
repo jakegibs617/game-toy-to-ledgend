@@ -1,0 +1,15 @@
+[
+  {
+    "clubId": "club_canal_undertow",
+    "label": "THE UNDERTOW",
+    "districtId": "district_canal_side",
+    "position": [96, 0, -9],
+    "rotationY": 0,
+    "minRank": "Known",
+    "cover": 15,
+    "beats": 12,
+    "styleXp": 40,
+    "crewRep": 12,
+    "tipCash": 30
+  }
+]
