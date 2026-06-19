@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-06-19 — Milestone 32: Battle Prototype Paper Cut
+
+Completed the v3 battle decision milestone without adding a new minigame.
+
+- Added `docs/BATTLE_PAPER_CUT_2026-06-19.md`, comparing dance, rap/verbal,
+  and graffiti wall duel prototypes against the current paint/territory loop.
+- Decision: do **not** build a separate v3 battle minigame. The Undertow's
+  DJ set already covers the clearest 60-second timing interaction, while a
+  second dance battle would duplicate it without touching walls or heat.
+- Recommended post-candidate direction: rival wall duels that reuse paint,
+  territory, rival, crew, heat, and crowd-reaction systems, giving the future
+  Battle Specialist role a real job.
+
 ## 2026-06-19 — Crew Loyalty & Role Upgrades
 
 Turns the previously static crew loyalty data into a saved, gameplay-facing

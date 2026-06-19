@@ -65,7 +65,7 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 | 29 | Procedural rival graffiti variety (deterministic, seeded) | ✅ PR #27 |
 | 30 | Rooftop traversal polish (context prompts, hazard tells) | ✅ PR #28 |
 | 31 | Performance & runtime budget pass | ✅ PR #34 |
-| 32 | Battle prototype paper cut (dance/rap) | ❌ not started |
+| 32 | Battle prototype paper cut (dance/rap) | ✅ decision: defer v3 minigame |
 | 33 | Playtest feedback pass | ❌ not started |
 | 34 | v3 demo candidate (freeze + tag) | ❌ not started |
 
@@ -143,7 +143,7 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
   role helps, and loyalty gently scales their role bonus; blackbook shows
   loyalty state and role scale.
 * ✅ Crew board in safehouse (opens blackbook Crew page).
-* 🟡 Remaining role: Battle Specialist (blocked on battle prototype);
+* 🟡 Remaining role: Battle Specialist (post-M32 direction: rival wall duels);
   morale paths.
 
 ### Missions (Plan.md §15, §16)
@@ -202,8 +202,9 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 * ✅ **Gear suspicion:** the paste bucket adds bulk; stickers stay flat.
 
 ### Battles & nightlife (Plan.md §19, §20; Product_reqs.md)
-* ❌ Graffiti battles, dance battles, rap battles — unbuilt (Milestone 32
-  is a paper-cut decision, not yet started).
+* 🟡 Graffiti battles, dance battles, rap battles — M32 paper cut completed;
+  no separate v3 minigame. Post-candidate direction is rival wall duels, not
+  duplicate dance/rap systems.
 * ✅ **Dance / club / DJ rep-based invite** (Product_reqs): rep-gated
   nightclub (`nightlife.json` + `nightclub.gd`); bouncer turns away writers
   below `minRank`, cover charge to enter, and a beat-matching DJ-set modal
@@ -248,7 +249,7 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 **Designed in Plan.md, deferred:**
 * Full §6 stat set (Nerve, Speed, Influence, Technique) and full §7 perk
   trees.
-* Battle Specialist / morale paths; rival alliances/duels.
+* Battle Specialist / morale paths; rival wall duels and alliances.
 * Safehouse depth (sketch editor, outfit, sleep-to-skip, room).
 * Additional districts (Downtown, Train Yard, Gallery Quarter, Substation).
 
