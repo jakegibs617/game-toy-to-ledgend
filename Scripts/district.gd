@@ -51,6 +51,13 @@ func _ready() -> void:
 	MissionManager.begin_chain()
 	_register_rival_tagger()
 
+	# Agent control server (docs/OLLAMA_AGENT_PLAN.md). Only when AGENT=1 and
+	# never under the smoke test; preload per the headless class-cache rule.
+	if OS.get_environment("AGENT") == "1" and OS.get_environment("SMOKE_TEST") != "1":
+		var agent := preload("res://Scripts/Debug/agent_server.gd").new()
+		add_child(agent)
+		agent.bind_world(player, hud)
+
 	if OS.get_environment("SMOKE_TEST") == "1":
 		_run_smoke_test.call_deferred()
 	elif OS.get_environment("RUNTIME_BUDGET") == "1":

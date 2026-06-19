@@ -195,6 +195,12 @@ static rooster GLB, then the old debug capsule.
   Relaxed, Standard, or Hard from the alias modal. Standard is the tuned v3
   baseline; the other presets scale heat gain, patrol density, shop prices,
   and cash rewards without changing mission data.
+- **Agent play harness** (`Scripts/Debug/agent_server.gd`, `agent/pilot.py`) —
+  optional. Launch windowed with `AGENT=1` to expose a localhost API
+  (`GET /observe`, `POST /act`) so an external pilot — a local Ollama model or a
+  rule-based baseline — plays the game through synthesized real input. Dormant
+  and self-disabling under the smoke test; see `docs/OLLAMA_AGENT_PLAN.md` and
+  `agent/README.md`.
 - **RivalManager** (autoload, `Scripts/Rivals/rival_manager.gd`,
   Milestone 4) — loads `Data/crews.json` (The Buff Kings, Ghost Line,
   Chrome Saints). Crews claim their home walls at session start. When

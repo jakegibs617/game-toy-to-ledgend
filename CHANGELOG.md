@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased — Agent play harness (Phase 1–4)
+
+Lets an external pilot (a local Ollama model, or a rule-based baseline) play the
+game the way a human does — see `docs/OLLAMA_AGENT_PLAN.md`.
+
+- `Scripts/Debug/agent_server.gd`: a localhost HTTP server (`AGENT=1`,
+  self-disables under `SMOKE_TEST`) exposing `GET /observe` (player's-eye JSON
+  state + a screenshot path) and `POST /act` (macro-actions executed by
+  **synthesizing real input**, never mutating managers). Wired into
+  `district.gd` boot, preloaded per the class-cache rule.
+- Macro-actions: `select_can`, `cycle_color`/`cycle_cap`, `move`/`look`,
+  `aim_at`/`goto_wall` (per-frame camera/leg controllers), `paint`, `freehand`,
+  `rest`, `stop`, `wait`.
+- `agent/pilot.py`: stdlib-only pilot with two brains — `heuristic` (baseline)
+  and `ollama` (multimodal, structured-output actions). `agent/README.md` +
+  `docs/AGENT_CHEATSHEET.md` (the model's system prompt).
+- Verified live: the heuristic pilot autonomously completes the opening
+  objective (dismiss alias → walk to wall → tag, rep 0→29). Smoke unaffected
+  (server gated off headless).
+
 ## 2026-06-20 — v4 Crew Hangout Beats
 
 Adds Plan_v4 crew/social candidate 11 in the existing safehouse board flow.
