@@ -247,6 +247,7 @@ func _resolve_wall_duel_if_answered(wall_id: String, graffiti: Dictionary) -> bo
 	GameState.note_rival_duel_win()
 	CrewManager.note_role_helped("hype", 2)
 	CrewManager.note_role_helped("battle_specialist", 4)
+	CrewManager.adjust_morale(7, "duel won")
 	var wall_name := String(WallManager.wall_def(wall_id).get("name", wall_id))
 	rival_event.emit("Wall duel won: %s is yours again. +%d rep, +%d crew rep." % [
 		wall_name, rep_bonus, crew_rep_bonus], wall_id)
@@ -270,6 +271,7 @@ func forfeit_wall_duel(wall_id: String, expired := false) -> bool:
 	var duel: Dictionary = active_wall_duels[wall_id]
 	active_wall_duels.erase(wall_id)
 	GameState.note_rival_duel_loss()
+	CrewManager.adjust_morale(-8, "duel lost")
 	var wall_name := String(WallManager.wall_def(wall_id).get("name", wall_id))
 	var crew_name := String(duel.get("crewName", "the rival crew"))
 	if expired:

@@ -18,7 +18,7 @@ const SAVE_PATH := "user://toy_to_legend_save.json"
 ## v8 (crew loyalty): crew section tracks loyalty_by_member.
 ## v9 (rival wall duels): game gains duel record counters; save gains rivals.
 ## v10 (safehouse rest): game gains safehouse_rests.
-const SAVE_VERSION := 10
+const SAVE_VERSION := 11
 
 var _player: Player
 
@@ -157,6 +157,12 @@ func _migrate(data: Dictionary) -> Dictionary:
 		if data.has("game"):
 			data["game"]["safehouse_rests"] = int(data["game"].get("safehouse_rests", 0))
 		version = 10
+	if version < 11:
+		# v10 predates crew morale: an existing crew starts at neutral mood.
+		if not data.has("crew"):
+			data["crew"] = {}
+		data["crew"]["team_morale"] = int(data["crew"].get("team_morale", 50))
+		version = 11
 	data["version"] = version
 	return data
 

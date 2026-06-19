@@ -837,6 +837,41 @@ func _smoke_crew() -> void:
 	assert(CrewManager.member_loyalty("npc_mina_moth") == int(saved_crew["loyalty_by_member"]["npc_mina_moth"]))
 	print("SMOKE: lookout warning = %s" % events[-1][0])
 
+	# Crew morale: recruiting the whole crew lifted the team mood above
+	# neutral, and at neutral the factor is exactly 1.0 so existing role
+	# balance is unchanged. Shared wins/losses move it, clamped and saved.
+	assert(CrewManager.team_morale > CrewManager.MORALE_NEUTRAL)
+	assert(CrewManager.morale_factor() > 1.0)
+	var morale_events: Array = []
+	CrewManager.crew_event.connect(func(msg: String) -> void: morale_events.append(msg))
+	CrewManager.team_morale = CrewManager.MORALE_NEUTRAL
+	assert(is_equal_approx(CrewManager.morale_factor(), 1.0))
+	# A neutral-morale crew reads role bonuses exactly as loyalty alone sets them.
+	var lookout_loyalty := CrewManager.member_loyalty("npc_mina_moth")
+	assert(is_equal_approx(CrewManager.role_bonus_scale("lookout"),
+		clampf(0.75 + float(lookout_loyalty) / 200.0, 0.75, 1.25)))
+	var morale_before := CrewManager.team_morale
+	CrewManager.adjust_morale(-12, "duel lost")  # crosses the 40-band down
+	assert(CrewManager.team_morale == morale_before - 12)
+	assert(CrewManager.morale_factor() < 1.0)
+	assert(morale_events.any(func(m: String) -> bool: return m.begins_with("Crew morale")))
+	CrewManager.adjust_morale(-9999)  # clamps at the floor, never negative
+	assert(CrewManager.team_morale == 0)
+	# Morale survives save/load and v10 saves migrate to a neutral mood.
+	CrewManager.team_morale = 73
+	var morale_save := CrewManager.save_state()
+	assert(int(morale_save["team_morale"]) == 73)
+	CrewManager.team_morale = 5
+	CrewManager.load_state(morale_save)
+	assert(CrewManager.team_morale == 73)
+	var migrated_v10 := SaveManager._migrate({"version": 10, "crew": {}})
+	assert(int(migrated_v10["version"]) == SaveManager.SAVE_VERSION)
+	assert(int(migrated_v10["crew"]["team_morale"]) == CrewManager.MORALE_NEUTRAL)
+	# Leave the crew at neutral so later smoke sections read role bonuses
+	# exactly as they did before morale existed (factor 1.0).
+	CrewManager.team_morale = CrewManager.MORALE_NEUTRAL
+	print("SMOKE: crew morale — recruits lift mood, neutral = 1.0x, clamps + saves")
+
 ## Assumes: the player holds the two mill walls; the landmark is still
 ## Buff Kings'. District influence reflects wall ownership (Milestone
 ## 6); painting the key walls claims the block once for a rep bonus and

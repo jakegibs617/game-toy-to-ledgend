@@ -10,6 +10,7 @@ extends Node
 signal crew_event(message: String)
 signal crew_changed
 signal stage_changed(member_id: String, stage: String)
+signal morale_changed(value: int)
 
 const NPC_PATH := "res://Data/npc_data.json"
 const DataLoader := preload("res://Scripts/Data/data_loader.gd")
@@ -17,6 +18,13 @@ const DataLoader := preload("res://Scripts/Data/data_loader.gd")
 ## is (§11 crew rep, Milestone 21).
 const RECRUIT_CREW_REP := 10
 const MAX_LOYALTY := 100
+## Team morale is a single crew-wide mood, separate from each member's
+## personal loyalty. It starts neutral and drifts with shared wins and
+## losses (duels, recruits, loyalty milestones, getting caught). At neutral
+## it changes nothing; high morale slightly sharpens every role bonus and low
+## morale slightly dulls it, through one factor folded into role_bonus_scale.
+const MAX_MORALE := 100
+const MORALE_NEUTRAL := 50
 
 var members: Dictionary = {}  # memberId -> definition + runtime "stage"
 var _parent: Node3D = null
@@ -24,6 +32,7 @@ var _pickup_nodes: Dictionary = {}
 var _getaway_used_levels: Dictionary = {}
 var _loyalty_by_member: Dictionary = {}
 var _base_loyalty_by_member: Dictionary = {}
+var team_morale := MORALE_NEUTRAL
 
 func _ready() -> void:
 	var parsed: Variant = DataLoader.load_json(NPC_PATH, "CrewManager")
@@ -69,6 +78,9 @@ func interact(member_id: String) -> void:
 				m["alias"], String(m.get("roleLabel", m["role"])),
 				String(m.get("bonusDescription", ""))])
 			crew_changed.emit()
+			# A fresh recruit lifts the whole crew (any_recruited() is already
+			# true here, so the first member's join lands too).
+			adjust_morale(6, "%s joined" % String(m["alias"]))
 			if String(m.get("role", "")) == "filler":
 				for district_id in TerritoryManager.districts:
 					if TerritoryManager.is_claimed(String(district_id)):
@@ -141,12 +153,47 @@ func loyalty_text(member_id: String) -> String:
 
 ## Crew role bonuses deepen as the member has reasons to trust the
 ## writer. At 50 loyalty the data-defined bonus is unchanged; 100
-## loyalty is a small upgrade, not a second progression tree.
+## loyalty is a small upgrade, not a second progression tree. The whole
+## crew's morale then nudges the result up or down by a small factor.
 func role_bonus_scale(role: String) -> float:
 	var member := first_with_role(role)
 	if member.is_empty():
 		return 0.0
-	return clampf(0.75 + float(member_loyalty(String(member["memberId"]))) / 200.0, 0.75, 1.25)
+	var loyalty_scale := clampf(0.75 + float(member_loyalty(String(member["memberId"]))) / 200.0, 0.75, 1.25)
+	return loyalty_scale * morale_factor()
+
+## Maps team morale to a tight [0.9, 1.1] multiplier centred on neutral, so a
+## default-morale crew (and every existing balance assertion) reads exactly
+## 1.0 and only a crew that has been winning or losing together shifts it.
+func morale_factor() -> float:
+	return 0.9 + clampf(float(team_morale), 0.0, float(MAX_MORALE)) / float(MAX_MORALE) * 0.2
+
+func morale_text() -> String:
+	if team_morale >= 80:
+		return "tight"
+	if team_morale >= 60:
+		return "up"
+	if team_morale >= 40:
+		return "steady"
+	if team_morale >= 20:
+		return "shaky"
+	return "fractured"
+
+## Shifts crew-wide morale and announces a crossed 20-point band so the writer
+## feels the team mood turn without a readout for every point. No-op when no
+## one is recruited yet — a crew of one writer has no morale to move.
+func adjust_morale(delta: int, reason := "") -> void:
+	if delta == 0 or not any_recruited():
+		return
+	var before := team_morale
+	team_morale = clampi(team_morale + delta, 0, MAX_MORALE)
+	if team_morale == before:
+		return
+	morale_changed.emit(team_morale)
+	if team_morale / 20 != before / 20:
+		var tail := " (%s)" % reason if reason != "" else ""
+		crew_event.emit("Crew morale is %s — %d/%d%s." % [
+			morale_text(), team_morale, MAX_MORALE, tail])
 
 func note_role_helped(role: String, amount := 2) -> void:
 	var member := first_with_role(role)
@@ -163,6 +210,8 @@ func note_role_helped(role: String, amount := 2) -> void:
 	if after == MAX_LOYALTY or after / 10 > before / 10:
 		crew_event.emit("%s trusts the crew more. Loyalty %d/%d." % [
 			String(member.get("alias", member_id)), after, MAX_LOYALTY])
+		# A member's loyalty milestone is good news the rest of the crew feels.
+		adjust_morale(2, "%s is solid" % String(member.get("alias", member_id)))
 
 ## Rico "Caps" (Milestone 22): once a block is already yours, he fills
 ## a few open/non-player walls with no-rep throw-ups so held territory
@@ -293,6 +342,7 @@ func save_state() -> Dictionary:
 		"stages": stages,
 		"getaway_used_levels": _getaway_used_levels.duplicate(true),
 		"loyalty_by_member": _loyalty_by_member.duplicate(true),
+		"team_morale": team_morale,
 	}
 
 func load_state(data: Dictionary) -> void:
@@ -303,6 +353,8 @@ func load_state(data: Dictionary) -> void:
 			stage_changed.emit(String(member_id), String(stages[member_id]))
 			_sync_pickup_for_member(String(member_id))
 	_getaway_used_levels = data.get("getaway_used_levels", {}).duplicate(true)
+	team_morale = clampi(int(data.get("team_morale", MORALE_NEUTRAL)), 0, MAX_MORALE)
+	morale_changed.emit(team_morale)
 	_loyalty_by_member = _default_loyalty_by_member()
 	var saved_loyalty: Dictionary = data.get("loyalty_by_member", {})
 	for member_id in saved_loyalty:
