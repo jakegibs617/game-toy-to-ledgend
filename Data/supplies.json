@@ -49,6 +49,22 @@
       "grantsCap": "mop"
     },
     {
+      "itemId": "gloves",
+      "name": "Nitrile Gloves",
+      "desc": "clean hands — lower patrol suspicion, no style boost",
+      "price": 14,
+      "repeatable": false,
+      "grantsCap": "gloves"
+    },
+    {
+      "itemId": "mask",
+      "name": "Painter's Mask",
+      "desc": "keeps your face down — lower heat, less identity",
+      "price": 18,
+      "repeatable": false,
+      "grantsCap": "mask"
+    },
+    {
       "itemId": "burner_chrome",
       "name": "Burner Chrome",
       "desc": "rare fill color",

@@ -1275,6 +1275,23 @@ func _smoke_supplies() -> void:
 	assert(SupplyManager.cap_heat_multiplier(WallManager.styles["throwup"]) > 1.0)
 	assert(is_equal_approx(SupplyManager.cap_heat_multiplier(WallManager.styles["tag"]), 1.0))
 	assert(GameState.cash == gear_cash_before)
+	# Gloves and masks are stealth gear in the same equipped-tool lane:
+	# lower suspicion/heat in exchange for no rep upside.
+	var gloves: Dictionary = SupplyManager.item("gloves")
+	var mask: Dictionary = SupplyManager.item("mask")
+	gear_cash_before = GameState.cash
+	GameState.add_cash(SupplyManager.item_price(gloves) + SupplyManager.item_price(mask))
+	assert(SupplyManager.buy("gloves")["ok"])
+	assert(SupplyManager.owns_cap("gloves") and SupplyManager.equipped_cap == "gloves")
+	assert(SupplyManager.cap_suspicion() < 0.0)
+	assert(SupplyManager.cap_rep_multiplier(WallManager.styles["tag"]) < 1.0)
+	assert(is_equal_approx(SupplyManager.cap_heat_multiplier(WallManager.styles["tag"]), 1.0))
+	assert(SupplyManager.buy("mask")["ok"])
+	assert(SupplyManager.owns_cap("mask") and SupplyManager.equipped_cap == "mask")
+	assert(SupplyManager.cap_suspicion() < 0.0)
+	assert(SupplyManager.cap_rep_multiplier(WallManager.styles["piece"]) < 1.0)
+	assert(SupplyManager.cap_heat_multiplier(WallManager.styles["piece"]) < 1.0)
+	assert(GameState.cash == gear_cash_before)
 	# A tag painted with calligraphy pays its rep multiplier over stock.
 	assert(SupplyManager.equip_cap("stock"))
 	var stock_paint: Dictionary = WallManager.paint_wall(WallManager.wall_nodes["wall_loading_01"], "tag")
@@ -1301,13 +1318,13 @@ func _smoke_supplies() -> void:
 	assert(String(cap_save["equipped_cap"]) == "skinny")
 	SupplyManager.equipped_cap = "stock"
 	SupplyManager.load_state(cap_save)
-	assert(SupplyManager.equipped_cap == "skinny" and SupplyManager.owns_cap("calligraphy"))
+	assert(SupplyManager.equipped_cap == "skinny" and SupplyManager.owns_cap("mask"))
 	var migrated_v11 := SaveManager._migrate({"version": 11, "supplies": {}})
 	assert(int(migrated_v11["version"]) == SaveManager.SAVE_VERSION)
 	assert(migrated_v11["supplies"].has("owned_caps") and String(migrated_v11["supplies"]["equipped_cap"]) == "stock")
 	# Leave the fat cap equipped so later sections read the historical -1 cost.
 	SupplyManager.equip_cap("fat")
-	print("SMOKE: tools — stock/fat/calligraphy caps, marker, mop, cycle/save OK")
+	print("SMOKE: tools — caps, marker/mop, gloves/mask, cycle/save OK")
 	# A rare color joins the palette and gets selected.
 	var palette_size: int = GameState.fill_palette().size()
 	assert(SupplyManager.buy("burner_chrome")["ok"])

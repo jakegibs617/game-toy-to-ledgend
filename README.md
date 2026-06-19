@@ -260,8 +260,8 @@ static rooster GLB, then the old debug capsule.
   supply economy (Plan.md §21). Cash arrives with mission payouts and
   buys from Lupe's catalog (`Data/supplies.json`): paint packs, a fat
   cap that cuts the paint cost of throw-ups and pieces by 1, detail caps,
-  a low-heat Pocket Marker for tags, an Ink Mop for drippy fills, and the
-  rare "Burner Chrome" fill color. Interact with Lupe outside mission
+  a low-heat Pocket Marker for tags, an Ink Mop for drippy fills, stealth
+  gloves/mask gear, and the rare "Burner Chrome" fill color. Interact with Lupe outside mission
   beats to open the shop (number keys buy). K cycles the equipped paint
   tool and its paint/rep/heat/suspicion trade-off. She also hands out
   repeatable delivery runs: carry a package to a rotating drop spot

@@ -41,6 +41,9 @@ systems started touching the economy:
   mop is throw-up/piece-only, louder, +1 paint, and slightly higher rep. Both
   stay in the same equipped-tool lane as caps so Standard does not gain a
   stacked modifier pile.
+* **Gloves/masks:** stealth gear lowers suspicion or heat but trims rep. They
+  are equipped-tool alternatives, not additive protection, so they should help
+  cautious play without becoming mandatory for every risky wall.
 * **Team morale:** morale only scales crew role bonuses, not direct wall
   reputation. Its range is 0.9x-1.1x around the neutral 1.0x baseline, so a
   winning crew makes support roles feel sharper without replacing the main
