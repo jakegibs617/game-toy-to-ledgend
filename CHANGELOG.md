@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-06-19 — Safehouse Rest
+
+Adds the first safehouse-depth slice: a rest action that skips time through
+the existing simulation clocks instead of introducing a separate day/night
+model.
+
+- The safehouse prompt now keeps `E` for the crew board and adds `R` to rest.
+- Resting advances heat/cleanup ticks, runs one territory upkeep tick, restores
+  a small amount of paint, records the saved rest count, and shows one compact
+  HUD outcome message.
+- `HeatManager` and `TerritoryManager` expose small `advance_*_ticks` helpers
+  so scripted systems can reuse their existing tick rules.
+- Save schema bumps to **v10** and migrates older saves with
+  `game.safehouse_rests = 0`.
+- Smoke coverage verifies the prompt/action, heat cooling, paint top-up, rest
+  counter, save/load restoration, and v10 migration.
+
 ## 2026-06-19 — Rival Wall Duels
 
 Builds the post-M32 battle direction as a lightweight contested-wall feature

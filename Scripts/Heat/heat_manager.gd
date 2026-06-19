@@ -94,6 +94,10 @@ func settle(ceiling: float) -> void:
 	if heat > ceiling:
 		_set_heat(GameState.current_district_id, ceiling, 0.0)
 
+func advance_time_ticks(ticks: int) -> void:
+	for _i in range(maxi(ticks, 0)):
+		_on_tick()
+
 func save_state() -> Dictionary:
 	return {
 		"by_district": heat_by_district.duplicate(true),

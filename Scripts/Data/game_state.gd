@@ -29,6 +29,7 @@ signal sit_practice_ended
 ## bouncer has waved the writer in (Product_reqs "dance / club / DJ invite").
 signal nightclub_requested(club: Dictionary)
 signal rival_duel_record_changed(wins: int, losses: int, streak: int)
+signal safehouse_rest_changed(rests: int)
 
 const RANKS := [
 	{"name": "Toy", "min_rep": 0},
@@ -45,6 +46,8 @@ const SLOT_COUNT := 6
 const GraffitiFonts := preload("res://Scripts/Walls/graffiti_font_library.gd")
 const FONT_PRACTICE_TOY_RESPONSE_CUT := 0.04
 const FONT_PRACTICE_RESPONSE_FLOOR := 0.8
+const SAFEHOUSE_REST_TICKS := 4
+const SAFEHOUSE_REST_PAINT := 4
 
 const FILL_COLORS := [
 	{"name": "White", "hex": "#f2f2f2"},
@@ -78,6 +81,7 @@ var nightlife_best: Dictionary = {}
 var rival_duel_wins := 0
 var rival_duel_losses := 0
 var rival_duel_streak := 0
+var safehouse_rests := 0
 
 func _ready() -> void:
 	_setup_input_actions()
@@ -104,6 +108,7 @@ func save_state() -> Dictionary:
 		"rival_duel_wins": rival_duel_wins,
 		"rival_duel_losses": rival_duel_losses,
 		"rival_duel_streak": rival_duel_streak,
+		"safehouse_rests": safehouse_rests,
 	}
 
 func load_state(data: Dictionary) -> void:
@@ -134,6 +139,7 @@ func load_state(data: Dictionary) -> void:
 	rival_duel_wins = int(data.get("rival_duel_wins", rival_duel_wins))
 	rival_duel_losses = int(data.get("rival_duel_losses", rival_duel_losses))
 	rival_duel_streak = int(data.get("rival_duel_streak", rival_duel_streak))
+	safehouse_rests = int(data.get("safehouse_rests", safehouse_rests))
 	reputation_changed.emit(reputation, 0)
 	crew_rep_changed.emit(crew_rep, 0)
 	if rank != old_rank:  # otherwise every quick-load announces "RANK UP"
@@ -145,6 +151,7 @@ func load_state(data: Dictionary) -> void:
 	fill_color_changed.emit(current_fill_color_name())
 	alias_changed.emit(alias)
 	rival_duel_record_changed.emit(rival_duel_wins, rival_duel_losses, rival_duel_streak)
+	safehouse_rest_changed.emit(safehouse_rests)
 
 func add_reputation(amount: int) -> void:
 	reputation += amount
@@ -370,6 +377,32 @@ func note_rival_duel_loss() -> void:
 	rival_duel_streak = 0
 	rival_duel_record_changed.emit(rival_duel_wins, rival_duel_losses, rival_duel_streak)
 
+func rest_at_safehouse() -> Dictionary:
+	var heat_before := HeatManager.heat
+	var rep_before := reputation
+	HeatManager.advance_time_ticks(SAFEHOUSE_REST_TICKS)
+	TerritoryManager.advance_decay_ticks(1)
+	add_paint(SAFEHOUSE_REST_PAINT)
+	safehouse_rests += 1
+	safehouse_rest_changed.emit(safehouse_rests)
+	var heat_drop := maxf(heat_before - HeatManager.heat, 0.0)
+	var rep_delta := reputation - rep_before
+	var message := "Rested at the safehouse — heat cooled %.0f, +%d paint." % [
+		heat_drop, SAFEHOUSE_REST_PAINT]
+	if rep_delta < 0:
+		message += " Your old spots faded %d rep." % abs(rep_delta)
+	elif rep_delta > 0:
+		message += " Standing work earned +%d rep." % rep_delta
+	player_event.emit(message)
+	return {
+		"heat_before": heat_before,
+		"heat_after": HeatManager.heat,
+		"heat_drop": heat_drop,
+		"paint_gain": SAFEHOUSE_REST_PAINT,
+		"rep_delta": rep_delta,
+		"rests": safehouse_rests,
+	}
+
 func _rank_for(rep: int) -> String:
 	var result: String = RANKS[0]["name"]
 	for r in RANKS:
@@ -385,6 +418,7 @@ func _setup_input_actions() -> void:
 	_add_key_action("run", KEY_SHIFT)
 	_add_key_action("jump", KEY_SPACE)
 	_add_key_action("interact", KEY_E)
+	_add_key_action("safehouse_rest", KEY_R)
 	_add_joy_axis_action("move_forward", JOY_AXIS_LEFT_Y, -1.0)
 	_add_joy_axis_action("move_back", JOY_AXIS_LEFT_Y, 1.0)
 	_add_joy_axis_action("move_left", JOY_AXIS_LEFT_X, -1.0)

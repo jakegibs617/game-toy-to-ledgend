@@ -172,7 +172,9 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 * ✅ Blackbook (alias, rank, crew, styles, missions, rivals, service log)
   + tag-style practice page.
 * ✅ District map panel; safehouse mission/crew-board zone.
-* ❌ Sketch editor, room customization, outfit change, sleep-to-skip.
+* ✅ Safehouse sleep-to-skip: resting advances heat/cleanup and territory
+  upkeep clocks, cools the current block, restores paint, and saves rest count.
+* ❌ Sketch editor, room customization, outfit change.
 
 ### NPCs, dialogue & ambient life (Plan.md §25, §26, §44)
 * ✅ Civilians/writers/security/cleanup; choice-based dialogue with
@@ -193,7 +195,7 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
   self-disables headless).
 
 ### Save/load (Plan.md §32)
-* ✅ Versioned save (`SAVE_VERSION`, currently v9) with per-version
+* ✅ Versioned save (`SAVE_VERSION`, currently v10) with per-version
   migration; wall_states round-trip wholesale.
 
 ### Stickers & wheatpaste (Product_reqs.md)
@@ -253,7 +255,7 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 * Full §6 stat set (Nerve, Speed, Influence, Technique) and full §7 perk
   trees.
 * Battle Specialist / morale paths; deeper rival duel ladders and alliances.
-* Safehouse depth (sketch editor, outfit, sleep-to-skip, room).
+* Safehouse depth (sketch editor, outfit, room).
 * Additional districts (Downtown, Train Yard, Gallery Quarter, Substation).
 
 **🔒 Do Not Build Yet (Plan.md §36 / Plan_v3 §7):** full city, multiplayer,

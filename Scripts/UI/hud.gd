@@ -398,7 +398,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not active.is_empty() and active["input"].call(event):
 		get_viewport().set_input_as_handled()
 		return
-	if event.is_action_pressed("crew_menu"):
+	if active.is_empty() and event.is_action_pressed("safehouse_rest") \
+			and _focused is MissionZone and String(_focused.actor_id) == "safehouse":
+		GameState.rest_at_safehouse()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("crew_menu"):
 		_toggle_modal("blackbook")
 	elif event.is_action_pressed("map"):
 		_toggle_modal("map")

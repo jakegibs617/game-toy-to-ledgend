@@ -35,7 +35,7 @@ func _physics_process(_delta: float) -> void:
 	_player_inside = inside
 
 func prompt_text() -> String:
-	return "[E] Crew board" if actor_id == "safehouse" else ""
+	return "[E] Crew board\n[R] Rest until the block cools" if actor_id == "safehouse" else ""
 
 func interact() -> void:
 	if actor_id == "safehouse":

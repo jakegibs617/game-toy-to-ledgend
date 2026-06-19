@@ -493,6 +493,7 @@ func _run_smoke_test() -> void:
 	_smoke_crew()
 	_smoke_territory()
 	_smoke_heat_and_cleanup()
+	_smoke_safehouse_rest()
 	_smoke_patrols()
 	_smoke_save_load()
 	_smoke_supplies()
@@ -977,6 +978,7 @@ func _smoke_save_load() -> void:
 	var saved_rep := GameState.reputation
 	var saved_paint := GameState.paint
 	var saved_rank := GameState.rank
+	var saved_rests := GameState.safehouse_rests
 	var saved_wall_state: Dictionary = WallManager.wall_states[first_id].duplicate(true)
 	var saved_position := player.global_position
 	var saved_heat: float = HeatManager.heat
@@ -984,6 +986,7 @@ func _smoke_save_load() -> void:
 	GameState.reputation = 1
 	GameState.paint = 1
 	GameState.rank = "Toy"
+	GameState.safehouse_rests = 0
 	HeatManager.heat = 0.0
 	player.global_position = Vector3(22, 0.5, 22)
 	WallManager.apply_rival_graffiti(first_id, RivalManager.crews["ghost_line"], "tag")
@@ -992,12 +995,45 @@ func _smoke_save_load() -> void:
 	assert(GameState.reputation == saved_rep)
 	assert(GameState.paint == saved_paint)
 	assert(GameState.rank == saved_rank)
+	assert(GameState.safehouse_rests == saved_rests)
 	assert(is_equal_approx(HeatManager.heat, saved_heat))
 	assert(player.global_position == saved_position)
 	assert(WallManager.wall_states[first_id]["ownerCrewId"] == saved_wall_state["ownerCrewId"])
 	assert(WallManager.wall_states[first_id]["state"] == saved_wall_state["state"])
 	assert(WallManager.wall_states[first_id]["currentGraffiti"]["graffitiId"] == saved_wall_state["currentGraffiti"]["graffitiId"])
 	print("SMOKE: save/load restored wall, player, and progression state")
+
+## Assumes: the safehouse mission zone exists. Resting is a secondary
+## safehouse action that advances the existing heat/cleanup clock and the
+## territory upkeep clock, then tops up a few cans.
+func _smoke_safehouse_rest() -> void:
+	var safehouse = null
+	for node in get_tree().get_nodes_in_group("interactable"):
+		if node is MissionZone and String(node.actor_id) == "safehouse":
+			safehouse = node
+			break
+	assert(safehouse != null)
+	assert(String(safehouse.prompt_text()).contains("Rest"))
+	assert(InputMap.has_action("safehouse_rest"))
+
+	GameState.current_district_id = "district_mill_yard"
+	HeatManager.heat = 28.0
+	HeatManager._ticks_until_cleanup = HeatManager.CLEANUP_PERIOD_TICKS
+	var paint_before := GameState.paint
+	var rests_before := GameState.safehouse_rests
+	var result: Dictionary = GameState.rest_at_safehouse()
+	assert(GameState.safehouse_rests == rests_before + 1)
+	assert(GameState.paint == paint_before + GameState.SAFEHOUSE_REST_PAINT)
+	assert(is_equal_approx(float(result["heat_before"]), 28.0))
+	assert(is_equal_approx(float(result["heat_after"]), 20.0))
+	assert(int(result["rests"]) == GameState.safehouse_rests)
+
+	var migrated: Dictionary = SaveManager._migrate({"version": 9, "game": {}})
+	assert(int(migrated["version"]) == SaveManager.SAVE_VERSION)
+	assert(migrated["game"].has("safehouse_rests"))
+	print("SMOKE: safehouse rest — heat %.1f -> %.1f, +%d paint" % [
+		float(result["heat_before"]), float(result["heat_after"]),
+		int(result["paint_gain"])])
 
 ## Assumes: the full mission chain paid out exactly $25 starting + $15
 ## (m1) + $15 (m4) + $50 (m5) = $105 and nothing else spent cash.

@@ -61,6 +61,7 @@ changes nothing else. The headless smoke run prints the same readout
 | Shift | Run |
 | Space | Jump |
 | E | Paint focused wall / talk / shop / pick up / grab a ladder / sit on a bench / step into a club (in a conversation: walk away) |
+| R | Rest at the safehouse to skip time, cool the block, and top up paint |
 | E or Space (in a club) | Hit the beat on the dance floor — land on-beat taps to build hype (Esc leaves) |
 | W/S (on a ladder) | Climb up / down — reverse any time; ride to the top to summit, back to the foot to step off |
 | Space (on a ladder) | Hop off the ladder |
@@ -104,12 +105,14 @@ dry dock: sell her freehand canvases for cash and public rep — and
 watch your crew rep pay the price. Locals now walk small loops in both
 districts, stop to clock nearby fresh player paint for a tiny one-time
 crowd rep bump, and scatter when their block gets Hot. At the
-safehouse, E on the crew board opens the blackbook's Crew page. Benches
-on the sidewalks face the street — sit down (E) and the view drops to
-first person, then your blackbook opens to sketch tag styles: number
-keys fill in a page of a locked style, and after enough practice it
-unlocks for the street. You can only practice while seated; closing the
-book stands you back up and returns to third person.
+safehouse, E on the crew board opens the blackbook's Crew page, while R
+rests until the block cools: the existing heat/cleanup clock advances,
+territory upkeep ticks once, and you top up a few cans before heading
+back out. Benches on the sidewalks face the street — sit down (E) and
+the view drops to first person, then your blackbook opens to sketch tag
+styles: number keys fill in a page of a locked style, and after enough
+practice it unlocks for the street. You can only practice while seated;
+closing the book stands you back up and returns to third person.
 
 Once your name carries (rank Known), **The Undertow** opens in Canal Side
 — a rep-gated nightclub. The bouncer waves off toys; reach the rank and
