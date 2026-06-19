@@ -267,6 +267,24 @@ func cleanup_chance_multiplier() -> float:
 	var raw := clampf(float(fixer.get("cleanupChanceMultiplier", 1.0)), 0.0, 1.0)
 	return 1.0 - (1.0 - raw) * role_bonus_scale("fixer")
 
+## Battle Specialist role: a rival callout becomes a bigger crew moment.
+## Rewards are stamped onto the duel when it opens so saved active callouts
+## keep the same stakes even if crew state changes before the answer.
+func wall_duel_rep_reward(base: int) -> int:
+	var specialist := first_with_role("battle_specialist")
+	if specialist.is_empty():
+		return base
+	var raw := maxf(float(specialist.get("duelRepMultiplier", 1.0)), 1.0)
+	return maxi(base, roundi(float(base) * (1.0 + (raw - 1.0) * role_bonus_scale("battle_specialist"))))
+
+func wall_duel_crew_rep_reward(base: int) -> int:
+	var specialist := first_with_role("battle_specialist")
+	if specialist.is_empty():
+		return base
+	var bonus := roundi(float(specialist.get("duelCrewRepBonus", 0)) \
+		* role_bonus_scale("battle_specialist"))
+	return base + maxi(bonus, 0)
+
 func save_state() -> Dictionary:
 	var stages := {}
 	for member_id in members:

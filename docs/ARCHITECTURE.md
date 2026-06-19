@@ -154,7 +154,7 @@ fields `push_error` at startup, and the smoke test asserts
 | dialogue.json | speaker → node tree | DialogueManager |
 | supplies.json | shop catalog + delivery def (items may carry unlockType) | SupplyManager |
 | patrols.json | guard counts per heat level, speeds | PatrolManager |
-| npc_data.json | recruitable NPCs (Moth, Caps, Metro, Stash, Echo, Fix), item pickups, loyalty starts, role metadata, optional `visuals` manifests | CrewManager |
+| npc_data.json | recruitable NPCs (Moth, Caps, Metro, Stash, Echo, Fix, Clash), item pickups, loyalty starts, role metadata, optional `visuals` manifests | CrewManager |
 | stats.json | stat defs (xpPerLevel, maxLevel, per-level effect coefficients) | StatsManager |
 | perks.json | tree → perk list (perkId, name, desc, effects dict) | StatsManager |
 | climbs.json | climb routes (climbId, label, position, top, fallChance, fallRepPenalty, optional targetDistrictId) | district.gd (spawns ClimbZone) |

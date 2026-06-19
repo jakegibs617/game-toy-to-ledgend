@@ -634,6 +634,9 @@ func _smoke_rival_wall_duels() -> void:
 	var wall: PaintableWall = WallManager.wall_nodes[first_id]
 	var crew: Dictionary = RivalManager.crews["buff_kings"]
 	RivalManager._open_wall_duel(first_id, crew, "cross_out")
+	var duel: Dictionary = RivalManager.active_wall_duels[first_id]
+	var expected_rep_bonus := int(duel["rewardRep"])
+	var expected_crew_bonus := int(duel["rewardCrewRep"])
 	if GameState.paint < 1:
 		GameState.add_paint(1)
 	var rep_before := GameState.reputation
@@ -641,6 +644,7 @@ func _smoke_rival_wall_duels() -> void:
 	var paint_before := GameState.paint
 	var wins_before := GameState.rival_duel_wins
 	var streak_before := GameState.rival_duel_streak
+	var clash_loyalty_before := CrewManager.member_loyalty("npc_inez_clash")
 	var events: Array = []
 	RivalManager.rival_event.connect(func(msg: String, wid: String) -> void:
 		events.append([msg, wid]))
@@ -651,8 +655,9 @@ func _smoke_rival_wall_duels() -> void:
 	assert(GameState.paint == paint_before - 1)
 	assert(GameState.rival_duel_wins == wins_before + 1)
 	assert(GameState.rival_duel_streak == streak_before + 1)
-	assert(GameState.crew_rep == crew_rep_before + RivalManager.WALL_DUEL_CREW_REP)
-	assert(GameState.reputation == rep_before + int(result["rep"]) + RivalManager.WALL_DUEL_REP_BONUS)
+	assert(GameState.crew_rep == crew_rep_before + expected_crew_bonus)
+	assert(GameState.reputation == rep_before + int(result["rep"]) + expected_rep_bonus)
+	assert(CrewManager.member_loyalty("npc_inez_clash") == clash_loyalty_before + 4)
 	assert(not events.is_empty() and String(events[-1][0]).begins_with("Wall duel won"))
 
 	var save := RivalManager.save_state()
@@ -713,6 +718,7 @@ func _smoke_crew() -> void:
 	assert(CrewManager.members.has("npc_nia_stash"))
 	assert(CrewManager.members.has("npc_tali_echo"))
 	assert(CrewManager.members.has("npc_vale_fix"))
+	assert(CrewManager.members.has("npc_inez_clash"))
 	var mina: Dictionary = CrewManager.members["npc_mina_moth"]
 	assert(mina["stage"] == "not_met")
 	var chance_before := RivalManager.response_chance("wall_mill_02", "buff_kings")
@@ -750,7 +756,7 @@ func _smoke_crew() -> void:
 	assert(chance_after < chance_before)
 	print("SMOKE: lookout bonus %.2f -> %.2f" % [chance_before, chance_after])
 
-	for member_id in ["npc_rico_caps", "npc_jay_metro", "npc_nia_stash", "npc_tali_echo", "npc_vale_fix"]:
+	for member_id in ["npc_rico_caps", "npc_jay_metro", "npc_nia_stash", "npc_tali_echo", "npc_vale_fix", "npc_inez_clash"]:
 		var member: Dictionary = CrewManager.members[member_id]
 		CrewManager.interact(member_id)
 		assert(member["stage"] == "mission_active")
@@ -765,14 +771,18 @@ func _smoke_crew() -> void:
 	assert(CrewManager.has_role("supply_runner"))
 	assert(CrewManager.has_role("hype"))
 	assert(CrewManager.has_role("fixer"))
-	assert(GameState.crew_rep == CrewManager.RECRUIT_CREW_REP * 6)
+	assert(CrewManager.has_role("battle_specialist"))
+	assert(GameState.crew_rep == CrewManager.RECRUIT_CREW_REP * 7)
 	assert(get_node_or_null("npc_rico_caps/CharacterVisual/RicoCapsModel") != null)
 	assert(get_node_or_null("npc_jay_metro/CharacterVisual/JayMetroModel") != null)
 	assert(get_node_or_null("npc_nia_stash/CharacterVisual/NiaStashModel") != null)
 	assert(get_node_or_null("npc_tali_echo/CharacterVisual/TaliEchoModel") != null)
 	assert(get_node_or_null("npc_vale_fix/CharacterVisual/ValeFixModel") != null)
+	assert(get_node_or_null("npc_inez_clash/CharacterVisual/InezClashModel") != null)
 	assert(CrewManager.shop_price_multiplier() < 1.0)
 	assert(CrewManager.delivery_multiplier() > 1.0)
+	assert(CrewManager.wall_duel_rep_reward(RivalManager.WALL_DUEL_REP_BONUS) > RivalManager.WALL_DUEL_REP_BONUS)
+	assert(CrewManager.wall_duel_crew_rep_reward(RivalManager.WALL_DUEL_CREW_REP) > RivalManager.WALL_DUEL_CREW_REP)
 	assert(CrewManager.crowd_reaction_rep(1) > 1)
 	assert(CrewManager.hype_payout_multiplier() > 1.0)
 	assert(CrewManager.caught_rep_multiplier() < 1.0)
@@ -785,7 +795,7 @@ func _smoke_crew() -> void:
 	assert(int(migrated_v5["version"]) == SaveManager.SAVE_VERSION)
 	assert(migrated_v5["crew"].has("getaway_used_levels"))
 	assert(migrated_v5["crew"].has("loyalty_by_member"))
-	print("SMOKE: crew depth — Caps, Metro, Stash, Echo, and Fix recruited from data")
+	print("SMOKE: crew depth — Caps, Metro, Stash, Echo, Fix, and Clash recruited from data")
 
 	# The recruited lookout warns when a new retaliation is queued.
 	var events: Array = []

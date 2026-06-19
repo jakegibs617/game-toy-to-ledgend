@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-06-19 — Battle Specialist Crew Role
+
+Finishes the planned crew-role set by giving wall duels a dedicated crew hook.
+
+- New data-driven crew member **Inez "Clash"** in `Data/npc_data.json`, using
+  the generic recruitment and pickup flow.
+- New `battle_specialist` role helpers in `CrewManager`: wall-duel rep and
+  crew-rep rewards are loyalty-scaled when a callout opens, then saved on the
+  active duel.
+- Answering a wall duel now notes Battle Specialist role help, raising Clash's
+  loyalty like the other gameplay-facing roles.
+- Smoke coverage recruits Clash, verifies her model/role helpers, asserts
+  boosted saved duel rewards, and checks loyalty gain on a duel win.
+
 ## 2026-06-19 — Safehouse Rest
 
 Adds the first safehouse-depth slice: a rest action that skips time through

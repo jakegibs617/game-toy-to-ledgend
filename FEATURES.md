@@ -140,14 +140,13 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 
 ### Crew (Plan.md §14)
 * ✅ Moth (lookout), Caps (filler), Metro (getaway), Stash (supply runner),
-  Echo (hype), Fix (fixer) with recruitment mini-chains and passive role
-  bonuses.
+  Echo (hype), Fix (fixer), Clash (battle specialist) with recruitment
+  mini-chains and passive role bonuses.
 * ✅ Loyalty/role upgrades: recruited crew earn saved loyalty when their
   role helps, and loyalty gently scales their role bonus; blackbook shows
   loyalty state and role scale.
 * ✅ Crew board in safehouse (opens blackbook Crew page).
-* 🟡 Remaining role: Battle Specialist (now has the wall-duel system to hook
-  into); morale paths.
+* 🟡 Remaining crew depth: morale paths.
 
 ### Missions (Plan.md §15, §16)
 * ✅ Data-driven mission chains (`missions.json`), triggered in order
@@ -254,7 +253,7 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 **Designed in Plan.md, deferred:**
 * Full §6 stat set (Nerve, Speed, Influence, Technique) and full §7 perk
   trees.
-* Battle Specialist / morale paths; deeper rival duel ladders and alliances.
+* Morale paths; deeper rival duel ladders and alliances.
 * Safehouse depth (sketch editor, outfit, room).
 * Additional districts (Downtown, Train Yard, Gallery Quarter, Substation).
 

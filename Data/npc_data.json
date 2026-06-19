@@ -236,5 +236,45 @@
       "position": [45, 0.6, 20],
       "color": "#9fd8e8"
     }
+  },
+  {
+    "memberId": "npc_inez_clash",
+    "name": "Inez",
+    "alias": "Clash",
+    "role": "battle_specialist",
+    "roleLabel": "Battle Specialist",
+    "loyalty": 40,
+    "style": 6,
+    "specialAbility": "duel_coach",
+    "duelRepMultiplier": 1.2,
+    "duelCrewRepBonus": 2,
+    "bonusDescription": "Coaches rival wall duels, raising answer rewards and crew standing when you take a callout back.",
+    "hint": "Studies rival hands by the Canal Side dry dock.",
+    "missionDescription": "Recover her battle notes from the old train yard.",
+    "color": "#d96cff",
+    "position": [132, 0, 10],
+    "visuals": {
+      "containerName": "InezClashModel",
+      "sourceHeight": 1.7,
+      "rotationY": 220,
+      "initialState": "idle",
+      "states": {
+        "idle": {"model": "res://Assets/Characters/hooded_fox_warrior_idle.glb", "clip": "Armature|clip0|baselayer"},
+        "walk": {"model": "res://Assets/Characters/hooded_fox_warrior_walking.glb", "clip": "Armature|walking_man|baselayer"},
+        "run": {"model": "res://Assets/Characters/hooded_fox_warrior_running.glb", "clip": "Armature|running|baselayer"}
+      }
+    },
+    "dialogueId": "clash",
+    "dialogue": {
+      "meet": "Clash. I read the way crews answer a wall. My battle notes are out by the old train yard. Bring them back and I'll help you turn callouts into wins.",
+      "active": "Notes are still at the old train yard. Without them, you're answering rivals blind.",
+      "recovered": "That's the book. Good. Next callout, we make the whole crew feel it.",
+      "recruited": "Don't just paint back. Answer clean, answer loud, and make them remember who held the wall."
+    },
+    "item": {
+      "name": "Clash's Battle Notes",
+      "position": [151, 0.6, 2.2],
+      "color": "#d96cff"
+    }
   }
 ]
