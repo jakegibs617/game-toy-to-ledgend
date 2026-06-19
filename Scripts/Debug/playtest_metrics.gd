@@ -100,16 +100,21 @@ func balance_snapshot() -> Dictionary:
 		"gallery": _gallery_balance(),
 		"stats": _stats_balance(),
 		"supplies": _supply_balance(),
+		"caps": _cap_balance(),
+		"crew": _crew_balance(),
 	}
 
 func balance_summary_text() -> String:
 	var snapshot := balance_snapshot()
-	return "styles=%d missions=%d districts=%d trains=%d shop_items=%d heat_tick=%.1fs" % [
+	return "styles=%d missions=%d districts=%d trains=%d shop_items=%d caps=%d morale=%.2fx..%.2fx heat_tick=%.1fs" % [
 		(snapshot["graffiti"] as Dictionary).size(),
 		(snapshot["missions"] as Array).size(),
 		(snapshot["districts"] as Dictionary).size(),
 		(snapshot["trains"] as Dictionary).size(),
 		(snapshot["supplies"] as Dictionary).size(),
+		(snapshot["caps"] as Dictionary).size(),
+		float((snapshot["crew"] as Dictionary).get("moraleFactorMin", 1.0)),
+		float((snapshot["crew"] as Dictionary).get("moraleFactorMax", 1.0)),
 		float((snapshot["heat"] as Dictionary).get("tickSeconds", 0.0)),
 	]
 
@@ -371,3 +376,26 @@ func _supply_balance() -> Dictionary:
 		}
 	rows["delivery"] = SupplyManager.delivery.duplicate(true)
 	return rows
+
+func _cap_balance() -> Dictionary:
+	var rows := {}
+	for cap_id in SupplyManager.cap_order:
+		var cap: Dictionary = SupplyManager.cap_def(String(cap_id))
+		rows[String(cap_id)] = {
+			"name": String(cap.get("name", cap_id)),
+			"paintDelta": int(cap.get("paintDelta", 0)),
+			"repMultiplier": float(cap.get("repMultiplier", 1.0)),
+			"suspicion": float(cap.get("suspicion", 0.0)),
+			"default": bool(cap.get("default", false)),
+		}
+	return rows
+
+func _crew_balance() -> Dictionary:
+	return {
+		"moraleMin": 0,
+		"moraleNeutral": CrewManager.MORALE_NEUTRAL,
+		"moraleMax": CrewManager.MAX_MORALE,
+		"moraleFactorMin": CrewManager.morale_factor_for(0),
+		"moraleFactorNeutral": CrewManager.morale_factor_for(CrewManager.MORALE_NEUTRAL),
+		"moraleFactorMax": CrewManager.morale_factor_for(CrewManager.MAX_MORALE),
+	}

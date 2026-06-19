@@ -166,7 +166,10 @@ func role_bonus_scale(role: String) -> float:
 ## default-morale crew (and every existing balance assertion) reads exactly
 ## 1.0 and only a crew that has been winning or losing together shifts it.
 func morale_factor() -> float:
-	return 0.9 + clampf(float(team_morale), 0.0, float(MAX_MORALE)) / float(MAX_MORALE) * 0.2
+	return morale_factor_for(team_morale)
+
+func morale_factor_for(value: int) -> float:
+	return 0.9 + clampf(float(value), 0.0, float(MAX_MORALE)) / float(MAX_MORALE) * 0.2
 
 func morale_text() -> String:
 	if team_morale >= 80:

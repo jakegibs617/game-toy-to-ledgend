@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-06-20 — v4 Cap/Morale Balance Integration
+
+Folds the late v3 cap and crew-morale modifiers into the balance audit trail
+for Plan_v4 candidate 1.
+
+- `PlaytestMetrics.balance_snapshot()` now exposes `caps` rows for every spray
+  cap and a `crew` balance row for morale min/neutral/max role-bonus factors.
+- The smoke path asserts the Calligraphy Cap's +25% rep/+1 paint headline and
+  the morale 0.9x/1.0x/1.1x bounds, plus invariant ceilings that keep the v3
+  target route from silently inflating.
+- `docs/BALANCE_TARGETS.md` now records how Calligraphy and morale should be
+  interpreted against the 35-50 minute target run.
+
 ## 2026-06-20 — Cap Inventory: Spray-Behavior Caps
 
 Generalizes the lone Fat Cap into a real cap kit, closing the 🟡 "caps as a

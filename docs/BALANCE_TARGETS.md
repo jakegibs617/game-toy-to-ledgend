@@ -31,6 +31,21 @@ trains, gallery, and Rooftop Row while making paint recovery less brittle
 around the train/gallery/rooftop stretch. Data moves first; code changes
 are limited to smoke-test invariants.
 
+The v4 cap/morale pass keeps the target route stable after two late v3
+systems started touching the economy:
+
+* **Calligraphy Cap:** maximum cap rep modifier is 1.25x, but it also adds
+  +1 paint and +0.06 suspicion. It should read as an expressive choice for
+  a few important walls, not the default route for every required paint.
+* **Team morale:** morale only scales crew role bonuses, not direct wall
+  reputation. Its range is 0.9x-1.1x around the neutral 1.0x baseline, so a
+  winning crew makes support roles feel sharper without replacing the main
+  path's mission, wall, train, gallery, and territory pacing.
+
+Smoke now includes both systems in the balance snapshot (`caps` and `crew`)
+and asserts their headline ceilings: Calligraphy stays at or below 1.25x
+rep, and morale role scaling stays at or below 1.1x.
+
 The main path should always have:
 
 * Piece unlocked before any required piece objective.
