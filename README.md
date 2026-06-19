@@ -200,9 +200,11 @@ static rooster GLB, then the old debug capsule.
   about patrols/retaliation), Rico "Caps" joins as your Filler
   (auto-fills throw-ups on a few open/non-player walls in claimed
   territory), and Jay "Metro" joins as your Getaway (one free escape
-  per heat level before normal security penalties apply). The
-  blackbook's Crew page and the safehouse crew board track their
-  status.
+  per heat level before normal security penalties apply). Stash, Echo,
+  and Fix extend the crew into supply routes, hype, and quiet favors.
+  Recruited crew earn loyalty when their role helps, and loyalty gently
+  scales their role bonus. The blackbook's Crew page and the safehouse
+  crew board track their status and loyalty.
 - **TerritoryManager** (autoload, `Scripts/Territory/territory_manager.gd`,
   Milestone 6) — loads `Data/districts.json` and scores district
   influence (Plan.md §24): every wall contributes its visibility as
@@ -268,7 +270,8 @@ static rooster GLB, then the old debug capsule.
   Milestone 8) — F5 writes `user://toy_to_legend_save.json`; F9
   restores player position, reputation/rank/paint/unlocks, wall
   ownership/history/cross-outs, crew recruitment stages, claimed
-  territory, mission progress, stats/perks, and train service state.
+  territory, mission progress, stats/perks, train service state, gallery
+  sales, nightlife best hype, and crew loyalty.
 - **FreehandPanel** (`Scripts/UI/freehand_panel.gd`, Milestone 14) —
   freehand spray painting (Plan.md §10 "Later Advanced System", first
   §36 Could-Have). F at a wall opens a canvas sized to the wall face;
@@ -309,7 +312,8 @@ dialogue, and the blackbook UI. From the §36 "Could-Have" list,
 freehand spray painting is in (Milestone 14), rooftop climbing is in
 (Milestone 19), train painting is in (Milestone 20), and gallery
 missions are in (Milestone 21). Crew depth is in (Milestone 22) with
-Caps and Metro, and the presentation pass is in (Milestone 23) with
+Caps and Metro, then expanded with Stash, Echo, Fix, and loyalty-scaled
+role upgrades. The presentation pass is in (Milestone 23) with
 alias/title flow, controller bindings, ambience, and rooster idle
 polish. World/data hardening is in (Milestone 24) with cached generated
 materials, JSON character visual manifests, and interactable line of

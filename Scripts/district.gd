@@ -687,6 +687,9 @@ func _smoke_crew() -> void:
 	assert(CrewManager.has_role("lookout"))
 	# Recruiting builds crew standing (§11 split, Milestone 21).
 	assert(GameState.crew_rep == CrewManager.RECRUIT_CREW_REP)
+	var moth_loyalty_before := CrewManager.member_loyalty("npc_mina_moth")
+	assert(moth_loyalty_before == int(mina.get("loyalty", 0)))
+	assert(CrewManager.role_bonus_scale("lookout") > 0.9)
 	var moth_node := get_node_or_null("npc_mina_moth")
 	assert(moth_node != null)
 	assert(moth_node.get_node_or_null("CharacterVisual/LookoutRadioPhone") != null)
@@ -731,6 +734,7 @@ func _smoke_crew() -> void:
 	})
 	assert(int(migrated_v5["version"]) == SaveManager.SAVE_VERSION)
 	assert(migrated_v5["crew"].has("getaway_used_levels"))
+	assert(migrated_v5["crew"].has("loyalty_by_member"))
 	print("SMOKE: crew depth — Caps, Metro, Stash, Echo, and Fix recruited from data")
 
 	# The recruited lookout warns when a new retaliation is queued.
@@ -741,6 +745,12 @@ func _smoke_crew() -> void:
 	assert(result["ok"])
 	assert(RivalManager._pending.size() == 2)
 	assert(events.size() == 1)
+	assert(CrewManager.member_loyalty("npc_mina_moth") > moth_loyalty_before)
+	var saved_crew := CrewManager.save_state()
+	assert(saved_crew["loyalty_by_member"]["npc_mina_moth"] == CrewManager.member_loyalty("npc_mina_moth"))
+	CrewManager._loyalty_by_member["npc_mina_moth"] = 1
+	CrewManager.load_state(saved_crew)
+	assert(CrewManager.member_loyalty("npc_mina_moth") == int(saved_crew["loyalty_by_member"]["npc_mina_moth"]))
 	print("SMOKE: lookout warning = %s" % events[-1][0])
 
 ## Assumes: the player holds the two mill walls; the landmark is still
@@ -894,14 +904,14 @@ func _smoke_patrols() -> void:
 	assert(GameState.paint == paint_before_catch)
 	assert(CrewManager._getaway_used_levels.has("Hot"))
 	guard.start_chase(player)
+	var expected_rep_loss := mini(roundi(int(PatrolManager.config.get("caughtRepPenalty", 25))
+		* CrewManager.caught_rep_multiplier()), rep_before_catch)
+	var expected_paint_loss := mini(roundi(int(PatrolManager.config.get("caughtPaintPenalty", 3))
+		* CrewManager.caught_paint_multiplier()), paint_before_catch)
 	PatrolManager.resolve_catch(guard)
 	assert(caught_guards == [guard])
-	assert(GameState.reputation == rep_before_catch
-		- mini(roundi(int(PatrolManager.config.get("caughtRepPenalty", 25))
-			* CrewManager.caught_rep_multiplier()), rep_before_catch))
-	assert(GameState.paint == paint_before_catch
-		- mini(roundi(int(PatrolManager.config.get("caughtPaintPenalty", 3))
-			* CrewManager.caught_paint_multiplier()), paint_before_catch))
+	assert(GameState.reputation == rep_before_catch - expected_rep_loss)
+	assert(GameState.paint == paint_before_catch - expected_paint_loss)
 	assert(HeatManager.heat <= 25.0)
 	assert(PatrolManager.guard_count() ==
 		PatrolManager.guards_for_level(HeatManager.level_name()))
@@ -985,11 +995,11 @@ func _smoke_supplies() -> void:
 	assert(SupplyManager._drop_zone != null)
 	cash_now = GameState.cash
 	var heat_now: float = HeatManager.heat
-	SupplyManager.resolve_delivery()
-	assert(not SupplyManager.delivery_active)
 	var expected_delivery_cash := roundi(int(SupplyManager.delivery.get("cash", 0))
 		* StatsManager.delivery_multiplier()
 		* CrewManager.delivery_multiplier())
+	SupplyManager.resolve_delivery()
+	assert(not SupplyManager.delivery_active)
 	assert(GameState.cash == cash_now + expected_delivery_cash)
 	assert(HeatManager.heat > heat_now)
 	print("SMOKE: delivery run paid $%d, heat %.1f -> %.1f" % [
@@ -2002,7 +2012,7 @@ func _smoke_gallery() -> void:
 
 	# Gallery state and the rep split survive save/load; v4 saves migrate
 	# through the gallery and crew-depth schema bumps.
-	assert(SaveManager.SAVE_VERSION == 7)
+	assert(SaveManager.SAVE_VERSION >= 8)
 	assert(SaveManager.quick_save())
 	var saved_crew: int = GameState.crew_rep
 	GameState.crew_rep = 0
@@ -2014,9 +2024,10 @@ func _smoke_gallery() -> void:
 	assert(int(migrated["version"]) == SaveManager.SAVE_VERSION)
 	assert(migrated.has("gallery"))
 	assert(migrated.has("crew") and migrated["crew"].has("getaway_used_levels"))
+	assert(migrated["crew"].has("loyalty_by_member"))
 	assert(int(migrated["game"]["crew_rep"]) == 0)
 	assert(migrated["game"].has("nightlife_best"))
-	print("SMOKE: gallery — refusal, sale (score x%.2f), crew rep split, v7 save" % score)
+	print("SMOKE: gallery — refusal, sale (score x%.2f), crew rep split, v8 save" % score)
 
 ## Assumes: nothing beyond a paintable wall. Plan_v2.md §3.5: wall
 ## history is capped — repainting past the cap drops the oldest

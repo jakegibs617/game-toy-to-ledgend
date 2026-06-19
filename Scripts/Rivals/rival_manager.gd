@@ -75,6 +75,7 @@ func _on_wall_painted(wall_id: String, graffiti: Dictionary) -> void:
 	# A recruited lookout spots the trouble coming (Plan.md section 14).
 	var lookout := CrewManager.first_with_role("lookout")
 	if not lookout.is_empty():
+		CrewManager.note_role_helped("lookout", 2)
 		rival_event.emit('%s: "%s clocked that. Expect them back at %s."' % [
 			String(lookout["alias"]), String(crew.get("name", "A crew")),
 			String(WallManager.wall_def(wall_id).get("name", wall_id))], wall_id)
@@ -159,7 +160,7 @@ func response_chance(wall_id: String, crew_id: String) -> float:
 		0.35 + 0.12 * float(crew.get("aggression", 2))
 		+ float(def.get("rivalResponseChance", 0.0)), 0.0, 0.95)
 	if CrewManager.has_role("lookout"):
-		chance *= 0.6
+		chance *= 1.0 - (1.0 - 0.6) * CrewManager.role_bonus_scale("lookout")
 	var state: Dictionary = WallManager.wall_states.get(wall_id, {})
 	var current: Dictionary = state.get("currentGraffiti") if state.get("currentGraffiti") != null else {}
 	chance *= GameState.toy_response_multiplier(String(current.get("fontStyle", "")))

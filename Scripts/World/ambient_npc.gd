@@ -97,6 +97,8 @@ func _pay_crowd_rep(wall_id: String) -> void:
 	_crowd_paid_walls[wall_id] = true
 	var rep := CrewManager.crowd_reaction_rep(1)
 	GameState.add_reputation(rep)
+	if CrewManager.has_role("hype"):
+		CrewManager.note_role_helped("hype", 2)
 	GameState.player_event.emit("%s stops to check the fresh paint. (+%d rep)" %
 		[String(data.get("label", "Someone")), rep])
 
