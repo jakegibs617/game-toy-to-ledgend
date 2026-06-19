@@ -1180,6 +1180,13 @@ func _smoke_save_load() -> void:
 	assert(WallManager.wall_states[first_id]["ownerCrewId"] == saved_wall_state["ownerCrewId"])
 	assert(WallManager.wall_states[first_id]["state"] == saved_wall_state["state"])
 	assert(WallManager.wall_states[first_id]["currentGraffiti"]["graffitiId"] == saved_wall_state["currentGraffiti"]["graffitiId"])
+	var corrupt_file := FileAccess.open(SaveManager.SAVE_PATH, FileAccess.WRITE)
+	assert(corrupt_file != null)
+	corrupt_file.store_string("{not valid json")
+	corrupt_file.close()
+	GameState.paint = 3
+	assert(SaveManager.quick_load())
+	assert(GameState.paint == saved_paint)
 	print("SMOKE: save/load restored wall, player, and progression state")
 
 ## Assumes: the safehouse mission zone exists. Resting is a secondary

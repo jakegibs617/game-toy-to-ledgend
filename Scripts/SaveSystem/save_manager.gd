@@ -6,6 +6,7 @@ extends Node
 signal save_event(message: String)
 
 const SAVE_PATH := "user://toy_to_legend_save.json"
+const BACKUP_SAVE_PATH := "user://toy_to_legend_save.backup.json"
 ## Bump whenever any section's shape changes (CLAUDE.md rule), and add
 ## the matching step to _migrate so mid-demo saves keep loading.
 ## v2 (Milestone 17): adds the "stats" section (xp, perk points, perks).
@@ -49,27 +50,25 @@ func quick_save() -> bool:
 		"trains": TrainManager.save_state(),
 		"gallery": GalleryManager.save_state(),
 	}
-	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	if file == null:
+	var text := JSON.stringify(data, "\t")
+	if not _write_save_file(SAVE_PATH, text):
 		save_event.emit("Save failed: couldn't write %s" % SAVE_PATH)
 		return false
-	file.store_string(JSON.stringify(data, "\t"))
-	save_event.emit("Saved prototype state. [F9] load")
+	var backup_ok := _write_save_file(BACKUP_SAVE_PATH, text)
+	var backup_note := "" if backup_ok else " (backup failed)"
+	save_event.emit("Saved prototype state%s. [F9] load" % backup_note)
 	return true
 
 func quick_load() -> bool:
-	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
-	if file == null:
-		save_event.emit("No save found yet. [F5] save")
+	var payload := _read_save_file(SAVE_PATH)
+	var loaded_backup := false
+	if not bool(payload.get("ok", false)):
+		payload = _read_save_file(BACKUP_SAVE_PATH)
+		loaded_backup = bool(payload.get("ok", false))
+	if not bool(payload.get("ok", false)):
+		save_event.emit("Load failed: no usable save found.")
 		return false
-	var parsed: Variant = JSON.parse_string(file.get_as_text())
-	if not (parsed is Dictionary):
-		save_event.emit("Load failed: save file is invalid.")
-		return false
-	var data: Dictionary = parsed
-	if int(data.get("version", 0)) > SAVE_VERSION:
-		save_event.emit("Load failed: save is from a newer prototype.")
-		return false
+	var data: Dictionary = payload["data"]
 	data = _migrate(data)
 	var district_before := GameState.current_district_id
 	GameState.load_state(data.get("game", {}))
@@ -89,8 +88,44 @@ func quick_load() -> bool:
 	# (chain triggers, patrol respawns, HUD) to react to where we are.
 	if GameState.current_district_id != district_before:
 		GameState.district_changed.emit(GameState.current_district_id)
-	save_event.emit("Loaded prototype state.")
+	save_event.emit("Loaded backup save." if loaded_backup else "Loaded prototype state.")
 	return true
+
+func _write_save_file(path: String, text: String) -> bool:
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		return false
+	file.store_string(text)
+	file.close()
+	var check := _read_save_file(path, false)
+	return bool(check.get("ok", false))
+
+func _read_save_file(path: String, user_message := true) -> Dictionary:
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return {
+			"ok": false,
+			"message": "No save found yet. [F5] save" if user_message else "Save missing.",
+		}
+	var parser := JSON.new()
+	if parser.parse(file.get_as_text()) != OK:
+		return {
+			"ok": false,
+			"message": "Load failed: save file is invalid." if user_message else "Save invalid.",
+		}
+	var parsed: Variant = parser.data
+	if not (parsed is Dictionary):
+		return {
+			"ok": false,
+			"message": "Load failed: save file is invalid." if user_message else "Save invalid.",
+		}
+	var data: Dictionary = parsed
+	if int(data.get("version", 0)) > SAVE_VERSION:
+		return {
+			"ok": false,
+			"message": "Load failed: save is from a newer prototype." if user_message else "Save too new.",
+		}
+	return {"ok": true, "data": data}
 
 ## Upgrades an older save to the current schema, one version step at a
 ## time (Plan_v2.md §3.7). When SAVE_VERSION bumps to N, add an

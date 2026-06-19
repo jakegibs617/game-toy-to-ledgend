@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-06-20 — v4 Save Backup Guard
+
+Adds the first small slice of Plan_v4 candidate 28, focused on corruption
+recovery rather than new UI.
+
+- `SaveManager.quick_save()` now writes the normal save and a mirrored backup
+  after validating the serialized JSON can be read back.
+- `quick_load()` falls back to `user://toy_to_legend_save.backup.json` when
+  the primary save is missing, invalid, or from a newer prototype version.
+- Smoke coverage corrupts the primary save after a real route save and verifies
+  the backup restores progression state.
+
 ## 2026-06-20 — v4 Mops & Markers
 
 Adds Plan_v4 supply candidate 16 by extending the equipped cap kit into a
