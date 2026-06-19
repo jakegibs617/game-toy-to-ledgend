@@ -723,7 +723,7 @@ func _refresh_prompt() -> void:
 		var block_text := ("\n" + block) if block != "" else ""
 		var cap_hint := ""
 		if SupplyManager.owned_caps.size() > 1:
-			cap_hint = "   [K] Cap: %s" % String(SupplyManager.equipped_cap_def().get("name", "Stock"))
+			cap_hint = "   [K] Tool: %s" % String(SupplyManager.equipped_cap_def().get("name", "Stock"))
 		_prompt_label.text = "%s  |  Owner: %s  |  Risk %d  |  Visibility %d  |  Surface: %s\n[E] Paint %s (%d paint)   %s%s%s%s" % [
 			_focused.display_name(), owner_id,
 			int(def.get("risk", 1)), int(def.get("visibility", 1)),

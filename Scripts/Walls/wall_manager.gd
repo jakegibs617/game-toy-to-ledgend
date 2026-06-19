@@ -168,7 +168,7 @@ func _begin_player_paint(wall: PaintableWall, type: String,
 	var state: Dictionary = wall_states[wall.def["wallId"]]
 	var rep := int(round(_reputation_for(style, wall.def) * style_mult
 		* heaven_spot_exposure_bonus(wall.def, GameState.selected_tag_font_style())
-		* SupplyManager.cap_rep_multiplier()))
+		* SupplyManager.cap_rep_multiplier(style)))
 	if String(state.get("state", "")) == "buffed":
 		rep = int(round(rep * BUFF_RETALIATION_BONUS))
 	return {"ok": true, "style": style, "state": state, "rep": rep}

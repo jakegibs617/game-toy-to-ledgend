@@ -69,7 +69,7 @@ changes nothing else. The headless smoke run prints the same readout
 | 1–6 | Select can: Tag / Throw-up / Piece / Stencil / Roller / Mural (in shop: buy/delivery; in dialogue: choose; in blackbook: flip pages; seated on a bench: sketch that tag style) |
 | [ / ] | Previous / next unlocked can — also how you reach Sticker & Wheatpaste, which sit past the six number slots |
 | C | Cycle fill color after Lupe unlocks colors (also in the freehand canvas) |
-| K | Cycle equipped spray cap once you own more than the stock cap (paint cost / rep / suspicion trade-offs) |
+| K | Cycle equipped paint tool once you own more than the stock cap (paint cost / rep / heat / suspicion trade-offs) |
 | F | Freehand piece on the focused wall (needs the Piece can): hold LMB to spray, E/Enter commit, Esc bail |
 | P | Perk chooser (spend rank-up perk points; stats level by doing) |
 | F5 | Quick save |
@@ -259,9 +259,11 @@ static rooster GLB, then the old debug capsule.
 - **SupplyManager** (autoload, `Scripts/Supplies/supply_manager.gd`) —
   supply economy (Plan.md §21). Cash arrives with mission payouts and
   buys from Lupe's catalog (`Data/supplies.json`): paint packs, a fat
-  cap that cuts the paint cost of throw-ups and pieces by 1, and the
+  cap that cuts the paint cost of throw-ups and pieces by 1, detail caps,
+  a low-heat Pocket Marker for tags, an Ink Mop for drippy fills, and the
   rare "Burner Chrome" fill color. Interact with Lupe outside mission
-  beats to open the shop (number keys buy). She also hands out
+  beats to open the shop (number keys buy). K cycles the equipped paint
+  tool and its paint/rep/heat/suspicion trade-off. She also hands out
   repeatable delivery runs: carry a package to a rotating drop spot
   for $25 — but the handoff draws heat.
 - **BlackbookPanel** (`Scripts/UI/blackbook_panel.gd`, Milestone 13) —

@@ -25,9 +25,10 @@ const SHOP_CLOSE_DISTANCE := 6.0
 var catalog: Array = []
 var delivery: Dictionary = {}
 var owned: Dictionary = {}  # itemId -> true for one-time upgrades
-## Spray caps (Plan.md §21: "caps modify spray behaviour"). The stock cap is
-## always owned; bought caps trade paint cost, rep, and gear suspicion against
-## each other. One cap is equipped at a time and drives the next paint.
+## Equipped paint tools (Plan.md §21: "caps modify spray behaviour"). The
+## stock cap is always owned; bought caps/tools trade paint cost, rep, heat,
+## and gear suspicion against each other. One tool is equipped at a time and
+## drives the next paint.
 var caps_by_id: Dictionary = {}      # capId -> cap definition
 var cap_order: Array = []            # capIds in catalog order
 var owned_caps: Dictionary = {}      # capId -> true
@@ -146,11 +147,11 @@ func item_price(def: Dictionary) -> int:
 		* StatsManager.price_multiplier()
 		* CrewManager.shop_price_multiplier()))
 
-## Effective paint cost of a graffiti style with the equipped cap applied
+## Effective paint cost of a graffiti style with the equipped tool applied
 ## (Plan.md section 21: caps modify spray behavior). Never below 1 — paint
 ## stays a real constraint even with a fat cap.
 func paint_cost(style: Dictionary) -> int:
-	return maxi(1, int(style.get("paintCost", 1)) + cap_paint_delta())
+	return maxi(1, int(style.get("paintCost", 1)) + cap_paint_delta(style))
 
 func cap_def(cap_id: String) -> Dictionary:
 	return caps_by_id.get(cap_id, {})
@@ -158,17 +159,32 @@ func cap_def(cap_id: String) -> Dictionary:
 func equipped_cap_def() -> Dictionary:
 	return cap_def(equipped_cap)
 
-func cap_paint_delta() -> int:
+func cap_paint_delta(style := {}) -> int:
+	if not _equipped_cap_applies_to(style):
+		return 0
 	return int(equipped_cap_def().get("paintDelta", 0))
 
-## Detail/coverage caps trade rep against the others; the equipped cap scales
+## Detail/coverage tools trade rep against the others; the equipped tool scales
 ## a player paint's reputation (folded into WallManager._begin_player_paint).
-func cap_rep_multiplier() -> float:
+func cap_rep_multiplier(style := {}) -> float:
+	if not _equipped_cap_applies_to(style):
+		return 1.0
 	return maxf(0.1, float(equipped_cap_def().get("repMultiplier", 1.0)))
+
+func cap_heat_multiplier(style := {}) -> float:
+	if not _equipped_cap_applies_to(style):
+		return 1.0
+	return maxf(0.1, float(equipped_cap_def().get("heatMultiplier", 1.0)))
 
 ## A bulky or showy cap adds to gear suspicion (GameState.gear_suspicion_multiplier).
 func cap_suspicion() -> float:
 	return float(equipped_cap_def().get("suspicion", 0.0))
+
+func _equipped_cap_applies_to(style: Dictionary) -> bool:
+	var applies_to: Array = equipped_cap_def().get("appliesTo", [])
+	if applies_to.is_empty() or style.is_empty():
+		return true
+	return String(style.get("type", "")) in applies_to
 
 func owns_cap(cap_id: String) -> bool:
 	return bool(owned_caps.get(cap_id, false))
@@ -185,7 +201,7 @@ func equip_cap(cap_id: String) -> bool:
 		return false
 	equipped_cap = cap_id
 	cap_changed.emit(equipped_cap)
-	supply_event.emit("Cap: %s — %s." % [
+	supply_event.emit("Tool: %s — %s." % [
 		String(equipped_cap_def().get("name", cap_id)),
 		String(equipped_cap_def().get("desc", ""))])
 	return true

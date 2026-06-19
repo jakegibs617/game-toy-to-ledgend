@@ -124,6 +124,7 @@ func _on_wall_painted(wall_id: String, graffiti: Dictionary) -> void:
 	# Stealth stat/perks dampen the noise (Milestone 17).
 	add_heat(float(style.get("heatValue", 4)) * (0.5 + 0.25 * risk)
 		* float(font_style.get("exposure", 1.0))
+		* SupplyManager.cap_heat_multiplier(style)
 		* StatsManager.heat_multiplier(),
 		String(def.get("districtId", "")))
 
