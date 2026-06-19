@@ -422,7 +422,9 @@ func _cap_balance() -> Dictionary:
 			"name": String(cap.get("name", cap_id)),
 			"paintDelta": int(cap.get("paintDelta", 0)),
 			"repMultiplier": float(cap.get("repMultiplier", 1.0)),
+			"heatMultiplier": float(cap.get("heatMultiplier", 1.0)),
 			"suspicion": float(cap.get("suspicion", 0.0)),
+			"appliesTo": cap.get("appliesTo", []),
 			"default": bool(cap.get("default", false)),
 		}
 	return rows

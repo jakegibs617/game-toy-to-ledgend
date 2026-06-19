@@ -32,6 +32,26 @@
       "paintDelta": 1,
       "repMultiplier": 1.25,
       "suspicion": 0.06
+    },
+    {
+      "capId": "marker",
+      "name": "Pocket Marker",
+      "desc": "fast low-heat tags — less rep, easy to hide",
+      "paintDelta": 0,
+      "repMultiplier": 0.85,
+      "heatMultiplier": 0.55,
+      "suspicion": -0.03,
+      "appliesTo": ["tag"]
+    },
+    {
+      "capId": "mop",
+      "name": "Ink Mop",
+      "desc": "drippy fills — louder, a little more street weight",
+      "paintDelta": 1,
+      "repMultiplier": 1.15,
+      "heatMultiplier": 1.25,
+      "suspicion": 0.04,
+      "appliesTo": ["throwup", "piece"]
     }
   ]
 }

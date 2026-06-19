@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-06-20 — v4 Mops & Markers
+
+Adds Plan_v4 supply candidate 16 by extending the equipped cap kit into a
+small paint-tool lane.
+
+- `Data/caps.json` now supports optional `appliesTo` and `heatMultiplier`
+  fields so a tool can affect only the graffiti types it fits.
+- Lupe now sells a Pocket Marker for low-heat, lower-rep tags and an Ink Mop
+  for louder throw-ups/pieces with a small rep bump.
+- `WallManager` and `HeatManager` consume type-scoped rep and heat modifiers
+  through `SupplyManager`, while the existing K-cycle/save path stays intact.
+- Smoke coverage buys both tools, verifies type-scoped modifiers, preserves
+  the target cash baseline, and keeps cap-kit save/load coverage.
+
 ## 2026-06-20 — v4 Morale-Driven Crew Events
 
 Adds Plan_v4 crew-depth candidate 9: morale now has data-driven moments

@@ -41,7 +41,7 @@ extends a section.
 | HeatManager | Scripts/Heat/heat_manager.gd | Per-district heat (`heat` reads the player's block), levels, rep multiplier, decay tick (absent blocks cool 2×), city cleanup (buffing) |
 | MissionManager | Scripts/Missions/mission_manager.gd | Mission **chains** from Data/missions.json (triggered in order, e.g. enter_district), world actors/zones, `notify_actor` |
 | PatrolManager | Scripts/Patrols/patrol_manager.gd | Heat-scaled guard spawning, witness checks, chase/catch |
-| SupplyManager | Scripts/Supplies/supply_manager.gd | Lupe's shop catalog, owned upgrades (fat cap), paint_cost discounts, delivery runs |
+| SupplyManager | Scripts/Supplies/supply_manager.gd | Lupe's shop catalog, owned upgrades, equipped paint tools, paint/rep/heat modifiers, delivery runs |
 | DialogueManager | Scripts/Dialogue/dialogue_manager.gd | Choice trees from Data/dialogue.json, rank/recruit checks, one-time flags |
 | StatsManager | Scripts/Stats/stats_manager.gd | Style/Stealth/Hustle XP+levels (raise by doing), perk points/trees, the multipliers other managers query (rep, heat, spot range, prices, delivery pay, rival damp, payout/decay) |
 | TrainManager | Scripts/Trains/train_manager.gd | Scheduled train cars, train-side painting, pass-through rep ticks, train service log |
@@ -152,7 +152,7 @@ fields `push_error` at startup, and the smoke test asserts
 | missions.json | {actors: [...], chains: [{chainId, trigger?, completeMessage, missions: [...]}]}; actors may include `visuals` manifests | MissionManager |
 | ambient_npcs.json | ambient locals (npcId, label, districtId, waypoints, reactRange, optional `visuals`) | district.gd (spawns AmbientNpc) |
 | dialogue.json | speaker → node tree | DialogueManager |
-| supplies.json | shop catalog + delivery def (items may carry unlockType) | SupplyManager |
+| supplies.json | shop catalog + delivery def (items may carry unlockType or grantsCap/tool) | SupplyManager |
 | patrols.json | guard counts per heat level, speeds | PatrolManager |
 | npc_data.json | recruitable NPCs (Moth, Caps, Metro, Stash, Echo, Fix, Clash), item pickups, loyalty starts, role metadata, optional `visuals` manifests | CrewManager |
 | crew_morale_events.json | high-morale one-shot favors and low-morale quiet/recovery thresholds | CrewManager |

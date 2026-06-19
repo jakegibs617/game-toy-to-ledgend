@@ -37,6 +37,10 @@ systems started touching the economy:
 * **Calligraphy Cap:** maximum cap rep modifier is 1.25x, but it also adds
   +1 paint and +0.06 suspicion. It should read as an expressive choice for
   a few important walls, not the default route for every required paint.
+* **Mops/markers:** marker work is tag-only, lower heat, and lower rep; the
+  mop is throw-up/piece-only, louder, +1 paint, and slightly higher rep. Both
+  stay in the same equipped-tool lane as caps so Standard does not gain a
+  stacked modifier pile.
 * **Team morale:** morale only scales crew role bonuses, not direct wall
   reputation. Its range is 0.9x-1.1x around the neutral 1.0x baseline, so a
   winning crew makes support roles feel sharper without replacing the main

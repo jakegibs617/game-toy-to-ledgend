@@ -1248,6 +1248,25 @@ func _smoke_supplies() -> void:
 	assert(SupplyManager.equipped_cap == "calligraphy")
 	assert(SupplyManager.cap_rep_multiplier() > 1.0)
 	assert(SupplyManager.paint_cost(WallManager.styles["tag"]) == int(WallManager.styles["tag"]["paintCost"]) + 1)
+	# Mops and markers are cap-kit siblings: one equipped tool lane, with
+	# modifiers scoped to the graffiti types they make sense for.
+	var marker: Dictionary = SupplyManager.item("marker_tool")
+	var mop: Dictionary = SupplyManager.item("mop_tool")
+	var gear_cash_before := GameState.cash
+	GameState.add_cash(SupplyManager.item_price(marker) + SupplyManager.item_price(mop))
+	assert(SupplyManager.buy("marker_tool")["ok"])
+	assert(SupplyManager.owns_cap("marker") and SupplyManager.equipped_cap == "marker")
+	assert(SupplyManager.paint_cost(WallManager.styles["tag"]) == int(WallManager.styles["tag"]["paintCost"]))
+	assert(SupplyManager.cap_rep_multiplier(WallManager.styles["tag"]) < 1.0)
+	assert(SupplyManager.cap_heat_multiplier(WallManager.styles["tag"]) < 1.0)
+	assert(is_equal_approx(SupplyManager.cap_rep_multiplier(WallManager.styles["piece"]), 1.0))
+	assert(SupplyManager.buy("mop_tool")["ok"])
+	assert(SupplyManager.owns_cap("mop") and SupplyManager.equipped_cap == "mop")
+	assert(SupplyManager.paint_cost(WallManager.styles["throwup"]) == int(WallManager.styles["throwup"]["paintCost"]) + 1)
+	assert(SupplyManager.cap_rep_multiplier(WallManager.styles["throwup"]) > 1.0)
+	assert(SupplyManager.cap_heat_multiplier(WallManager.styles["throwup"]) > 1.0)
+	assert(is_equal_approx(SupplyManager.cap_heat_multiplier(WallManager.styles["tag"]), 1.0))
+	assert(GameState.cash == gear_cash_before)
 	# A tag painted with calligraphy pays its rep multiplier over stock.
 	assert(SupplyManager.equip_cap("stock"))
 	var stock_paint: Dictionary = WallManager.paint_wall(WallManager.wall_nodes["wall_loading_01"], "tag")
@@ -1280,7 +1299,7 @@ func _smoke_supplies() -> void:
 	assert(migrated_v11["supplies"].has("owned_caps") and String(migrated_v11["supplies"]["equipped_cap"]) == "stock")
 	# Leave the fat cap equipped so later sections read the historical -1 cost.
 	SupplyManager.equip_cap("fat")
-	print("SMOKE: caps — stock default, fat -1 paint, calligraphy +rep, cycle/save OK")
+	print("SMOKE: tools — stock/fat/calligraphy caps, marker, mop, cycle/save OK")
 	# A rare color joins the palette and gets selected.
 	var palette_size: int = GameState.fill_palette().size()
 	assert(SupplyManager.buy("burner_chrome")["ok"])

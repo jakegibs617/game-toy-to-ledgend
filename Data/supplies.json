@@ -33,6 +33,22 @@
       "grantsCap": "calligraphy"
     },
     {
+      "itemId": "marker_tool",
+      "name": "Pocket Marker",
+      "desc": "fast low-heat tags — less rep, easy to hide",
+      "price": 16,
+      "repeatable": false,
+      "grantsCap": "marker"
+    },
+    {
+      "itemId": "mop_tool",
+      "name": "Ink Mop",
+      "desc": "drippy fills — louder, a little more street weight",
+      "price": 24,
+      "repeatable": false,
+      "grantsCap": "mop"
+    },
+    {
       "itemId": "burner_chrome",
       "name": "Burner Chrome",
       "desc": "rare fill color",
