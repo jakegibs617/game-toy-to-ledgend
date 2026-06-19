@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-06-20 — v4 Safehouse Rest Beat
+
+Adds Plan_v4 atmosphere candidate 21 in a small, deterministic form.
+
+- Safehouse rest messages now rotate through short time-passing beats while
+  still reporting heat cooled and paint recovered.
+- The rest result exposes the selected presentation beat for smoke/UI checks.
+- `Sfx` plays a softer rest cue from the existing `safehouse_rest_changed`
+  signal, so the action reads as a transition without adding a day/night sim.
+
 ## 2026-06-20 — v4 Save Backup Guard
 
 Adds the first small slice of Plan_v4 candidate 28, focused on corruption

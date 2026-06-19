@@ -51,6 +51,11 @@ const FONT_PRACTICE_TOY_RESPONSE_CUT := 0.04
 const FONT_PRACTICE_RESPONSE_FLOOR := 0.8
 const SAFEHOUSE_REST_TICKS := 4
 const SAFEHOUSE_REST_PAINT := 4
+const SAFEHOUSE_REST_BEATS := [
+	"Night settles over the safehouse",
+	"Morning leaks through the blinds",
+	"The block exhales outside",
+]
 
 const FILL_COLORS := [
 	{"name": "White", "hex": "#f2f2f2"},
@@ -456,10 +461,11 @@ func rest_at_safehouse() -> Dictionary:
 	add_paint(SAFEHOUSE_REST_PAINT)
 	safehouse_rests += 1
 	safehouse_rest_changed.emit(safehouse_rests)
+	var beat := safehouse_rest_beat(safehouse_rests)
 	var heat_drop := maxf(heat_before - HeatManager.heat, 0.0)
 	var rep_delta := reputation - rep_before
-	var message := "Rested at the safehouse — heat cooled %.0f, +%d paint." % [
-		heat_drop, SAFEHOUSE_REST_PAINT]
+	var message := "%s — heat cooled %.0f, +%d paint." % [
+		beat, heat_drop, SAFEHOUSE_REST_PAINT]
 	if rep_delta < 0:
 		message += " Your old spots faded %d rep." % abs(rep_delta)
 	elif rep_delta > 0:
@@ -470,9 +476,14 @@ func rest_at_safehouse() -> Dictionary:
 		"heat_after": HeatManager.heat,
 		"heat_drop": heat_drop,
 		"paint_gain": SAFEHOUSE_REST_PAINT,
+		"presentation": beat,
 		"rep_delta": rep_delta,
 		"rests": safehouse_rests,
 	}
+
+func safehouse_rest_beat(rests: int) -> String:
+	var index := wrapi(maxi(rests, 1) - 1, 0, SAFEHOUSE_REST_BEATS.size())
+	return String(SAFEHOUSE_REST_BEATS[index])
 
 func _rank_for(rep: int) -> String:
 	var result: String = RANKS[0]["name"]
