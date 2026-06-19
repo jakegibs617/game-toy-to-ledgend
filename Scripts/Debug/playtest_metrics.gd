@@ -104,6 +104,7 @@ func balance_snapshot() -> Dictionary:
 		"supplies": _supply_balance(),
 		"caps": _cap_balance(),
 		"crew": _crew_balance(),
+		"difficulty": _difficulty_balance(),
 	}
 
 func balance_summary_text() -> String:
@@ -435,6 +436,19 @@ func _crew_balance() -> Dictionary:
 		"moraleFactorNeutral": CrewManager.morale_factor_for(CrewManager.MORALE_NEUTRAL),
 		"moraleFactorMax": CrewManager.morale_factor_for(CrewManager.MAX_MORALE),
 	}
+
+func _difficulty_balance() -> Dictionary:
+	var rows := {}
+	for preset_id in GameState.difficulty_order:
+		var preset: Dictionary = GameState.difficulty_presets.get(String(preset_id), {})
+		rows[String(preset_id)] = {
+			"name": String(preset.get("name", preset_id)),
+			"heatMultiplier": float(preset.get("heatMultiplier", 1.0)),
+			"patrolMultiplier": float(preset.get("patrolMultiplier", 1.0)),
+			"shopPriceMultiplier": float(preset.get("shopPriceMultiplier", 1.0)),
+			"cashRewardMultiplier": float(preset.get("cashRewardMultiplier", 1.0)),
+		}
+	return rows
 
 func _balance_regression_targets() -> Array:
 	var parsed: Variant = DataLoader.load_json(BALANCE_REGRESSION_TARGETS_PATH, "PlaytestMetrics")

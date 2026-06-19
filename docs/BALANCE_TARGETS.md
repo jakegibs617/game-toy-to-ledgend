@@ -53,6 +53,10 @@ its tolerance, so tuning PRs need to update the ledger deliberately instead
 of quietly shifting paint costs, mission recovery, train rewards, gallery
 payouts, claim bonuses, cap multipliers, or morale ceilings.
 
+Difficulty presets must keep **Standard** as the unchanged target-run baseline.
+Relaxed and Hard scale heat gain, patrol density, shop prices, and cash rewards
+only after the player chooses them from the new-game alias modal.
+
 The main path should always have:
 
 * Piece unlocked before any required piece objective.

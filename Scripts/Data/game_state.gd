@@ -30,6 +30,7 @@ signal sit_practice_ended
 signal nightclub_requested(club: Dictionary)
 signal rival_duel_record_changed(wins: int, losses: int, streak: int)
 signal safehouse_rest_changed(rests: int)
+signal difficulty_changed(preset_id: String)
 
 const RANKS := [
 	{"name": "Toy", "min_rep": 0},
@@ -44,6 +45,8 @@ const RANKS := [
 ## Hud.MODAL_SLOT_ACTIONS length).
 const SLOT_COUNT := 6
 const GraffitiFonts := preload("res://Scripts/Walls/graffiti_font_library.gd")
+const DataLoader := preload("res://Scripts/Data/data_loader.gd")
+const DIFFICULTY_PRESETS_PATH := "res://Data/difficulty_presets.json"
 const FONT_PRACTICE_TOY_RESPONSE_CUT := 0.04
 const FONT_PRACTICE_RESPONSE_FLOOR := 0.8
 const SAFEHOUSE_REST_TICKS := 4
@@ -82,8 +85,12 @@ var rival_duel_wins := 0
 var rival_duel_losses := 0
 var rival_duel_streak := 0
 var safehouse_rests := 0
+var difficulty_presets: Dictionary = {}
+var difficulty_order: Array = []
+var selected_difficulty_preset := "standard"
 
 func _ready() -> void:
+	_load_difficulty_presets()
 	_setup_input_actions()
 
 func save_state() -> Dictionary:
@@ -109,6 +116,7 @@ func save_state() -> Dictionary:
 		"rival_duel_losses": rival_duel_losses,
 		"rival_duel_streak": rival_duel_streak,
 		"safehouse_rests": safehouse_rests,
+		"difficulty_preset": selected_difficulty_preset,
 	}
 
 func load_state(data: Dictionary) -> void:
@@ -140,6 +148,7 @@ func load_state(data: Dictionary) -> void:
 	rival_duel_losses = int(data.get("rival_duel_losses", rival_duel_losses))
 	rival_duel_streak = int(data.get("rival_duel_streak", rival_duel_streak))
 	safehouse_rests = int(data.get("safehouse_rests", safehouse_rests))
+	set_difficulty_preset(String(data.get("difficulty_preset", selected_difficulty_preset)))
 	reputation_changed.emit(reputation, 0)
 	crew_rep_changed.emit(crew_rep, 0)
 	if rank != old_rank:  # otherwise every quick-load announces "RANK UP"
@@ -189,8 +198,40 @@ func try_spend_cash(cost: int) -> bool:
 	return true
 
 func add_cash(amount: int) -> void:
+	if amount > 0:
+		amount = maxi(1, roundi(float(amount) * difficulty_cash_reward_multiplier()))
 	cash += amount
 	cash_changed.emit(cash)
+
+func set_difficulty_preset(preset_id: String) -> bool:
+	if not difficulty_presets.has(preset_id):
+		preset_id = String(difficulty_order[0]) if not difficulty_order.is_empty() else "standard"
+	if preset_id == selected_difficulty_preset:
+		return false
+	selected_difficulty_preset = preset_id
+	difficulty_changed.emit(selected_difficulty_preset)
+	return true
+
+func difficulty_preset() -> Dictionary:
+	return difficulty_presets.get(selected_difficulty_preset, {})
+
+func difficulty_name() -> String:
+	return String(difficulty_preset().get("name", selected_difficulty_preset.capitalize()))
+
+func difficulty_description() -> String:
+	return String(difficulty_preset().get("desc", ""))
+
+func difficulty_heat_multiplier() -> float:
+	return maxf(0.1, float(difficulty_preset().get("heatMultiplier", 1.0)))
+
+func difficulty_patrol_multiplier() -> float:
+	return maxf(0.0, float(difficulty_preset().get("patrolMultiplier", 1.0)))
+
+func difficulty_shop_price_multiplier() -> float:
+	return maxf(0.1, float(difficulty_preset().get("shopPriceMultiplier", 1.0)))
+
+func difficulty_cash_reward_multiplier() -> float:
+	return maxf(0.1, float(difficulty_preset().get("cashRewardMultiplier", 1.0)))
 
 func choose_alias(raw_alias: String) -> void:
 	var chosen := raw_alias.strip_edges().to_upper()
@@ -265,6 +306,34 @@ func _normalize_unlocked_tag_font_styles() -> void:
 			normalized[resolved] = true
 	normalized[GraffitiFonts.default_style_id()] = true
 	unlocked_tag_font_styles = normalized
+
+func _load_difficulty_presets() -> void:
+	var parsed: Variant = DataLoader.load_json(DIFFICULTY_PRESETS_PATH, "GameState")
+	if parsed is Dictionary:
+		for preset in parsed.get("presets", []):
+			if not preset is Dictionary:
+				continue
+			DataLoader.require_fields(preset,
+				["presetId", "name", "desc", "heatMultiplier", "patrolMultiplier",
+					"shopPriceMultiplier", "cashRewardMultiplier"],
+				"GameState: difficulty preset \"%s\"" % String(preset.get("presetId", "?")))
+			var preset_id := String(preset["presetId"])
+			difficulty_presets[preset_id] = preset
+			difficulty_order.append(preset_id)
+		selected_difficulty_preset = String(parsed.get("default", "standard"))
+	if difficulty_presets.is_empty():
+		difficulty_presets["standard"] = {
+			"presetId": "standard",
+			"name": "Standard",
+			"desc": "the tuned v3 target route",
+			"heatMultiplier": 1.0,
+			"patrolMultiplier": 1.0,
+			"shopPriceMultiplier": 1.0,
+			"cashRewardMultiplier": 1.0,
+		}
+		difficulty_order = ["standard"]
+	if not difficulty_presets.has(selected_difficulty_preset):
+		selected_difficulty_preset = String(difficulty_order[0])
 
 func practice_tag_font_style(style_id: String) -> Dictionary:
 	style_id = GraffitiFonts.resolve_style_id(style_id)

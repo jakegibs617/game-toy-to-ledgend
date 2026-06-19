@@ -1,0 +1,32 @@
+{
+  "default": "standard",
+  "presets": [
+    {
+      "presetId": "relaxed",
+      "name": "Relaxed",
+      "desc": "lower heat, lighter patrol pressure, easier cash recovery",
+      "heatMultiplier": 0.8,
+      "patrolMultiplier": 0.75,
+      "shopPriceMultiplier": 0.85,
+      "cashRewardMultiplier": 1.1
+    },
+    {
+      "presetId": "standard",
+      "name": "Standard",
+      "desc": "the tuned v3 target route",
+      "heatMultiplier": 1.0,
+      "patrolMultiplier": 1.0,
+      "shopPriceMultiplier": 1.0,
+      "cashRewardMultiplier": 1.0
+    },
+    {
+      "presetId": "hard",
+      "name": "Hard",
+      "desc": "more heat, denser patrols, tighter cash recovery",
+      "heatMultiplier": 1.2,
+      "patrolMultiplier": 1.25,
+      "shopPriceMultiplier": 1.15,
+      "cashRewardMultiplier": 0.9
+    }
+  ]
+}

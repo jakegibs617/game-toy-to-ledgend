@@ -76,6 +76,8 @@ func rep_multiplier(district_id := "") -> float:
 
 func add_heat(amount: float, district_id := "") -> void:
 	var did := district_id if district_id != "" else GameState.current_district_id
+	if amount > 0.0:
+		amount *= GameState.difficulty_heat_multiplier()
 	_set_heat(did, heat_in(did) + amount, amount)
 
 ## Buffs a wall immediately. Split from the sweep's chance roll so

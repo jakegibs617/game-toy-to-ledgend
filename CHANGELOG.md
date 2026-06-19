@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-06-20 — v4 Difficulty Presets
+
+Adds Plan_v4 candidate 3 as a small data-driven accessibility/balance layer.
+
+- New `Data/difficulty_presets.json` defines Relaxed, Standard, and Hard
+  presets for heat gain, patrol density, shop prices, and cash rewards.
+- `GameState` owns the selected preset, exposes multiplier helpers, saves it
+  in the game section, and migrates older saves to Standard via save v13.
+- The new-game alias modal keeps slots 1-3 for alias shortcuts and uses slots
+  4-6 to choose Relaxed/Standard/Hard before starting.
+- Smoke coverage verifies the preset multipliers, save/load, migration, and
+  restores Standard so the existing v3 target route remains unchanged.
+
 ## 2026-06-20 — v4 Economy Regression Guard
 
 Adds a diffable balance ledger for Plan_v4 candidate 2 so headline economy

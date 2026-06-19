@@ -142,6 +142,7 @@ func buy(item_id: String) -> Dictionary:
 ## Sticker price after the Hustle stat and supply perks (Milestone 17).
 func item_price(def: Dictionary) -> int:
 	return maxi(1, roundi(int(def.get("price", 0))
+		* GameState.difficulty_shop_price_multiplier()
 		* StatsManager.price_multiplier()
 		* CrewManager.shop_price_multiplier()))
 
