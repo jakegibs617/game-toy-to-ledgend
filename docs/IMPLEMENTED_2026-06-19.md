@@ -47,7 +47,7 @@ review → merge loop.
 - PR #43: 3 clean headless smoke runs and 1 clean windowed boot.
 - PR #44: 3 clean headless smoke runs and 1 clean windowed boot.
 - PR #45: 3 clean headless smoke runs and 1 clean windowed boot.
-- Final merged `main`: pending local merge for PR #45.
+- Final merged `main`: `5a4fd77` Merge pull request #46.
 
 ## Current Project State
 
