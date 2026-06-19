@@ -205,8 +205,8 @@ func _open_wall_duel(wall_id: String, crew: Dictionary, pressure: String) -> voi
 		"leaderAlias": String(crew.get("leaderAlias", "?")),
 		"pressure": pressure,
 		"startedAt": Time.get_unix_time_from_system(),
-		"rewardRep": WALL_DUEL_REP_BONUS,
-		"rewardCrewRep": WALL_DUEL_CREW_REP,
+		"rewardRep": CrewManager.wall_duel_rep_reward(WALL_DUEL_REP_BONUS),
+		"rewardCrewRep": CrewManager.wall_duel_crew_rep_reward(WALL_DUEL_CREW_REP),
 	}
 	rival_event.emit("%s wants a wall duel at %s. Paint it back to answer." % [
 		String(crew.get("leaderAlias", "A rival")), wall_name], wall_id)
@@ -222,6 +222,7 @@ func _resolve_wall_duel_if_answered(wall_id: String, graffiti: Dictionary) -> bo
 	GameState.add_crew_rep(crew_rep_bonus)
 	GameState.note_rival_duel_win()
 	CrewManager.note_role_helped("hype", 2)
+	CrewManager.note_role_helped("battle_specialist", 4)
 	var wall_name := String(WallManager.wall_def(wall_id).get("name", wall_id))
 	rival_event.emit("Wall duel won: %s is yours again. +%d rep, +%d crew rep." % [
 		wall_name, rep_bonus, crew_rep_bonus], wall_id)

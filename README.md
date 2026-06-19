@@ -208,10 +208,10 @@ static rooster GLB, then the old debug capsule.
   (auto-fills throw-ups on a few open/non-player walls in claimed
   territory), and Jay "Metro" joins as your Getaway (one free escape
   per heat level before normal security penalties apply). Stash, Echo,
-  and Fix extend the crew into supply routes, hype, and quiet favors.
-  Recruited crew earn loyalty when their role helps, and loyalty gently
-  scales their role bonus. The blackbook's Crew page and the safehouse
-  crew board track their status and loyalty.
+  Fix, and Clash extend the crew into supply routes, hype, quiet favors,
+  and rival wall-duel coaching. Recruited crew earn loyalty when their
+  role helps, and loyalty gently scales their role bonus. The blackbook's
+  Crew page and the safehouse crew board track their status and loyalty.
 - **TerritoryManager** (autoload, `Scripts/Territory/territory_manager.gd`,
   Milestone 6) — loads `Data/districts.json` and scores district
   influence (Plan.md §24): every wall contributes its visibility as
