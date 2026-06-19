@@ -205,6 +205,27 @@ func adjust_morale(delta: int, reason := "") -> void:
 			morale_text(), team_morale, MAX_MORALE, tail])
 	_evaluate_morale_events()
 
+func safehouse_hangout_beat() -> String:
+	if not any_recruited():
+		crew_event.emit("The crew board is quiet. Bring somebody in and this place will talk back.")
+		return ""
+	var speaker := _first_recruited_for_quiet()
+	var alias := String(speaker.get("alias", "Crew"))
+	var line := ""
+	if team_morale <= 25:
+		line = "%s: \"Everybody's moving careful. Let's get one clean win.\"" % alias
+	elif team_morale >= 80:
+		line = "%s: \"Room feels alive. Keep stacking wins while the crew's tight.\"" % alias
+	elif GameState.rival_duel_streak > 0:
+		line = "%s: \"That duel streak's got people watching the board.\"" % alias
+	elif GameState.rival_duel_losses > GameState.rival_duel_wins:
+		line = "%s: \"Callouts hurt, but the board still remembers who answered.\"" % alias
+	else:
+		line = "%s: \"Morale's %s. Check the board, pick the next move.\"" % [
+			alias, morale_text()]
+	crew_event.emit(line)
+	return line
+
 func note_role_helped(role: String, amount := 2) -> void:
 	var member := first_with_role(role)
 	if member.is_empty() or amount <= 0:

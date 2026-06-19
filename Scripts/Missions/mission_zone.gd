@@ -39,4 +39,5 @@ func prompt_text() -> String:
 
 func interact() -> void:
 	if actor_id == "safehouse":
+		CrewManager.safehouse_hangout_beat()
 		GameState.crew_board_requested.emit()
