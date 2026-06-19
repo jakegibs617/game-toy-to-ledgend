@@ -1234,6 +1234,19 @@ func _smoke_supplies() -> void:
 	assert(SupplyManager.buy("paint_pack")["ok"])
 	assert(GameState.paint == paint_now + int(pack.get("paint", 0)))
 	assert(GameState.cash == cash_now - SupplyManager.item_price(pack))
+	var flask: Dictionary = SupplyManager.item("pocket_flask")
+	var cash_before_flask := GameState.cash
+	var paint_before_flask := GameState.paint
+	var stats_before_flask := StatsManager.save_state()
+	var crew_before_flask := CrewManager.save_state()
+	GameState.add_cash(SupplyManager.item_price(flask))
+	assert(SupplyManager.buy("pocket_flask")["ok"])
+	assert(GameState.paint == paint_before_flask + int(flask.get("paint", 0)))
+	assert(GameState.cash == cash_before_flask)
+	assert(not SupplyManager.buy("pocket_flask")["ok"])
+	GameState.paint = paint_before_flask
+	StatsManager.load_state(stats_before_flask)
+	CrewManager.load_state(crew_before_flask)
 	# Cap inventory (Plan.md §21): the stock cap is the no-trade-off default,
 	# and buying a cap adds it to the kit and equips it. The fat cap is wide
 	# coverage — 1 less paint — but loud, so it adds gear suspicion.
