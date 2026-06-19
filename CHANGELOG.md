@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-06-20 — Wall Duel Deadlines & Forfeits
+
+Gives rival wall duels a fail state so an ignored callout is a real choice,
+not a permanent free wall.
+
+- Each open wall duel now carries a `ticksLeft` countdown
+  (`RivalManager.WALL_DUEL_DEADLINE_TICKS`, default 8 simulation ticks). It
+  ages one step per `_on_tick`, warns the writer one tick before expiry, and
+  forfeits the wall to the crew when it runs out.
+- Deadline expiry routes through the existing `forfeit_wall_duel`, which now
+  takes an `expired` flag for the right message; both paths record the loss and
+  reset the win streak through `GameState.note_rival_duel_loss`.
+- The blackbook City page now shows the remaining answer window per active
+  callout (`… (N to answer)`).
+- The countdown rides inside the already-saved `active_wall_duels` dict and
+  defaults gracefully for older saves, so no save-schema bump is needed.
+- Smoke coverage opens a duel, ages it to the last-chance warning, and asserts
+  the forfeit records a loss and clears the callout.
+
 ## 2026-06-19 — Battle Specialist Crew Role
 
 Finishes the planned crew-role set by giving wall duels a dedicated crew hook.

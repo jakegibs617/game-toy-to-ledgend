@@ -16,6 +16,11 @@ const TICK_SECONDS := 12.0
 const MIN_RESPONSE_DELAY_MS := 30000
 const WALL_DUEL_REP_BONUS := 18
 const WALL_DUEL_CREW_REP := 4
+## A wall duel the writer never answers is not a permanent free pass: the
+## crew holds the wall and the callout forfeits after this many simulation
+## ticks (one tick = TICK_SECONDS), with a last-chance warning one tick out.
+## Stored as a per-duel countdown so it survives save/load like _pending.
+const WALL_DUEL_DEADLINE_TICKS := 8
 
 var crews: Dictionary = {}  # crewId -> crew definition
 var _pending: Array[Dictionary] = []  # queued responses {wallId, crewId, ticks, readyAt}
@@ -110,6 +115,23 @@ func _on_tick() -> void:
 		else:
 			_try_respond(String(p["wallId"]), String(p["crewId"]))
 	_pending = remaining
+	_age_wall_duels()
+
+## Counts down each open duel's deadline. One tick before expiry the writer
+## gets a last-chance callout; at expiry the wall stays with the crew and the
+## duel forfeits (recording the loss through the same path as a manual bail).
+func _age_wall_duels() -> void:
+	for wall_id in active_wall_duels.keys():
+		var duel: Dictionary = active_wall_duels[wall_id]
+		var left := int(duel.get("ticksLeft", WALL_DUEL_DEADLINE_TICKS)) - 1
+		duel["ticksLeft"] = left
+		if left <= 0:
+			forfeit_wall_duel(wall_id, true)
+		elif left == 1 and not bool(duel.get("warned", false)):
+			duel["warned"] = true
+			var wall_name := String(WallManager.wall_def(wall_id).get("name", wall_id))
+			rival_event.emit("Last chance: paint %s back now or %s keeps it." % [
+				wall_name, String(duel.get("crewName", "the crew"))], wall_id)
 
 func _try_respond(wall_id: String, crew_id: String) -> void:
 	var crew: Dictionary = crews.get(crew_id, {})
@@ -207,8 +229,10 @@ func _open_wall_duel(wall_id: String, crew: Dictionary, pressure: String) -> voi
 		"startedAt": Time.get_unix_time_from_system(),
 		"rewardRep": CrewManager.wall_duel_rep_reward(WALL_DUEL_REP_BONUS),
 		"rewardCrewRep": CrewManager.wall_duel_crew_rep_reward(WALL_DUEL_CREW_REP),
+		"ticksLeft": WALL_DUEL_DEADLINE_TICKS,
+		"warned": false,
 	}
-	rival_event.emit("%s wants a wall duel at %s. Paint it back to answer." % [
+	rival_event.emit("%s wants a wall duel at %s. Paint it back before they settle in." % [
 		String(crew.get("leaderAlias", "A rival")), wall_name], wall_id)
 
 func _resolve_wall_duel_if_answered(wall_id: String, graffiti: Dictionary) -> bool:
@@ -237,15 +261,22 @@ func _clear_pending_for_wall(wall_id: String) -> void:
 			remaining.append(p)
 	_pending = remaining
 
-func forfeit_wall_duel(wall_id: String) -> bool:
+## Ends a duel as a loss: either the writer walks away (expired=false) or the
+## deadline ran out with the wall unanswered (expired=true). Both record the
+## loss; only the message differs.
+func forfeit_wall_duel(wall_id: String, expired := false) -> bool:
 	if not active_wall_duels.has(wall_id):
 		return false
 	var duel: Dictionary = active_wall_duels[wall_id]
 	active_wall_duels.erase(wall_id)
 	GameState.note_rival_duel_loss()
 	var wall_name := String(WallManager.wall_def(wall_id).get("name", wall_id))
-	rival_event.emit("Wall duel lost: %s stayed with %s." % [
-		wall_name, String(duel.get("crewName", "the rival crew"))], wall_id)
+	var crew_name := String(duel.get("crewName", "the rival crew"))
+	if expired:
+		rival_event.emit("Wall duel lost: you let the callout cool and %s kept %s." % [
+			crew_name, wall_name], wall_id)
+	else:
+		rival_event.emit("Wall duel lost: %s stayed with %s." % [wall_name, crew_name], wall_id)
 	return true
 
 func save_state() -> Dictionary:
