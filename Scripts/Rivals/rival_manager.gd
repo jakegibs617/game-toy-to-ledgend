@@ -14,10 +14,13 @@ const TICK_SECONDS := 12.0
 ## A retaliation can never land sooner than this after the player paints
 ## (Product_reqs.md): rivals do not teleport their TOY over a fresh tag.
 const MIN_RESPONSE_DELAY_MS := 30000
+const WALL_DUEL_REP_BONUS := 18
+const WALL_DUEL_CREW_REP := 4
 
 var crews: Dictionary = {}  # crewId -> crew definition
 var _pending: Array[Dictionary] = []  # queued responses {wallId, crewId, ticks, readyAt}
 var _in_flight: Dictionary = {}  # wallId -> true while a tagger is en route
+var active_wall_duels: Dictionary = {}  # wallId -> duel dictionary
 var _claimed_initial := false
 var _rng := RandomNumberGenerator.new()
 ## Set by district.gd (windowed only) to spawn the visible rival who
@@ -56,6 +59,8 @@ func claim_initial_territory() -> void:
 
 func _on_wall_painted(wall_id: String, graffiti: Dictionary) -> void:
 	if String(graffiti.get("creatorId", "")) != "player":
+		return
+	if _resolve_wall_duel_if_answered(wall_id, graffiti):
 		return
 	var crew := _offended_crew(wall_id)
 	if crew.is_empty():
@@ -170,6 +175,7 @@ func response_chance(wall_id: String, crew_id: String) -> float:
 ## roll so tests and scripted missions can trigger it deterministically.
 func respond(wall_id: String, crew_id: String) -> void:
 	_in_flight.erase(wall_id)  # the tagger (if any) has arrived
+	_clear_pending_for_wall(wall_id)
 	var crew: Dictionary = crews[crew_id]
 	var state: Dictionary = WallManager.wall_states[wall_id]
 	if String(state.get("ownerCrewId", "")) != "player":
@@ -184,9 +190,77 @@ func respond(wall_id: String, crew_id: String) -> void:
 	if String(current.get("type", "tag")) == "tag" or GameState.rank in ["Toy", "Rookie"]:
 		WallManager.cross_out_wall(wall_id, crew, "TOY")
 		rival_event.emit('%s wrote "TOY" over your %s on %s!' % [who, type_label, wall_name], wall_id)
+		_open_wall_duel(wall_id, crew, "cross_out")
 	else:
 		WallManager.apply_rival_graffiti(wall_id, crew, _response_type_for(crew, wall_id))
 		rival_event.emit("%s covered your %s on %s." % [who, type_label, wall_name], wall_id)
+		_open_wall_duel(wall_id, crew, "cover")
+
+func _open_wall_duel(wall_id: String, crew: Dictionary, pressure: String) -> void:
+	var wall_name := String(WallManager.wall_def(wall_id).get("name", wall_id))
+	active_wall_duels[wall_id] = {
+		"wallId": wall_id,
+		"crewId": String(crew.get("crewId", "")),
+		"crewName": String(crew.get("name", "A rival crew")),
+		"leaderAlias": String(crew.get("leaderAlias", "?")),
+		"pressure": pressure,
+		"startedAt": Time.get_unix_time_from_system(),
+		"rewardRep": WALL_DUEL_REP_BONUS,
+		"rewardCrewRep": WALL_DUEL_CREW_REP,
+	}
+	rival_event.emit("%s wants a wall duel at %s. Paint it back to answer." % [
+		String(crew.get("leaderAlias", "A rival")), wall_name], wall_id)
+
+func _resolve_wall_duel_if_answered(wall_id: String, graffiti: Dictionary) -> bool:
+	if not active_wall_duels.has(wall_id):
+		return false
+	var duel: Dictionary = active_wall_duels[wall_id]
+	active_wall_duels.erase(wall_id)
+	var rep_bonus := int(duel.get("rewardRep", WALL_DUEL_REP_BONUS))
+	var crew_rep_bonus := int(duel.get("rewardCrewRep", WALL_DUEL_CREW_REP))
+	GameState.add_reputation(rep_bonus)
+	GameState.add_crew_rep(crew_rep_bonus)
+	GameState.note_rival_duel_win()
+	CrewManager.note_role_helped("hype", 2)
+	var wall_name := String(WallManager.wall_def(wall_id).get("name", wall_id))
+	rival_event.emit("Wall duel won: %s is yours again. +%d rep, +%d crew rep." % [
+		wall_name, rep_bonus, crew_rep_bonus], wall_id)
+	# Answering a callout is the retaliation beat; do not immediately
+	# queue a second response from the same paint stroke.
+	return true
+
+func _clear_pending_for_wall(wall_id: String) -> void:
+	var remaining: Array[Dictionary] = []
+	for p in _pending:
+		if String(p.get("wallId", "")) != wall_id:
+			remaining.append(p)
+	_pending = remaining
+
+func forfeit_wall_duel(wall_id: String) -> bool:
+	if not active_wall_duels.has(wall_id):
+		return false
+	var duel: Dictionary = active_wall_duels[wall_id]
+	active_wall_duels.erase(wall_id)
+	GameState.note_rival_duel_loss()
+	var wall_name := String(WallManager.wall_def(wall_id).get("name", wall_id))
+	rival_event.emit("Wall duel lost: %s stayed with %s." % [
+		wall_name, String(duel.get("crewName", "the rival crew"))], wall_id)
+	return true
+
+func save_state() -> Dictionary:
+	return {
+		"pending": _pending.duplicate(true),
+		"active_wall_duels": active_wall_duels.duplicate(true),
+	}
+
+func load_state(data: Dictionary) -> void:
+	_pending.clear()
+	var pending_data: Array = data.get("pending", [])
+	for entry in pending_data:
+		if entry is Dictionary:
+			_pending.append((entry as Dictionary).duplicate(true))
+	active_wall_duels = data.get("active_wall_duels", {}).duplicate(true)
+	_in_flight.clear()
 
 ## The crew's signature type, downgraded to a throw-up where surface
 ## rules block it (Milestone 16) — rivals play by the wall's rules too.

@@ -520,6 +520,7 @@ func _run_smoke_test() -> void:
 	_smoke_scripted_cross_out()
 	_smoke_balance_invariants()
 	_smoke_playtest_metrics()
+	_smoke_rival_wall_duels()
 	_smoke_runtime_budget()
 	print("SMOKE: OK")
 	get_tree().quit()
@@ -615,8 +616,56 @@ func _smoke_walls_and_rivals() -> void:
 	assert(state["state"] == "crossed_out")
 	assert(state["currentGraffiti"]["isCrossedOut"])
 	assert(state["crossOut"]["text"] == "TOY")
-	assert(events.size() == 1 and events[0][1] == first_id)
+	assert(events.size() >= 2 and events[0][1] == first_id)
+	assert(RivalManager._pending.is_empty())
+	assert(RivalManager.active_wall_duels.has(first_id))
+	# The next mission is specifically about repainting the TOY mark; keep
+	# that older smoke path stable and test duel resolution separately.
+	RivalManager.active_wall_duels.erase(first_id)
 	print("SMOKE: rival event = %s" % events[0][0])
+
+## Assumes: the main playthrough smoke checks are complete. Opens a
+## contested-wall callout directly, then answers it through the normal
+## WallManager.paint_wall path so the live wall_painted signal resolves
+## the duel and records the saved win.
+func _smoke_rival_wall_duels() -> void:
+	var first_id := _first_wall_id()
+	var wall: PaintableWall = WallManager.wall_nodes[first_id]
+	var crew: Dictionary = RivalManager.crews["buff_kings"]
+	RivalManager._open_wall_duel(first_id, crew, "cross_out")
+	if GameState.paint < 1:
+		GameState.add_paint(1)
+	var rep_before := GameState.reputation
+	var crew_rep_before := GameState.crew_rep
+	var paint_before := GameState.paint
+	var wins_before := GameState.rival_duel_wins
+	var streak_before := GameState.rival_duel_streak
+	var events: Array = []
+	RivalManager.rival_event.connect(func(msg: String, wid: String) -> void:
+		events.append([msg, wid]))
+	var result: Dictionary = WallManager.paint_wall(wall, "tag")
+	assert(result["ok"])
+	assert(WallManager.wall_states[first_id]["state"] == "player_tag")
+	assert(not RivalManager.active_wall_duels.has(first_id))
+	assert(GameState.paint == paint_before - 1)
+	assert(GameState.rival_duel_wins == wins_before + 1)
+	assert(GameState.rival_duel_streak == streak_before + 1)
+	assert(GameState.crew_rep == crew_rep_before + RivalManager.WALL_DUEL_CREW_REP)
+	assert(GameState.reputation == rep_before + int(result["rep"]) + RivalManager.WALL_DUEL_REP_BONUS)
+	assert(not events.is_empty() and String(events[-1][0]).begins_with("Wall duel won"))
+
+	var save := RivalManager.save_state()
+	RivalManager.active_wall_duels["smoke_saved_duel"] = {
+		"wallId": "smoke_saved_duel",
+		"crewId": "buff_kings",
+		"crewName": "Buff Kings",
+	}
+	var saved := RivalManager.save_state()
+	RivalManager.active_wall_duels.clear()
+	RivalManager.load_state(saved)
+	assert(RivalManager.active_wall_duels.has("smoke_saved_duel"))
+	RivalManager.load_state(save)
+	print("SMOKE: rival wall duel answered")
 
 ## Assumes: the first wall is crossed out and mission 1 is active.
 ## Drives the first mission beats (Milestone 7) through the same
@@ -1103,6 +1152,7 @@ func _smoke_blackbook() -> void:
 	var city_page: String = blackbook.page_text(3)
 	assert(city_page.contains("The Buff Kings") and city_page.contains("VEK"))
 	assert(city_page.contains("Your name is on"))
+	assert(city_page.contains("Wall duels: 1 won"))
 	blackbook.free()
 	print("SMOKE: blackbook pages — writer/styles/crew/city all read")
 

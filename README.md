@@ -190,10 +190,14 @@ static rooster GLB, then the old debug capsule.
   is queued and resolved on a 12-second simulation tick (Plan.md §33),
   no sooner than 30 seconds after the player paints: tags or low-rank
   work get **"TOY"** crossed out, stronger work gets covered by the
-  crew's own graffiti. Repainting reclaims the wall. When a response is
-  due, a rival tagger wearing the Hooded Fox Warrior model runs in from
-  the side, sprays the wall, and flees (`Scripts/Rivals/rival_tagger.gd`,
-  capsule fallback when the GLBs are missing).
+  crew's own graffiti. That response now opens a lightweight **rival wall
+  duel** callout: repaint the same challenged wall to answer it, claim a
+  small rep/crew-rep bonus, and record the win streak in the blackbook's
+  City page. Active callouts and pending rival responses are saved. When a
+  response is due, a rival tagger wearing the Hooded Fox Warrior model runs
+  in from the side, sprays the wall, and flees
+  (`Scripts/Rivals/rival_tagger.gd`, capsule fallback when the GLBs are
+  missing).
 - **CrewManager** (autoload, `Scripts/Crew/crew_manager.gd`,
   Milestones 5 and 22) — loads `Data/npc_data.json`. Mina "Moth"
   joins as your Lookout (rivals back off more often and she warns you

@@ -28,6 +28,7 @@ signal sit_practice_ended
 ## A rep-gated nightclub asks the HUD to open the dance-floor modal once the
 ## bouncer has waved the writer in (Product_reqs "dance / club / DJ invite").
 signal nightclub_requested(club: Dictionary)
+signal rival_duel_record_changed(wins: int, losses: int, streak: int)
 
 const RANKS := [
 	{"name": "Toy", "min_rep": 0},
@@ -72,6 +73,11 @@ var current_district_id := "district_mill_yard"
 ## Best dance hype reached per nightclub (clubId -> 0..100), so the club
 ## remembers a writer's signature set across sessions.
 var nightlife_best: Dictionary = {}
+## Rival wall duels are lightweight contested-wall callouts: a rival marks
+## your spot, and answering that exact wall with fresh paint records a win.
+var rival_duel_wins := 0
+var rival_duel_losses := 0
+var rival_duel_streak := 0
 
 func _ready() -> void:
 	_setup_input_actions()
@@ -95,6 +101,9 @@ func save_state() -> Dictionary:
 		"extra_fill_colors": extra_fill_colors.duplicate(true),
 		"current_district_id": current_district_id,
 		"nightlife_best": nightlife_best.duplicate(true),
+		"rival_duel_wins": rival_duel_wins,
+		"rival_duel_losses": rival_duel_losses,
+		"rival_duel_streak": rival_duel_streak,
 	}
 
 func load_state(data: Dictionary) -> void:
@@ -122,6 +131,9 @@ func load_state(data: Dictionary) -> void:
 	# SaveManager re-announces the district once the full load is done.
 	current_district_id = String(data.get("current_district_id", current_district_id))
 	nightlife_best = data.get("nightlife_best", nightlife_best).duplicate(true)
+	rival_duel_wins = int(data.get("rival_duel_wins", rival_duel_wins))
+	rival_duel_losses = int(data.get("rival_duel_losses", rival_duel_losses))
+	rival_duel_streak = int(data.get("rival_duel_streak", rival_duel_streak))
 	reputation_changed.emit(reputation, 0)
 	crew_rep_changed.emit(crew_rep, 0)
 	if rank != old_rank:  # otherwise every quick-load announces "RANK UP"
@@ -132,6 +144,7 @@ func load_state(data: Dictionary) -> void:
 	tag_font_style_changed.emit(selected_tag_font_style_id)
 	fill_color_changed.emit(current_fill_color_name())
 	alias_changed.emit(alias)
+	rival_duel_record_changed.emit(rival_duel_wins, rival_duel_losses, rival_duel_streak)
 
 func add_reputation(amount: int) -> void:
 	reputation += amount
@@ -346,6 +359,16 @@ func note_nightlife_best(club_id: String, hype_pct: int) -> bool:
 		return false
 	nightlife_best[club_id] = hype_pct
 	return true
+
+func note_rival_duel_win() -> void:
+	rival_duel_wins += 1
+	rival_duel_streak += 1
+	rival_duel_record_changed.emit(rival_duel_wins, rival_duel_losses, rival_duel_streak)
+
+func note_rival_duel_loss() -> void:
+	rival_duel_losses += 1
+	rival_duel_streak = 0
+	rival_duel_record_changed.emit(rival_duel_wins, rival_duel_losses, rival_duel_streak)
 
 func _rank_for(rep: int) -> String:
 	var result: String = RANKS[0]["name"]

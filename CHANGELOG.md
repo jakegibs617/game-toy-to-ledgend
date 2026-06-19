@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-06-19 — Rival Wall Duels
+
+Builds the post-M32 battle direction as a lightweight contested-wall feature
+instead of a separate minigame.
+
+- Rival responses now open a saved wall-duel callout when they cross out or
+  cover the player's work.
+- Repainting the challenged wall answers the duel through the normal
+  `WallManager.paint_wall` path, pays a small rep and crew-rep bonus, records
+  the win/streak, and avoids immediately queuing another retaliation from the
+  same answer stroke.
+- `RivalManager` now saves pending responses and active wall duels; save schema
+  bumps to **v9** and migrates older saves with empty duel records.
+- The blackbook City page shows wall-duel wins/losses/streaks and any active
+  callout.
+- Smoke coverage verifies duel opening, answer resolution, no stale pending
+  response after direct `respond()`, save/load restoration, and blackbook
+  visibility.
+
 ## 2026-06-19 — Milestone 32: Battle Prototype Paper Cut
 
 Completed the v3 battle decision milestone without adding a new minigame.

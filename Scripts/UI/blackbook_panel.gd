@@ -249,6 +249,16 @@ func _city_text() -> String:
 	lines.append("")
 	lines.append("Your name is on %d of %d walls; the city buffed %d." % [
 		int(held.get("player", 0)), WallManager.wall_defs.size(), int(held.get("city", 0))])
+	lines.append("Wall duels: %d won · %d lost · streak %d" % [
+		GameState.rival_duel_wins, GameState.rival_duel_losses, GameState.rival_duel_streak])
+	if not RivalManager.active_wall_duels.is_empty():
+		var callouts: PackedStringArray = []
+		for wall_id in RivalManager.active_wall_duels:
+			var duel: Dictionary = RivalManager.active_wall_duels[wall_id]
+			callouts.append("%s at %s" % [
+				String(duel.get("crewName", "A rival crew")),
+				String(WallManager.wall_def(String(wall_id)).get("name", wall_id))])
+		lines.append("Active callout: %s" % "; ".join(callouts))
 	var trains := TrainManager.service_log()
 	if not trains.is_empty():
 		lines.append("")

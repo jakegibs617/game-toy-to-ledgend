@@ -16,7 +16,8 @@ const SAVE_PATH := "user://toy_to_legend_save.json"
 ## v6 (Milestone 22): crew section tracks used getaway heat levels.
 ## v7 (nightlife): "game" section gains nightlife_best (per-club hype).
 ## v8 (crew loyalty): crew section tracks loyalty_by_member.
-const SAVE_VERSION := 8
+## v9 (rival wall duels): game gains duel record counters; save gains rivals.
+const SAVE_VERSION := 9
 
 var _player: Player
 
@@ -32,6 +33,7 @@ func quick_save() -> bool:
 		"player": _player_state(),
 		"game": GameState.save_state(),
 		"walls": WallManager.save_state(),
+		"rivals": RivalManager.save_state(),
 		"crew": CrewManager.save_state(),
 		"territory": TerritoryManager.save_state(),
 		"heat": HeatManager.save_state(),
@@ -67,6 +69,7 @@ func quick_load() -> bool:
 	var district_before := GameState.current_district_id
 	GameState.load_state(data.get("game", {}))
 	WallManager.load_state(data.get("walls", {}))
+	RivalManager.load_state(data.get("rivals", {}))
 	CrewManager.load_state(data.get("crew", {}))
 	TerritoryManager.load_state(data.get("territory", {}))
 	HeatManager.load_state(data.get("heat", {}))
@@ -142,6 +145,13 @@ func _migrate(data: Dictionary) -> Dictionary:
 			data["crew"] = {}
 		data["crew"]["loyalty_by_member"] = data["crew"].get("loyalty_by_member", {})
 		version = 8
+	if version < 9:
+		if data.has("game"):
+			data["game"]["rival_duel_wins"] = int(data["game"].get("rival_duel_wins", 0))
+			data["game"]["rival_duel_losses"] = int(data["game"].get("rival_duel_losses", 0))
+			data["game"]["rival_duel_streak"] = int(data["game"].get("rival_duel_streak", 0))
+		data["rivals"] = data.get("rivals", {})
+		version = 9
 	data["version"] = version
 	return data
 

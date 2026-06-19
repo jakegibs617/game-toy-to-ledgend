@@ -26,16 +26,34 @@ review → merge loop.
 - Recommended post-candidate battle direction: rival wall duels tied to paint,
   territory, heat, crew, and rival stakes.
 
+### PR #45 — Rival Wall Duels
+
+- Implemented the post-M32 rival wall duel direction as a lightweight
+  contested-wall callout instead of a separate battle minigame.
+- Rival responses now open saved wall duels when they cross out or cover the
+  player's work.
+- Repainting the challenged wall answers the duel through the normal paint
+  path, pays a small rep and crew-rep bonus, records wins/losses/streaks, and
+  avoids instantly queueing another retaliation from the same answer stroke.
+- Rival pending responses and active wall duels now save/load under a new
+  `rivals` save section; save schema bumps to **v9** with migration.
+- The blackbook City page shows wall-duel record and active callouts.
+- Review found and fixed a direct-response state bug: scripted/direct
+  `RivalManager.respond()` now clears stale pending entries just like timed
+  responses.
+
 ## Verification
 
 - PR #43: 3 clean headless smoke runs and 1 clean windowed boot.
 - PR #44: 3 clean headless smoke runs and 1 clean windowed boot.
-- Final merged `main`: `75dd77e Complete battle paper cut`.
+- PR #45: 3 clean headless smoke runs and 1 clean windowed boot.
+- Final merged `main`: pending local merge for PR #45.
 
 ## Current Project State
 
 - v3 milestones 27–32 are complete.
 - Product_reqs.md items are implemented.
+- The first post-M32 battle-system slice, rival wall duels, is implemented.
 - The main feature blocker is now **M33 Playtest Feedback Pass**, which needs
   real tester observations rather than more speculative feature work.
 - M34 v3 demo candidate should follow only after M33 findings are captured and
@@ -48,25 +66,27 @@ review → merge loop.
    fixes tied to findings.
 2. **M34 v3 demo candidate.** Freeze after M33, run the full verification
    loop, update known issues, and tag a candidate.
-3. **Rival wall duels.** First post-candidate battle feature: a contested-wall
-   challenge that swings influence without bypassing normal territory play.
-4. **Battle Specialist crew role.** Add only after wall duels exist; let the
-   role reduce duel penalties or boost duel scoring.
+3. **Battle Specialist crew role.** Hook into wall duels: improve duel rewards,
+   soften forfeits, or reveal active callouts sooner.
+4. **Duel pressure and forfeits.** Add a clear timer or cleanup/fail condition
+   so ignored callouts can become losses without surprising the player.
 5. **Crew morale layer.** Small team-level morale affected by gallery sales,
-   rival losses, and loyalty milestones.
-6. **Sketch editor / blackbook customization.** Save a bench sketch or
+   rival losses, duel wins, and loyalty milestones.
+6. **Rival duel ladder.** Let each crew escalate from one-off callouts to a
+   named three-wall challenge arc without building full faction diplomacy.
+7. **Sketch editor / blackbook customization.** Save a bench sketch or
    freehand motif and reuse it as a custom piece.
-7. **Cap/can inventory expansion.** Generalize fat cap into skinny/fat/
+8. **Cap/can inventory expansion.** Generalize fat cap into skinny/fat/
    calligraphy caps with paint-cost, detail, and suspicion tradeoffs.
-8. **Rival alliance / ceasefire path.** Dialogue/data path for softening one
+9. **Rival alliance / ceasefire path.** Dialogue/data path for softening one
    crew relationship without building full faction diplomacy.
-9. **MultiMesh street-detail pass.** Reduce the repeated street-detail node
-   count flagged by runtime budgets before adding a fourth district.
-10. **Outfit / alias presentation pass.** Let rank or crew loyalty unlock
+10. **MultiMesh street-detail pass.** Reduce the repeated street-detail node
+    count flagged by runtime budgets before adding a fourth district.
+11. **Outfit / alias presentation pass.** Let rank or crew loyalty unlock
     visible outfit accents and stronger alias identity.
-11. **Safehouse room depth.** Small room upgrades that display earned posters,
+12. **Safehouse room depth.** Small room upgrades that display earned posters,
     sketches, and crew mementos without becoming a decorating sim.
-12. **Fourth district groundwork.** Scope Downtown or Gallery Quarter only
+13. **Fourth district groundwork.** Scope Downtown or Gallery Quarter only
     after M34 and the runtime budget confirms headroom.
-13. **Playtest metrics export polish.** Make capture files easier to compare
+14. **Playtest metrics export polish.** Make capture files easier to compare
     between testers and candidate builds.

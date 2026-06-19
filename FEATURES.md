@@ -133,7 +133,10 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 * ✅ Deterministic procedural rival graffiti variety (Milestone 29),
   seeded by graffiti/crew/type — no stored image blobs.
 * ✅ Rival tagger uses Hooded Fox Warrior model (run→idle for the tag).
-* ❌ Rival alliances / recruiting rivals / direct challenge duels.
+* ✅ Lightweight rival wall duels: a rival cross-out/cover opens a saved
+  contested-wall callout; repainting that wall answers the duel for rep,
+  crew rep, and a blackbook win streak.
+* ❌ Rival alliances / recruiting rivals / deeper challenge duel ladders.
 
 ### Crew (Plan.md §14)
 * ✅ Moth (lookout), Caps (filler), Metro (getaway), Stash (supply runner),
@@ -143,8 +146,8 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
   role helps, and loyalty gently scales their role bonus; blackbook shows
   loyalty state and role scale.
 * ✅ Crew board in safehouse (opens blackbook Crew page).
-* 🟡 Remaining role: Battle Specialist (post-M32 direction: rival wall duels);
-  morale paths.
+* 🟡 Remaining role: Battle Specialist (now has the wall-duel system to hook
+  into); morale paths.
 
 ### Missions (Plan.md §15, §16)
 * ✅ Data-driven mission chains (`missions.json`), triggered in order
@@ -190,7 +193,7 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
   self-disables headless).
 
 ### Save/load (Plan.md §32)
-* ✅ Versioned save (`SAVE_VERSION`, currently v8) with per-version
+* ✅ Versioned save (`SAVE_VERSION`, currently v9) with per-version
   migration; wall_states round-trip wholesale.
 
 ### Stickers & wheatpaste (Product_reqs.md)
@@ -249,7 +252,7 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 **Designed in Plan.md, deferred:**
 * Full §6 stat set (Nerve, Speed, Influence, Technique) and full §7 perk
   trees.
-* Battle Specialist / morale paths; rival wall duels and alliances.
+* Battle Specialist / morale paths; deeper rival duel ladders and alliances.
 * Safehouse depth (sketch editor, outfit, sleep-to-skip, room).
 * Additional districts (Downtown, Train Yard, Gallery Quarter, Substation).
 
