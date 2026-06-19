@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-06-20 — v4 Crew Hangout Beats
+
+Adds Plan_v4 crew/social candidate 11 in the existing safehouse board flow.
+
+- Opening the crew board now emits a short crew hangout line before the
+  blackbook Crew page appears.
+- The line is derived from existing morale and rival-duel state, with a quiet
+  fallback before anyone has joined.
+- Smoke coverage verifies the safehouse beat path without adding a new
+  dialogue system or save data.
+
 ## 2026-06-20 — v4 Pocket Paint Flask
 
 Adds a first Plan_v4 consumables-lane slice without new UI.

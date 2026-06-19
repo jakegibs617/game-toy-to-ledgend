@@ -1201,6 +1201,9 @@ func _smoke_safehouse_rest() -> void:
 	assert(safehouse != null)
 	assert(String(safehouse.prompt_text()).contains("Rest"))
 	assert(InputMap.has_action("safehouse_rest"))
+	var hangout_line := CrewManager.safehouse_hangout_beat()
+	assert(hangout_line.contains("Morale") or hangout_line.contains("duel") \
+		or hangout_line.contains("crew") or hangout_line.contains("Room"))
 
 	GameState.current_district_id = "district_mill_yard"
 	HeatManager.heat = 28.0
