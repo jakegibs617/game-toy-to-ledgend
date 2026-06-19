@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026-06-20 — Cap Inventory: Spray-Behavior Caps
+
+Generalizes the lone Fat Cap into a real cap kit, closing the 🟡 "caps as a
+spray-behavior modifier system" gap (Plan.md §21 "caps modify spray behavior").
+
+- New data-driven caps in `Data/caps.json`: **Stock** (always owned, no
+  trade-offs), **Skinny** (+10% rep, easy to hide), **Fat** (−1 paint, but
+  loud/bulky → gear suspicion), and **Calligraphy** (+25% rep, +1 paint, easy
+  to spot). Each has `paintDelta`, `repMultiplier`, and `suspicion`.
+- One cap is **equipped** at a time and drives the next paint. `SupplyManager`
+  owns the kit (`owned_caps`, `equipped_cap`) and exposes `cap_paint_delta`,
+  `cap_rep_multiplier`, and `cap_suspicion`.
+- `paint_cost` now applies the equipped cap's `paintDelta` (floored at 1)
+  instead of summing every owned discount; the cap's rep multiplier folds into
+  the single `WallManager._begin_player_paint` rep hook, and its suspicion adds
+  to `GameState.gear_suspicion_multiplier`.
+- Shop items carry `grantsCap`: the Fat Cap purchase now grants+equips the fat
+  cap, and Skinny/Calligraphy Caps are new buys. Buying a cap equips it.
+- Equip cycling on **K** (controller B), shown in the wall prompt (`[K] Cap: …`).
+- Save schema bumps to **v12**; older saves keep the stock cap (and back-fill
+  the Fat Cap from an owned `fat_cap` purchase).
+- Smoke coverage: default/owned state, the three trade-offs, the rep multiplier
+  through a live paint (normalized per wall), paint-cost delta, cycle, equip
+  guard, save/load, and v11→v12 migration.
+
 ## 2026-06-20 — Crew Morale Layer
 
 Adds the team-level morale path that was the last 🟡 crew-depth gap, sitting

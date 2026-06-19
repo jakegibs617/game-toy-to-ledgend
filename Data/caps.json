@@ -1,0 +1,37 @@
+{
+  "caps": [
+    {
+      "capId": "stock",
+      "name": "Stock Cap",
+      "desc": "the cap the can came with — no tradeoffs",
+      "paintDelta": 0,
+      "repMultiplier": 1.0,
+      "suspicion": 0.0,
+      "default": true
+    },
+    {
+      "capId": "skinny",
+      "name": "Skinny Cap",
+      "desc": "thin, precise lines — a little more rep, easy to hide",
+      "paintDelta": 0,
+      "repMultiplier": 1.1,
+      "suspicion": 0.0
+    },
+    {
+      "capId": "fat",
+      "name": "Fat Cap",
+      "desc": "wide coverage — 1 less paint, but loud and bulky",
+      "paintDelta": -1,
+      "repMultiplier": 1.0,
+      "suspicion": 0.05
+    },
+    {
+      "capId": "calligraphy",
+      "name": "Calligraphy Cap",
+      "desc": "expressive strokes — more rep, more paint, easy to spot",
+      "paintDelta": 1,
+      "repMultiplier": 1.25,
+      "suspicion": 0.06
+    }
+  ]
+}

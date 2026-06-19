@@ -11,10 +11,26 @@
     {
       "itemId": "fat_cap",
       "name": "Fat Cap",
-      "desc": "throw-ups & pieces cost 1 less paint",
+      "desc": "wide coverage — 1 less paint per piece",
       "price": 22,
       "repeatable": false,
-      "paintDiscount": 1
+      "grantsCap": "fat"
+    },
+    {
+      "itemId": "skinny_cap",
+      "name": "Skinny Cap",
+      "desc": "thin precise lines — a little more rep, easy to hide",
+      "price": 20,
+      "repeatable": false,
+      "grantsCap": "skinny"
+    },
+    {
+      "itemId": "calligraphy_cap",
+      "name": "Calligraphy Cap",
+      "desc": "expressive strokes — more rep, more paint, easy to spot",
+      "price": 32,
+      "repeatable": false,
+      "grantsCap": "calligraphy"
     },
     {
       "itemId": "burner_chrome",

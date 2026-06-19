@@ -18,7 +18,7 @@ const SAVE_PATH := "user://toy_to_legend_save.json"
 ## v8 (crew loyalty): crew section tracks loyalty_by_member.
 ## v9 (rival wall duels): game gains duel record counters; save gains rivals.
 ## v10 (safehouse rest): game gains safehouse_rests.
-const SAVE_VERSION := 11
+const SAVE_VERSION := 12
 
 var _player: Player
 
@@ -163,6 +163,15 @@ func _migrate(data: Dictionary) -> Dictionary:
 			data["crew"] = {}
 		data["crew"]["team_morale"] = int(data["crew"].get("team_morale", 50))
 		version = 11
+	if version < 12:
+		# v11 predates the cap inventory: a writer keeps the stock cap, plus
+		# the Fat Cap if they had bought it (SupplyManager back-fills from the
+		# owned shop items, so we only seed the equipped/owned cap keys here).
+		if not data.has("supplies"):
+			data["supplies"] = {}
+		data["supplies"]["owned_caps"] = data["supplies"].get("owned_caps", {})
+		data["supplies"]["equipped_cap"] = String(data["supplies"].get("equipped_cap", "stock"))
+		version = 12
 	data["version"] = version
 	return data
 

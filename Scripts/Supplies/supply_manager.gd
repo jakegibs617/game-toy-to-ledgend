@@ -12,8 +12,11 @@ signal shop_toggled(open: bool)
 ## Hustle XP sources (Milestone 17): StatsManager listens.
 signal item_bought(item_id: String)
 signal delivery_completed(cash: int)
+## Fired when the equipped spray cap changes (HUD/blackbook listen).
+signal cap_changed(cap_id: String)
 
 const SUPPLIES_PATH := "res://Data/supplies.json"
+const CAPS_PATH := "res://Data/caps.json"
 const DataLoader := preload("res://Scripts/Data/data_loader.gd")
 ## Walking away from Lupe closes the catalog so the number keys go back
 ## to selecting cans.
@@ -22,6 +25,13 @@ const SHOP_CLOSE_DISTANCE := 6.0
 var catalog: Array = []
 var delivery: Dictionary = {}
 var owned: Dictionary = {}  # itemId -> true for one-time upgrades
+## Spray caps (Plan.md §21: "caps modify spray behaviour"). The stock cap is
+## always owned; bought caps trade paint cost, rep, and gear suspicion against
+## each other. One cap is equipped at a time and drives the next paint.
+var caps_by_id: Dictionary = {}      # capId -> cap definition
+var cap_order: Array = []            # capIds in catalog order
+var owned_caps: Dictionary = {}      # capId -> true
+var equipped_cap := ""
 var delivery_active := false
 var _next_drop := 0         # round-robin pointer into delivery drops
 var _active_drop := -1      # drop index of the running delivery
@@ -39,6 +49,25 @@ func _ready() -> void:
 		if not delivery.is_empty():
 			DataLoader.require_fields(delivery, ["name", "cash", "heat", "drops"],
 				"SupplyManager: delivery")
+	_load_caps()
+
+func _load_caps() -> void:
+	var parsed: Variant = DataLoader.load_json(CAPS_PATH, "SupplyManager")
+	if parsed is Dictionary:
+		for cap_def in parsed.get("caps", []):
+			DataLoader.require_fields(cap_def,
+				["capId", "name", "desc", "paintDelta", "repMultiplier", "suspicion"],
+				"SupplyManager: cap \"%s\"" % String(cap_def.get("capId", "?")))
+			var cap_id := String(cap_def["capId"])
+			caps_by_id[cap_id] = cap_def
+			cap_order.append(cap_id)
+			if bool(cap_def.get("default", false)):
+				owned_caps[cap_id] = true
+				if equipped_cap == "":
+					equipped_cap = cap_id
+	if equipped_cap == "" and not cap_order.is_empty():
+		equipped_cap = String(cap_order[0])
+		owned_caps[equipped_cap] = true
 
 func _physics_process(_delta: float) -> void:
 	if _shop_anchor != null:
@@ -98,6 +127,10 @@ func buy(item_id: String) -> Dictionary:
 		# Bought gear unlocks a graffiti type (Milestone 16: the stencil
 		# kit IS the stencil unlock — no separate flag to drift).
 		GameState.unlock_type(String(def["unlockType"]))
+	if def.has("grantsCap"):
+		# Buying a cap adds it to the kit and equips it so the trade-off is
+		# live immediately (preserves the old "buy Fat Cap → discount on" feel).
+		grant_cap(String(def["grantsCap"]), true)
 	if not def.get("repeatable", false):
 		owned[item_id] = true
 	item_bought.emit(item_id)
@@ -112,15 +145,62 @@ func item_price(def: Dictionary) -> int:
 		* StatsManager.price_multiplier()
 		* CrewManager.shop_price_multiplier()))
 
-## Effective paint cost of a graffiti style with owned cap upgrades
-## applied (Plan.md section 21: caps modify spray behavior). Never
-## discounts below 1 — paint stays a real constraint.
+## Effective paint cost of a graffiti style with the equipped cap applied
+## (Plan.md section 21: caps modify spray behavior). Never below 1 — paint
+## stays a real constraint even with a fat cap.
 func paint_cost(style: Dictionary) -> int:
-	var cost := int(style.get("paintCost", 1))
-	for def in catalog:
-		if is_owned(String(def["itemId"])) and def.has("paintDiscount"):
-			cost = maxi(1, cost - int(def["paintDiscount"]))
-	return cost
+	return maxi(1, int(style.get("paintCost", 1)) + cap_paint_delta())
+
+func cap_def(cap_id: String) -> Dictionary:
+	return caps_by_id.get(cap_id, {})
+
+func equipped_cap_def() -> Dictionary:
+	return cap_def(equipped_cap)
+
+func cap_paint_delta() -> int:
+	return int(equipped_cap_def().get("paintDelta", 0))
+
+## Detail/coverage caps trade rep against the others; the equipped cap scales
+## a player paint's reputation (folded into WallManager._begin_player_paint).
+func cap_rep_multiplier() -> float:
+	return maxf(0.1, float(equipped_cap_def().get("repMultiplier", 1.0)))
+
+## A bulky or showy cap adds to gear suspicion (GameState.gear_suspicion_multiplier).
+func cap_suspicion() -> float:
+	return float(equipped_cap_def().get("suspicion", 0.0))
+
+func owns_cap(cap_id: String) -> bool:
+	return bool(owned_caps.get(cap_id, false))
+
+func grant_cap(cap_id: String, equip := false) -> void:
+	if not caps_by_id.has(cap_id):
+		return
+	owned_caps[cap_id] = true
+	if equip:
+		equip_cap(cap_id)
+
+func equip_cap(cap_id: String) -> bool:
+	if not owns_cap(cap_id) or cap_id == equipped_cap:
+		return false
+	equipped_cap = cap_id
+	cap_changed.emit(equipped_cap)
+	supply_event.emit("Cap: %s — %s." % [
+		String(equipped_cap_def().get("name", cap_id)),
+		String(equipped_cap_def().get("desc", ""))])
+	return true
+
+## Cycles the equipped cap through the owned caps (catalog order). Bound to a
+## key/button like the can and color cycles so it reads as the same gesture.
+func cycle_cap(step: int) -> void:
+	var owned_order: Array = []
+	for cap_id in cap_order:
+		if owns_cap(String(cap_id)):
+			owned_order.append(String(cap_id))
+	if owned_order.size() <= 1:
+		return
+	var current := maxi(owned_order.find(equipped_cap), 0)
+	var next := wrapi(current + step, 0, owned_order.size())
+	equip_cap(String(owned_order[next]))
 
 ## Lupe's repeatable errand (Plan.md section 15 "Supply Run"): carry a
 ## package to a drop spot for cash. One package at a time; drops rotate.
@@ -164,6 +244,8 @@ func resolve_delivery() -> void:
 func save_state() -> Dictionary:
 	return {
 		"owned": owned.duplicate(true),
+		"owned_caps": owned_caps.duplicate(true),
+		"equipped_cap": equipped_cap,
 		"delivery_active": delivery_active,
 		"next_drop": _next_drop,
 		"active_drop": _active_drop,
@@ -171,6 +253,7 @@ func save_state() -> Dictionary:
 
 func load_state(data: Dictionary) -> void:
 	owned = data.get("owned", {}).duplicate(true)
+	_restore_caps(data)
 	delivery_active = bool(data.get("delivery_active", false))
 	_next_drop = int(data.get("next_drop", 0))
 	_active_drop = int(data.get("active_drop", -1))
@@ -178,6 +261,28 @@ func load_state(data: Dictionary) -> void:
 	_clear_drop_zone()
 	if delivery_active and _active_drop >= 0:
 		_spawn_drop_zone()
+
+## Rebuilds the cap kit from a save. Re-seeds the default cap, applies any
+## saved owned caps, and back-fills from owned shop items so pre-cap-system
+## saves (which only recorded owning "fat_cap") still get the Fat Cap.
+func _restore_caps(data: Dictionary) -> void:
+	owned_caps.clear()
+	for cap_id in caps_by_id:
+		if bool(caps_by_id[cap_id].get("default", false)):
+			owned_caps[cap_id] = true
+	for item_id in owned:
+		var shop_def := item(String(item_id))
+		if shop_def.has("grantsCap"):
+			owned_caps[String(shop_def["grantsCap"])] = true
+	for cap_id in data.get("owned_caps", {}):
+		if caps_by_id.has(String(cap_id)):
+			owned_caps[String(cap_id)] = true
+	var saved_equipped := String(data.get("equipped_cap", ""))
+	if saved_equipped != "" and owns_cap(saved_equipped):
+		equipped_cap = saved_equipped
+	elif not owns_cap(equipped_cap):
+		equipped_cap = String(cap_order[0]) if not cap_order.is_empty() else ""
+	cap_changed.emit(equipped_cap)
 
 ## Drop zone: an Area3D with an emissive pad and floating label. The
 ## overlap poll in _physics_process completes the delivery.

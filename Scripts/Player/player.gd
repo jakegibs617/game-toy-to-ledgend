@@ -453,6 +453,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			freehand_requested.emit(_focused)
 	elif event.is_action_pressed("cycle_color"):
 		GameState.cycle_fill_color()
+	elif event.is_action_pressed("cycle_cap"):
+		SupplyManager.cycle_cap(1)
 	elif event.is_action_pressed("can_prev"):
 		GameState.cycle_graffiti_type(-1)
 	elif event.is_action_pressed("can_next"):
