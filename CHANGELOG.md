@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026-06-20 — Crew Morale Layer
+
+Adds the team-level morale path that was the last 🟡 crew-depth gap, sitting
+on top of per-member loyalty without becoming a second progression tree.
+
+- New crew-wide `CrewManager.team_morale` (0–100, starts neutral at 50),
+  saved/loaded and exposed through a `morale_changed` signal and
+  `morale_text()` mood label.
+- Morale folds into the existing `role_bonus_scale` hook as one bounded
+  factor (`morale_factor()`, 0.9–1.1). At neutral it is exactly 1.0, so all
+  existing role balance and smoke assertions are unchanged; only a crew that
+  has been winning or losing together shifts every role bonus together.
+- Shared events move the mood: recruiting a member (+6) and a member hitting a
+  loyalty milestone (+2) lift it; winning a wall duel (+7) lifts it, losing or
+  forfeiting one (−8) and getting caught (−5) drop it. Crossing a 20-point band
+  announces the new mood once.
+- The blackbook Crew page now leads with the team morale line when any writer
+  is recruited.
+- Save schema bumps to **v11**; older saves migrate with a neutral mood.
+- Smoke coverage asserts recruiting lifts morale, the neutral 1.0x invariant,
+  clamping, the band-cross announcement, save/load round-trip, and v10→v11
+  migration.
+
 ## 2026-06-20 — Wall Duel Deadlines & Forfeits
 
 Gives rival wall duels a fail state so an ignored callout is a real choice,

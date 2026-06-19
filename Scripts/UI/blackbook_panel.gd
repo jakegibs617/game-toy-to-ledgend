@@ -230,6 +230,10 @@ func _styles_text() -> String:
 
 func _crew_text() -> String:
 	var lines: PackedStringArray = []
+	if CrewManager.any_recruited():
+		lines.append("Crew morale: %s — %d/%d" % [
+			CrewManager.morale_text(), CrewManager.team_morale, CrewManager.MAX_MORALE])
+		lines.append("")
 	for m in CrewManager.members.values():
 		lines.append("%s (%s) — %s\n      %s" % [
 			String(m["alias"]), String(m["name"]),

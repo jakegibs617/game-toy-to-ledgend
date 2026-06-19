@@ -147,7 +147,9 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
   role helps, and loyalty gently scales their role bonus; blackbook shows
   loyalty state and role scale.
 * ✅ Crew board in safehouse (opens blackbook Crew page).
-* 🟡 Remaining crew depth: morale paths.
+* ✅ Team morale: a crew-wide mood (separate from per-member loyalty) moved by
+  shared wins/losses (recruits, loyalty milestones, duel wins/losses, getting
+  caught) that gently sharpens or dulls every role bonus; neutral at default.
 
 ### Missions (Plan.md §15, §16)
 * ✅ Data-driven mission chains (`missions.json`), triggered in order
