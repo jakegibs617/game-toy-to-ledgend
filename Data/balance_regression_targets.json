@@ -1,0 +1,95 @@
+{
+  "targets": [
+    {
+      "id": "tag_base_paint",
+      "label": "Tag base paint cost",
+      "path": ["graffiti", "tag", "basePaintCost"],
+      "target": 1,
+      "tolerance": 0
+    },
+    {
+      "id": "piece_base_paint",
+      "label": "Piece base paint cost",
+      "path": ["graffiti", "piece", "basePaintCost"],
+      "target": 5,
+      "tolerance": 0
+    },
+    {
+      "id": "roller_base_paint",
+      "label": "Roller base paint cost",
+      "path": ["graffiti", "roller", "basePaintCost"],
+      "target": 8,
+      "tolerance": 0
+    },
+    {
+      "id": "mural_base_paint",
+      "label": "Mural base paint cost",
+      "path": ["graffiti", "mural", "basePaintCost"],
+      "target": 10,
+      "tolerance": 0
+    },
+    {
+      "id": "paint_pack_price",
+      "label": "Paint Pack price",
+      "path": ["supplies", "paint_pack", "basePrice"],
+      "target": 10,
+      "tolerance": 1
+    },
+    {
+      "id": "paint_pack_units",
+      "label": "Paint Pack units",
+      "path": ["supplies", "paint_pack", "paint"],
+      "target": 12,
+      "tolerance": 0
+    },
+    {
+      "id": "delivery_cash",
+      "label": "Delivery run base cash",
+      "path": ["supplies", "delivery", "cash"],
+      "target": 30,
+      "tolerance": 2
+    },
+    {
+      "id": "ghost_local_paint",
+      "label": "Ghost Local paint cost",
+      "path": ["trains", "canal_ghost_local", "paintCost"],
+      "target": 7,
+      "tolerance": 0
+    },
+    {
+      "id": "ghost_local_pass_rep",
+      "label": "Ghost Local pass rep",
+      "path": ["trains", "canal_ghost_local", "passRep"],
+      "target": 18,
+      "tolerance": 2
+    },
+    {
+      "id": "gallery_rep_base",
+      "label": "Gallery base rep",
+      "path": ["gallery", "repBase"],
+      "target": 20,
+      "tolerance": 2
+    },
+    {
+      "id": "rooftop_claim_rep",
+      "label": "Rooftop Row claim rep",
+      "path": ["districts", "district_rooftop_row", "claimRepBonus"],
+      "target": 220,
+      "tolerance": 10
+    },
+    {
+      "id": "calligraphy_rep_multiplier",
+      "label": "Calligraphy rep multiplier",
+      "path": ["caps", "calligraphy", "repMultiplier"],
+      "target": 1.25,
+      "tolerance": 0.0
+    },
+    {
+      "id": "morale_max_factor",
+      "label": "Max morale role factor",
+      "path": ["crew", "moraleFactorMax"],
+      "target": 1.1,
+      "tolerance": 0.0
+    }
+  ]
+}

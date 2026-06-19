@@ -28,8 +28,9 @@ Headless smoke test (per-system `_smoke_*()` checks in
 SMOKE_TEST=1 /Applications/Godot.app/Contents/MacOS/Godot --headless --path .
 ```
 
-The smoke path also prints the v3 playtest baseline metrics and balance
-snapshot. For a live playtest capture, launch with metrics enabled:
+The smoke path also prints the v3 playtest baseline metrics, balance
+snapshot, and balance-regression ledger summary (`Data/balance_regression_targets.json`).
+For a live playtest capture, launch with metrics enabled:
 
 ```sh
 PLAYTEST_METRICS=1 /Applications/Godot.app/Contents/MacOS/Godot --path .
@@ -186,7 +187,8 @@ static rooster GLB, then the old debug capsule.
   Milestone 27) — optional v3 instrumentation. It records nothing in
   normal play, but `PLAYTEST_METRICS=1` writes a JSON playthrough ledger
   to `user://toy_to_legend_playtest_metrics.json`; the smoke test uses
-  the same recorder for a repeatable baseline and balance snapshot.
+  the same recorder for a repeatable baseline, balance snapshot, and
+  diffable economy regression guard.
 - **RivalManager** (autoload, `Scripts/Rivals/rival_manager.gd`,
   Milestone 4) — loads `Data/crews.json` (The Buff Kings, Ghost Line,
   Chrome Saints). Crews claim their home walls at session start. When
