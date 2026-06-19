@@ -671,7 +671,31 @@ func _smoke_rival_wall_duels() -> void:
 	RivalManager.load_state(saved)
 	assert(RivalManager.active_wall_duels.has("smoke_saved_duel"))
 	RivalManager.load_state(save)
-	print("SMOKE: rival wall duel answered")
+
+	# Deadline + forfeit: an unanswered callout warns one tick out and then
+	# expires as a loss instead of lingering as a permanent free pass.
+	var deadline_id := _first_wall_id()
+	RivalManager._open_wall_duel(deadline_id, crew, "cross_out")
+	var deadline_duel: Dictionary = RivalManager.active_wall_duels[deadline_id]
+	assert(int(deadline_duel["ticksLeft"]) == RivalManager.WALL_DUEL_DEADLINE_TICKS)
+	var deadline_events: Array = []
+	RivalManager.rival_event.connect(func(msg: String, wid: String) -> void:
+		deadline_events.append([msg, wid]))
+	# Age down to the last-chance warning.
+	for _i in range(RivalManager.WALL_DUEL_DEADLINE_TICKS - 1):
+		RivalManager._age_wall_duels()
+	assert(RivalManager.active_wall_duels.has(deadline_id))
+	assert(int(RivalManager.active_wall_duels[deadline_id]["ticksLeft"]) == 1)
+	assert(deadline_events.any(func(e: Array) -> bool:
+		return String(e[0]).begins_with("Last chance")))
+	var losses_before := GameState.rival_duel_losses
+	RivalManager._age_wall_duels()  # ticksLeft hits 0 -> forfeit
+	assert(not RivalManager.active_wall_duels.has(deadline_id))
+	assert(GameState.rival_duel_losses == losses_before + 1)
+	assert(GameState.rival_duel_streak == 0)
+	assert(deadline_events.any(func(e: Array) -> bool:
+		return String(e[0]).contains("let the callout cool")))
+	print("SMOKE: rival wall duel answered, deadline forfeits unanswered callout")
 
 ## Assumes: the first wall is crossed out and mission 1 is active.
 ## Drives the first mission beats (Milestone 7) through the same

@@ -255,9 +255,11 @@ func _city_text() -> String:
 		var callouts: PackedStringArray = []
 		for wall_id in RivalManager.active_wall_duels:
 			var duel: Dictionary = RivalManager.active_wall_duels[wall_id]
-			callouts.append("%s at %s" % [
+			var left := int(duel.get("ticksLeft", RivalManager.WALL_DUEL_DEADLINE_TICKS))
+			callouts.append("%s at %s (%d to answer)" % [
 				String(duel.get("crewName", "A rival crew")),
-				String(WallManager.wall_def(String(wall_id)).get("name", wall_id))])
+				String(WallManager.wall_def(String(wall_id)).get("name", wall_id)),
+				maxi(left, 0)])
 		lines.append("Active callout: %s" % "; ".join(callouts))
 	var trains := TrainManager.service_log()
 	if not trains.is_empty():

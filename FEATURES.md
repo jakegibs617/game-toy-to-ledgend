@@ -135,7 +135,8 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 * ✅ Rival tagger uses Hooded Fox Warrior model (run→idle for the tag).
 * ✅ Lightweight rival wall duels: a rival cross-out/cover opens a saved
   contested-wall callout; repainting that wall answers the duel for rep,
-  crew rep, and a blackbook win streak.
+  crew rep, and a blackbook win streak. Unanswered callouts warn once then
+  forfeit on a deadline, so ignoring a duel costs the wall.
 * ❌ Rival alliances / recruiting rivals / deeper challenge duel ladders.
 
 ### Crew (Plan.md §14)
