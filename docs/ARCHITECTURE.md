@@ -199,7 +199,9 @@ Modal conventions:
 ## Save format
 
 `user://toy_to_legend_save.json`, written by SaveManager with
-`version: SAVE_VERSION`. Sections per system: player transform,
+`version: SAVE_VERSION`; successful saves also mirror to
+`user://toy_to_legend_save.backup.json`, which quick-load uses if the primary
+save is missing, invalid, or too new. Sections per system: player transform,
 GameState fields (including crew_rep — the §11 public/crew split),
 WallManager (wall_states + next id), crew stages/loyalty/morale events,
 territory claims, heat, mission progress, supplies owned, dialogue flags, stats/perks,

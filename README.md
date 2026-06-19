@@ -294,7 +294,9 @@ static rooster GLB, then the old debug capsule.
   restores player position, reputation/rank/paint/unlocks, wall
   ownership/history/cross-outs, crew recruitment stages, claimed
   territory, mission progress, stats/perks, train service state, gallery
-  sales, nightlife best hype, and crew loyalty.
+  sales, nightlife best hype, and crew loyalty. Each successful save also
+  mirrors to `user://toy_to_legend_save.backup.json`, and load falls back to
+  that backup if the primary save is unreadable or from a newer prototype.
 - **FreehandPanel** (`Scripts/UI/freehand_panel.gd`, Milestone 14) —
   freehand spray painting (Plan.md §10 "Later Advanced System", first
   §36 Could-Have). F at a wall opens a canvas sized to the wall face;
