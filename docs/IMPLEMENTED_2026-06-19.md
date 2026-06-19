@@ -1,0 +1,72 @@
+# Implemented — 2026-06-19
+
+Development continued from current `main` and followed the branch → PR →
+review → merge loop.
+
+## Implemented Today
+
+### PR #43 — Crew Loyalty & Role Upgrades
+
+- Added saved crew loyalty (`crew.loyalty_by_member`, save v8).
+- Crew now earns loyalty when roles visibly help: lookout warnings, getaway
+  escapes, supply discounts/deliveries, crowd/nightclub hype, caught-penalty
+  mitigation, and cleanup mitigation.
+- Existing role bonuses now scale gently by loyalty while preserving the
+  data-defined baseline around 50 loyalty.
+- The blackbook Crew page shows loyalty, loyalty state, and role scale.
+- Review found and fixed a migration edge: older saves seed from immutable
+  member-data loyalty, not mutated runtime loyalty.
+
+### PR #44 — Milestone 32: Battle Prototype Paper Cut
+
+- Added `docs/BATTLE_PAPER_CUT_2026-06-19.md`.
+- Compared dance, rap/verbal, and graffiti wall duel prototypes.
+- Decision: no separate v3 battle minigame. The Undertow already covers the
+  strongest 60-second timing interaction.
+- Recommended post-candidate battle direction: rival wall duels tied to paint,
+  territory, heat, crew, and rival stakes.
+
+## Verification
+
+- PR #43: 3 clean headless smoke runs and 1 clean windowed boot.
+- PR #44: 3 clean headless smoke runs and 1 clean windowed boot.
+- Final merged `main`: `75dd77e Complete battle paper cut`.
+
+## Current Project State
+
+- v3 milestones 27–32 are complete.
+- Product_reqs.md items are implemented.
+- The main feature blocker is now **M33 Playtest Feedback Pass**, which needs
+  real tester observations rather than more speculative feature work.
+- M34 v3 demo candidate should follow only after M33 findings are captured and
+  fixed.
+
+## Recommended Next Features / Milestones
+
+1. **M33 Playtest feedback pass.** Run a tester through alias selection to
+   Rooftop Row claim, capture confusion points, and make only prompt/data/UI
+   fixes tied to findings.
+2. **M34 v3 demo candidate.** Freeze after M33, run the full verification
+   loop, update known issues, and tag a candidate.
+3. **Rival wall duels.** First post-candidate battle feature: a contested-wall
+   challenge that swings influence without bypassing normal territory play.
+4. **Battle Specialist crew role.** Add only after wall duels exist; let the
+   role reduce duel penalties or boost duel scoring.
+5. **Crew morale layer.** Small team-level morale affected by gallery sales,
+   rival losses, and loyalty milestones.
+6. **Sketch editor / blackbook customization.** Save a bench sketch or
+   freehand motif and reuse it as a custom piece.
+7. **Cap/can inventory expansion.** Generalize fat cap into skinny/fat/
+   calligraphy caps with paint-cost, detail, and suspicion tradeoffs.
+8. **Rival alliance / ceasefire path.** Dialogue/data path for softening one
+   crew relationship without building full faction diplomacy.
+9. **MultiMesh street-detail pass.** Reduce the repeated street-detail node
+   count flagged by runtime budgets before adding a fourth district.
+10. **Outfit / alias presentation pass.** Let rank or crew loyalty unlock
+    visible outfit accents and stronger alias identity.
+11. **Safehouse room depth.** Small room upgrades that display earned posters,
+    sketches, and crew mementos without becoming a decorating sim.
+12. **Fourth district groundwork.** Scope Downtown or Gallery Quarter only
+    after M34 and the runtime budget confirms headroom.
+13. **Playtest metrics export polish.** Make capture files easier to compare
+    between testers and candidate builds.
