@@ -287,6 +287,12 @@ Review focus:
 * No rhythm-game framework or complex combat unless the paper cut earns
   it.
 
+**Status:** complete in PR #44. `docs/BATTLE_PAPER_CUT_2026-06-19.md`
+compares dance, rap/verbal, and graffiti wall duel prototypes. Decision:
+do not build a separate v3 battle minigame; The Undertow already covers the
+strongest 60-second timing interaction. Revisit battles post-candidate as
+rival wall duels tied to paint, territory, heat, crew, and rival stakes.
+
 ## Milestone 33: Playtest Feedback Pass
 
 Purpose: convert outside observations into fixes without widening scope.
