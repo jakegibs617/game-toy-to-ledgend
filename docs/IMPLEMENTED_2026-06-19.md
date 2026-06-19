@@ -26,7 +26,7 @@ review → merge loop.
 - Recommended post-candidate battle direction: rival wall duels tied to paint,
   territory, heat, crew, and rival stakes.
 
-### PR #45 — Rival Wall Duels
+### PR #46 — Rival Wall Duels
 
 - Implemented the post-M32 rival wall duel direction as a lightweight
   contested-wall callout instead of a separate battle minigame.
@@ -46,8 +46,8 @@ review → merge loop.
 
 - PR #43: 3 clean headless smoke runs and 1 clean windowed boot.
 - PR #44: 3 clean headless smoke runs and 1 clean windowed boot.
-- PR #45: 3 clean headless smoke runs and 1 clean windowed boot.
-- Final merged `main`: `5a4fd77` Merge pull request #46.
+- PR #46: 3 clean headless smoke runs and 1 clean windowed boot.
+- Final pushed `main`: `308983b` Update implementation report after rival duel merge.
 
 ## Current Project State
 
