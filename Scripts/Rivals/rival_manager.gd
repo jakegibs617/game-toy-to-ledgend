@@ -16,6 +16,9 @@ const TICK_SECONDS := 12.0
 const MIN_RESPONSE_DELAY_MS := 30000
 const WALL_DUEL_REP_BONUS := 18
 const WALL_DUEL_CREW_REP := 4
+const WALL_DUEL_FORFEIT_REP_PENALTY := 10
+const WALL_DUEL_FORFEIT_CREW_REP_PENALTY := 2
+const WALL_DUEL_FORFEIT_MORALE_PENALTY := 8
 ## A wall duel the writer never answers is not a permanent free pass: the
 ## crew holds the wall and the callout forfeits after this many simulation
 ## ticks (one tick = TICK_SECONDS), with a last-chance warning one tick out.
@@ -229,6 +232,9 @@ func _open_wall_duel(wall_id: String, crew: Dictionary, pressure: String) -> voi
 		"startedAt": Time.get_unix_time_from_system(),
 		"rewardRep": CrewManager.wall_duel_rep_reward(WALL_DUEL_REP_BONUS),
 		"rewardCrewRep": CrewManager.wall_duel_crew_rep_reward(WALL_DUEL_CREW_REP),
+		"forfeitRepPenalty": int(crew.get("duelForfeitRepPenalty", WALL_DUEL_FORFEIT_REP_PENALTY)),
+		"forfeitCrewRepPenalty": int(crew.get("duelForfeitCrewRepPenalty", WALL_DUEL_FORFEIT_CREW_REP_PENALTY)),
+		"forfeitMoralePenalty": int(crew.get("duelForfeitMoralePenalty", WALL_DUEL_FORFEIT_MORALE_PENALTY)),
 		"ticksLeft": WALL_DUEL_DEADLINE_TICKS,
 		"warned": false,
 	}
@@ -270,15 +276,24 @@ func forfeit_wall_duel(wall_id: String, expired := false) -> bool:
 		return false
 	var duel: Dictionary = active_wall_duels[wall_id]
 	active_wall_duels.erase(wall_id)
+	var rep_penalty := mini(maxi(int(duel.get("forfeitRepPenalty", WALL_DUEL_FORFEIT_REP_PENALTY)), 0), GameState.reputation)
+	var crew_penalty := maxi(int(duel.get("forfeitCrewRepPenalty", WALL_DUEL_FORFEIT_CREW_REP_PENALTY)), 0)
+	var morale_penalty := maxi(int(duel.get("forfeitMoralePenalty", WALL_DUEL_FORFEIT_MORALE_PENALTY)), 0)
 	GameState.note_rival_duel_loss()
-	CrewManager.adjust_morale(-8, "duel lost")
+	if rep_penalty > 0:
+		GameState.add_reputation(-rep_penalty)
+	if crew_penalty > 0:
+		GameState.add_crew_rep(-crew_penalty)
+	CrewManager.adjust_morale(-morale_penalty, "duel lost")
 	var wall_name := String(WallManager.wall_def(wall_id).get("name", wall_id))
 	var crew_name := String(duel.get("crewName", "the rival crew"))
+	var penalty_text := " -%d rep, -%d crew rep." % [rep_penalty, crew_penalty]
 	if expired:
-		rival_event.emit("Wall duel lost: you let the callout cool and %s kept %s." % [
-			crew_name, wall_name], wall_id)
+		var message := "Wall duel lost: you let the callout cool and %s kept %s.%s" % [
+			crew_name, wall_name, penalty_text]
+		rival_event.emit(message, wall_id)
 	else:
-		rival_event.emit("Wall duel lost: %s stayed with %s." % [wall_name, crew_name], wall_id)
+		rival_event.emit("Wall duel lost: %s stayed with %s.%s" % [wall_name, crew_name, penalty_text], wall_id)
 	return true
 
 func save_state() -> Dictionary:

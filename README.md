@@ -204,7 +204,9 @@ static rooster GLB, then the old debug capsule.
   crew's own graffiti. That response now opens a lightweight **rival wall
   duel** callout: repaint the same challenged wall to answer it, claim a
   small rep/crew-rep bonus, and record the win streak in the blackbook's
-  City page. Active callouts and pending rival responses are saved. When a
+  City page. Ignoring the callout until the deadline docks rep, crew rep,
+  and morale using crew-tuned data. Active callouts and pending rival
+  responses are saved. When a
   response is due, a rival tagger wearing the Hooded Fox Warrior model runs
   in from the side, sprays the wall, and flees
   (`Scripts/Rivals/rival_tagger.gd`, capsule fallback when the GLBs are

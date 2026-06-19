@@ -723,6 +723,9 @@ func _smoke_rival_wall_duels() -> void:
 	RivalManager._open_wall_duel(deadline_id, crew, "cross_out")
 	var deadline_duel: Dictionary = RivalManager.active_wall_duels[deadline_id]
 	assert(int(deadline_duel["ticksLeft"]) == RivalManager.WALL_DUEL_DEADLINE_TICKS)
+	var expected_forfeit_rep := int(deadline_duel["forfeitRepPenalty"])
+	var expected_forfeit_crew := int(deadline_duel["forfeitCrewRepPenalty"])
+	var expected_forfeit_morale := int(deadline_duel["forfeitMoralePenalty"])
 	var deadline_events: Array = []
 	RivalManager.rival_event.connect(func(msg: String, wid: String) -> void:
 		deadline_events.append([msg, wid]))
@@ -734,13 +737,19 @@ func _smoke_rival_wall_duels() -> void:
 	assert(deadline_events.any(func(e: Array) -> bool:
 		return String(e[0]).begins_with("Last chance")))
 	var losses_before := GameState.rival_duel_losses
+	var rep_before_loss := GameState.reputation
+	var crew_before_loss := GameState.crew_rep
+	var morale_before_loss := CrewManager.team_morale
 	RivalManager._age_wall_duels()  # ticksLeft hits 0 -> forfeit
 	assert(not RivalManager.active_wall_duels.has(deadline_id))
 	assert(GameState.rival_duel_losses == losses_before + 1)
 	assert(GameState.rival_duel_streak == 0)
+	assert(GameState.reputation == rep_before_loss - expected_forfeit_rep)
+	assert(GameState.crew_rep == crew_before_loss - expected_forfeit_crew)
+	assert(CrewManager.team_morale == maxi(morale_before_loss - expected_forfeit_morale, 0))
 	assert(deadline_events.any(func(e: Array) -> bool:
-		return String(e[0]).contains("let the callout cool")))
-	print("SMOKE: rival wall duel answered, deadline forfeits unanswered callout")
+		return String(e[0]).contains("let the callout cool") and String(e[0]).contains("rep")))
+	print("SMOKE: rival wall duel answered, deadline forfeit docks rep/crew/morale")
 
 ## Assumes: the first wall is crossed out and mission 1 is active.
 ## Drives the first mission beats (Milestone 7) through the same

@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-06-20 — v4 Duel Forfeit Penalties
+
+Adds Plan_v4 rival-conflict candidate 5: ignoring a wall duel now has tuned
+teeth instead of only incrementing the loss counter.
+
+- `Data/crews.json` now carries data-driven `duelForfeitRepPenalty`,
+  `duelForfeitCrewRepPenalty`, and `duelForfeitMoralePenalty` values per crew.
+- `RivalManager` stamps those penalties onto each open wall duel next to the
+  existing reward values, so saved active callouts keep their stakes.
+- Forfeiting manually or by deadline now docks public rep, crew rep, and morale
+  through the existing progression hooks, with smoke coverage for deadline
+  expiry.
+
 ## 2026-06-20 — v4 Difficulty Presets
 
 Adds Plan_v4 candidate 3 as a small data-driven accessibility/balance layer.

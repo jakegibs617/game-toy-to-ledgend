@@ -10,6 +10,9 @@
     "fillColor": "#e8e3d9",
     "outlineColor": "#16161d",
     "crossOutColor": "#e0301e",
+    "duelForfeitRepPenalty": 12,
+    "duelForfeitCrewRepPenalty": 3,
+    "duelForfeitMoralePenalty": 9,
     "territory": ["wall_mill_01", "wall_mill_02", "wall_landmark_01"],
     "relationshipToPlayer": -10
   },
@@ -24,6 +27,9 @@
     "fillColor": "#9fd8cb",
     "outlineColor": "#10202b",
     "crossOutColor": "#7fe7dc",
+    "duelForfeitRepPenalty": 8,
+    "duelForfeitCrewRepPenalty": 2,
+    "duelForfeitMoralePenalty": 7,
     "territory": ["wall_alley_n_01", "wall_alley_n_02", "wall_canal_01", "wall_canal_02", "wall_canal_05"],
     "relationshipToPlayer": 0
   },
@@ -38,6 +44,9 @@
     "fillColor": "#c0c5ce",
     "outlineColor": "#2b2d42",
     "crossOutColor": "#ff9f1c",
+    "duelForfeitRepPenalty": 10,
+    "duelForfeitCrewRepPenalty": 3,
+    "duelForfeitMoralePenalty": 8,
     "territory": ["wall_loading_01", "wall_lot_01", "wall_rooftop_row_03", "wall_rooftop_row_05"],
     "relationshipToPlayer": -5
   }
