@@ -17,7 +17,8 @@ const SAVE_PATH := "user://toy_to_legend_save.json"
 ## v7 (nightlife): "game" section gains nightlife_best (per-club hype).
 ## v8 (crew loyalty): crew section tracks loyalty_by_member.
 ## v9 (rival wall duels): game gains duel record counters; save gains rivals.
-const SAVE_VERSION := 9
+## v10 (safehouse rest): game gains safehouse_rests.
+const SAVE_VERSION := 10
 
 var _player: Player
 
@@ -152,6 +153,10 @@ func _migrate(data: Dictionary) -> Dictionary:
 			data["game"]["rival_duel_streak"] = int(data["game"].get("rival_duel_streak", 0))
 		data["rivals"] = data.get("rivals", {})
 		version = 9
+	if version < 10:
+		if data.has("game"):
+			data["game"]["safehouse_rests"] = int(data["game"].get("safehouse_rests", 0))
+		version = 10
 	data["version"] = version
 	return data
 

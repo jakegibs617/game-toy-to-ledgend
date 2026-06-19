@@ -33,7 +33,7 @@ extends a section.
 
 | Autoload | File | Owns |
 |---|---|---|
-| GameState | Scripts/Data/game_state.gd | Alias selection, rep, rank, paint, cash, selected type, unlocked types, fill palette, current district, input map |
+| GameState | Scripts/Data/game_state.gd | Alias selection, rep, rank, paint, cash, selected type, unlocked types, fill palette, current district, safehouse rest count, input map |
 | WallManager | Scripts/Walls/wall_manager.gd | Wall defs/styles JSON, wall spawning, **wall_states** (the world's memory), player/rival/buff paint paths, rep formula |
 | RivalManager | Scripts/Rivals/rival_manager.gd | Rival crews, initial territory, retaliation queue, cross-outs |
 | CrewManager | Scripts/Crew/crew_manager.gd | NPC spawning, recruitment stages, crew roles, loyalty-scaled role bonuses, crew save state |

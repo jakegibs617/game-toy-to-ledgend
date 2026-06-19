@@ -130,6 +130,10 @@ func decay_amount(district: Dictionary, player_share: float) -> int:
 		return 0
 	return roundi(float(district.get("decayRep", 4)) * StatsManager.decay_multiplier())
 
+func advance_decay_ticks(ticks: int) -> void:
+	for _i in range(maxi(ticks, 0)):
+		_on_decay_tick()
+
 ## The §11 loop: standing work keeps paying a trickle; letting a block
 ## slip below the claim threshold costs rep every tick. Holding
 ## territory is now upkeep, not a trophy. Decay only bites where the
