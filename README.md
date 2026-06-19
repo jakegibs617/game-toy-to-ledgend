@@ -68,6 +68,7 @@ changes nothing else. The headless smoke run prints the same readout
 | 1–6 | Select can: Tag / Throw-up / Piece / Stencil / Roller / Mural (in shop: buy/delivery; in dialogue: choose; in blackbook: flip pages; seated on a bench: sketch that tag style) |
 | [ / ] | Previous / next unlocked can — also how you reach Sticker & Wheatpaste, which sit past the six number slots |
 | C | Cycle fill color after Lupe unlocks colors (also in the freehand canvas) |
+| K | Cycle equipped spray cap once you own more than the stock cap (paint cost / rep / suspicion trade-offs) |
 | F | Freehand piece on the focused wall (needs the Piece can): hold LMB to spray, E/Enter commit, Esc bail |
 | P | Perk chooser (spend rank-up perk points; stats level by doing) |
 | F5 | Quick save |
@@ -77,9 +78,9 @@ changes nothing else. The headless smoke run prints the same readout
 | Esc | Toggle mouse capture |
 
 Controller: left shoulder runs, A jumps, X interacts, Y cycles color,
-right shoulder opens freehand, Back opens the blackbook, d-pad up opens
-perks, d-pad down opens the map, d-pad left/right cycles cans, Start
-toggles mouse capture.
+B cycles spray cap, right shoulder opens freehand, Back opens the
+blackbook, d-pad up opens perks, d-pad down opens the map, d-pad
+left/right cycles cans, Start toggles mouse capture.
 
 New games open on the title/alias panel. Pick a writer name, then walk
 up to a wall panel (the lighter slabs on building faces) until the

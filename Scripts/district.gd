@@ -1116,13 +1116,61 @@ func _smoke_supplies() -> void:
 	assert(SupplyManager.buy("paint_pack")["ok"])
 	assert(GameState.paint == paint_now + int(pack.get("paint", 0)))
 	assert(GameState.cash == cash_now - SupplyManager.item_price(pack))
-	# The fat cap discounts bigger work but never below 1 paint.
+	# Cap inventory (Plan.md §21): the stock cap is the no-trade-off default,
+	# and buying a cap adds it to the kit and equips it. The fat cap is wide
+	# coverage — 1 less paint — but loud, so it adds gear suspicion.
+	assert(SupplyManager.equipped_cap == "stock")
+	assert(SupplyManager.owns_cap("stock") and not SupplyManager.owns_cap("fat"))
+	assert(SupplyManager.cap_paint_delta() == 0 and is_equal_approx(SupplyManager.cap_rep_multiplier(), 1.0))
 	var piece_cost_before_cap := SupplyManager.paint_cost(WallManager.styles["piece"])
 	assert(SupplyManager.buy("fat_cap")["ok"])
+	assert(SupplyManager.equipped_cap == "fat" and SupplyManager.owns_cap("fat"))
+	assert(SupplyManager.cap_paint_delta() == -1 and SupplyManager.cap_suspicion() > 0.0)
 	assert(SupplyManager.paint_cost(WallManager.styles["piece"]) == piece_cost_before_cap - 1)
 	assert(SupplyManager.paint_cost(WallManager.styles["throwup"]) == 2)
 	assert(SupplyManager.paint_cost(WallManager.styles["tag"]) == 1)
 	assert(not SupplyManager.buy("fat_cap")["ok"])  # one-time upgrade
+	# Detail caps trade the other way: calligraphy pays more rep but costs more
+	# paint, skinny adds rep for free. Buy both; the last bought is equipped.
+	GameState.add_cash(80)
+	assert(SupplyManager.buy("skinny_cap")["ok"])
+	assert(SupplyManager.buy("calligraphy_cap")["ok"])
+	assert(SupplyManager.equipped_cap == "calligraphy")
+	assert(SupplyManager.cap_rep_multiplier() > 1.0)
+	assert(SupplyManager.paint_cost(WallManager.styles["tag"]) == int(WallManager.styles["tag"]["paintCost"]) + 1)
+	# A tag painted with calligraphy pays its rep multiplier over stock.
+	assert(SupplyManager.equip_cap("stock"))
+	var stock_paint: Dictionary = WallManager.paint_wall(WallManager.wall_nodes["wall_loading_01"], "tag")
+	assert(stock_paint["ok"])
+	var stock_rep := int(stock_paint["rep"])
+	assert(SupplyManager.equip_cap("calligraphy"))
+	var cal_paint: Dictionary = WallManager.paint_wall(WallManager.wall_nodes["wall_corner_01"], "tag")
+	assert(cal_paint["ok"])
+	var cal_rep := int(cal_paint["rep"])
+	var stock_def: Dictionary = WallManager.wall_def("wall_loading_01")
+	var cal_def: Dictionary = WallManager.wall_def("wall_corner_01")
+	# Normalise by each wall's visibility×risk so the comparison is the cap only.
+	var stock_weight := float(stock_def.get("visibility", 1)) * float(stock_def.get("risk", 1))
+	var cal_weight := float(cal_def.get("visibility", 1)) * float(cal_def.get("risk", 1))
+	assert(float(cal_rep) / cal_weight > float(stock_rep) / stock_weight)
+	# Cycling moves through owned caps only; equipping an unowned cap is refused.
+	assert(not SupplyManager.equip_cap("nope"))
+	var equipped_before := SupplyManager.equipped_cap
+	SupplyManager.cycle_cap(1)
+	assert(SupplyManager.equipped_cap != equipped_before)
+	# Cap kit survives save/load, and v11 saves migrate with cap keys seeded.
+	SupplyManager.equip_cap("skinny")
+	var cap_save := SupplyManager.save_state()
+	assert(String(cap_save["equipped_cap"]) == "skinny")
+	SupplyManager.equipped_cap = "stock"
+	SupplyManager.load_state(cap_save)
+	assert(SupplyManager.equipped_cap == "skinny" and SupplyManager.owns_cap("calligraphy"))
+	var migrated_v11 := SaveManager._migrate({"version": 11, "supplies": {}})
+	assert(int(migrated_v11["version"]) == SaveManager.SAVE_VERSION)
+	assert(migrated_v11["supplies"].has("owned_caps") and String(migrated_v11["supplies"]["equipped_cap"]) == "stock")
+	# Leave the fat cap equipped so later sections read the historical -1 cost.
+	SupplyManager.equip_cap("fat")
+	print("SMOKE: caps — stock default, fat -1 paint, calligraphy +rep, cycle/save OK")
 	# A rare color joins the palette and gets selected.
 	var palette_size: int = GameState.fill_palette().size()
 	assert(SupplyManager.buy("burner_chrome")["ok"])

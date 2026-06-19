@@ -167,8 +167,10 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 * ✅ Cash + paint resources; Lupe's shop; paint discounts; delivery runs;
   rare colors; fat cap upgrade; stencil kit.
 * ✅ Gallery cash + train pass-through rep as alternate income.
-* 🟡 Caps as a spray-behavior modifier system (only fat cap exists; not a
-  full cap inventory). Mops/markers/rollers/gloves/masks not modeled.
+* ✅ Cap inventory: Stock/Skinny/Fat/Calligraphy spray caps
+  (`Data/caps.json`), one equipped at a time, trading paint cost, rep, and
+  gear suspicion. Cycle with `K`; shown in the wall prompt.
+* 🟡 Mops/markers/rollers/gloves/masks not modeled.
 
 ### Blackbook, map & safehouse (Plan.md §22, §23, §24)
 * ✅ Blackbook (alias, rank, crew, styles, missions, rivals, service log)

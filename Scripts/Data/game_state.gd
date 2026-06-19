@@ -310,6 +310,8 @@ func gear_suspicion_multiplier() -> float:
 		multiplier += float(WallManager.styles.get("wheatpaste", {}).get("gearSuspicion", 0.0))
 	var font_style := GraffitiFonts.style_def(selected_tag_font_style())
 	multiplier += float(font_style.get("gearSuspicion", 0.0))
+	# A bulky or showy spray cap adds bulk too (Plan.md §21 cap trade-offs).
+	multiplier += SupplyManager.cap_suspicion()
 	return multiplier
 
 func set_district(district_id: String) -> void:
@@ -441,7 +443,9 @@ func _setup_input_actions() -> void:
 	_add_key_action("toggle_mouse", KEY_ESCAPE)
 	_add_key_action("can_prev", KEY_BRACKETLEFT)
 	_add_key_action("can_next", KEY_BRACKETRIGHT)
+	_add_key_action("cycle_cap", KEY_K)
 	_add_joy_button_action("cycle_color", JOY_BUTTON_Y)
+	_add_joy_button_action("cycle_cap", JOY_BUTTON_B)
 	_add_joy_button_action("freehand_paint", JOY_BUTTON_RIGHT_SHOULDER)
 	_add_joy_button_action("perks", JOY_BUTTON_DPAD_UP)
 	_add_joy_button_action("crew_menu", JOY_BUTTON_BACK)

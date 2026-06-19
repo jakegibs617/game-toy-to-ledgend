@@ -699,12 +699,15 @@ func _refresh_prompt() -> void:
 		# selected can won't work on this wall.
 		var block := WallManager.paint_block_reason(GameState.selected_graffiti_type, def)
 		var block_text := ("\n" + block) if block != "" else ""
-		_prompt_label.text = "%s  |  Owner: %s  |  Risk %d  |  Visibility %d  |  Surface: %s\n[E] Paint %s (%d paint)   %s%s%s" % [
+		var cap_hint := ""
+		if SupplyManager.owned_caps.size() > 1:
+			cap_hint = "   [K] Cap: %s" % String(SupplyManager.equipped_cap_def().get("name", "Stock"))
+		_prompt_label.text = "%s  |  Owner: %s  |  Risk %d  |  Visibility %d  |  Surface: %s\n[E] Paint %s (%d paint)   %s%s%s%s" % [
 			_focused.display_name(), owner_id,
 			int(def.get("risk", 1)), int(def.get("visibility", 1)),
 			String(def.get("surfaceType", "plain")),
 			style.get("label", "?"), SupplyManager.paint_cost(style),
-			"  ".join(cans), freehand_hint, block_text,
+			"  ".join(cans), cap_hint, freehand_hint, block_text,
 		]
 	elif _focused.has_method("prompt_text"):
 		_prompt_label.text = _focused.prompt_text()
