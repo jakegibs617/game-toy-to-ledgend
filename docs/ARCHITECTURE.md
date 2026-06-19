@@ -147,7 +147,7 @@ fields `push_error` at startup, and the smoke test asserts
 |---|---|---|
 | walls.json | array of wall defs (wallId, name, position, rotationY, size, color, risk, visibility, districtId, surfaceType, ownerCrewId) | WallManager |
 | graffiti_styles.json | dict type → {label, baseValue, paintCost, heatValue, colors; optional: surfaces[] (surface rule), requiresCrew, exposure (patrol witness range ×), notes/lockedHint (blackbook)} | WallManager, SupplyManager, PatrolManager, HUD |
-| crews.json | rival crew defs (tag, colors, aggression, home walls) | RivalManager |
+| crews.json | rival crew defs (tag, colors, aggression, home walls, duel forfeit penalties) | RivalManager |
 | districts.json | array (districtId, name, claimThreshold, claimRepBonus, payoutPerWeight, decayRep, arrival, optional travel) | TerritoryManager, district.gd (travel points) |
 | missions.json | {actors: [...], chains: [{chainId, trigger?, completeMessage, missions: [...]}]}; actors may include `visuals` manifests | MissionManager |
 | ambient_npcs.json | ambient locals (npcId, label, districtId, waypoints, reactRange, optional `visuals`) | district.gd (spawns AmbientNpc) |
