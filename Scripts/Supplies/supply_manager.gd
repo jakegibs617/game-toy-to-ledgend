@@ -101,6 +101,8 @@ func buy(item_id: String) -> Dictionary:
 	if not def.get("repeatable", false):
 		owned[item_id] = true
 	item_bought.emit(item_id)
+	if CrewManager.has_role("supply_runner"):
+		CrewManager.note_role_helped("supply_runner", 1)
 	supply_event.emit("Bought %s — %s. (-$%d)" % [item_name, String(def.get("desc", "")), price])
 	return {"ok": true}
 
@@ -155,6 +157,8 @@ func resolve_delivery() -> void:
 	GameState.add_cash(cash)
 	HeatManager.add_heat(float(delivery.get("heat", 0.0)))
 	delivery_completed.emit(cash)
+	if CrewManager.has_role("supply_runner"):
+		CrewManager.note_role_helped("supply_runner", 3)
 	supply_event.emit("Package delivered. (+$%d) Wrong people clocked the handoff — heat's up." % cash)
 
 func save_state() -> Dictionary:

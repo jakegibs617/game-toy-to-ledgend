@@ -97,6 +97,8 @@ func resolve_catch(guard: PatrolGuard) -> void:
 		* CrewManager.caught_paint_multiplier()), GameState.paint)
 	if paint_loss > 0:
 		GameState.add_paint(-paint_loss)
+	if CrewManager.has_role("fixer"):
+		CrewManager.note_role_helped("fixer", 3)
 	player_caught.emit(guard)
 	patrol_event.emit("CAUGHT — security moved you along. -%d rep, -%d paint." % [rep_loss, paint_loss])
 	HeatManager.settle(float(config.get("caughtHeatCeiling", 25.0)))
@@ -139,6 +141,7 @@ func _maybe_lookout_warning() -> void:
 			var now := Time.get_ticks_msec()
 			if now - _last_warn_ms >= WARN_COOLDOWN_MS:
 				_last_warn_ms = now
+				CrewManager.note_role_helped("lookout", 1)
 				patrol_event.emit('%s: "Five-oh close by — keep it moving."' % String(lookout["alias"]))
 			return
 

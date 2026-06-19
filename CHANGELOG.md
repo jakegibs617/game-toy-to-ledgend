@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-06-19 — Crew Loyalty & Role Upgrades
+
+Turns the previously static crew loyalty data into a saved, gameplay-facing
+upgrade layer for the recruited crew.
+
+- `CrewManager` now tracks `loyalty_by_member` up to 100, exposes crew
+  loyalty text/role scaling, and gently upgrades role bonuses as loyalty
+  rises. At 50 loyalty the data-defined bonus is unchanged; higher loyalty
+  nudges the role above baseline without becoming a full relationship sim.
+- Crew members earn loyalty when their role visibly helps: Moth for lookout
+  warnings, Metro for getaway escapes, Stash for shop/delivery help, Echo for
+  crowd/nightclub hype, and Fix for softened penalties or cleanup mitigation.
+- The blackbook Crew page shows each recruited member's loyalty, loyalty
+  state, and current role scale alongside the existing role description.
+- Save schema bumps to **v8** for the crew loyalty ledger, with migration and
+  smoke coverage for older saves.
+- Smoke coverage verifies loyalty gain, save/load restoration, v8 migration,
+  and reward assertions that use the multiplier before role-help loyalty is
+  awarded.
+
 ## 2026-06-18 — Fixer Crew Role
 
 Finishes the standalone crew-role backlog that can ship before battles.

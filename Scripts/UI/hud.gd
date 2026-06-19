@@ -648,6 +648,8 @@ func _on_nightclub_finished(payout: Dictionary) -> void:
 	GameState.add_cash(int(payout.get("cash", 0)))
 	var crew_gain := int(payout.get("crewRep", 0)) if new_best else 0
 	GameState.add_crew_rep(crew_gain)
+	if hype > 0 and CrewManager.has_role("hype"):
+		CrewManager.note_role_helped("hype", 2)
 	Sfx.play("claim")
 	var msg := "Danced %d%% hype — +%d Style XP, +$%d tips." % [
 		hype, int(payout.get("styleXp", 0)), int(payout.get("cash", 0))]

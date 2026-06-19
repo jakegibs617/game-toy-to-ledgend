@@ -141,6 +141,7 @@ func _on_tick() -> void:
 ## section 12: higher heat, faster cleanup response). At most one wall
 ## is buffed per sweep so the city never wipes the whole map at once.
 func _run_cleanup_sweep() -> void:
+	var fixer_helped := false
 	for wall_id in WallManager.wall_states:
 		var state: Dictionary = WallManager.wall_states[wall_id]
 		if state.get("currentGraffiti") == null:
@@ -149,10 +150,16 @@ func _run_cleanup_sweep() -> void:
 		var chance := float(def.get("cleanupChance", 0.1))
 		if String(state.get("ownerCrewId", "")) == "player":
 			chance *= 1.0 + heat_in(String(def.get("districtId", ""))) / 40.0
-			chance *= CrewManager.cleanup_chance_multiplier()
+			if CrewManager.has_role("fixer"):
+				fixer_helped = true
+				chance *= CrewManager.cleanup_chance_multiplier()
 		if _rng.randf() <= minf(chance, 0.85):
+			if fixer_helped:
+				CrewManager.note_role_helped("fixer", 1)
 			force_cleanup(String(wall_id))
 			return
+	if fixer_helped:
+		CrewManager.note_role_helped("fixer", 1)
 
 func _set_heat(district_id: String, new_heat: float, gained: float) -> void:
 	var old_heat := heat_in(district_id)

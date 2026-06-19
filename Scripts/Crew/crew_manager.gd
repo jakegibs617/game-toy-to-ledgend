@@ -16,11 +16,14 @@ const DataLoader := preload("res://Scripts/Data/data_loader.gd")
 ## Bringing somebody into the crew is the loudest pro-street move there
 ## is (§11 crew rep, Milestone 21).
 const RECRUIT_CREW_REP := 10
+const MAX_LOYALTY := 100
 
 var members: Dictionary = {}  # memberId -> definition + runtime "stage"
 var _parent: Node3D = null
 var _pickup_nodes: Dictionary = {}
 var _getaway_used_levels: Dictionary = {}
+var _loyalty_by_member: Dictionary = {}
+var _base_loyalty_by_member: Dictionary = {}
 
 func _ready() -> void:
 	var parsed: Variant = DataLoader.load_json(NPC_PATH, "CrewManager")
@@ -31,6 +34,8 @@ func _ready() -> void:
 				"CrewManager: member \"%s\"" % String(m.get("memberId", "?")))
 			m["stage"] = "not_met"
 			members[m["memberId"]] = m
+			_base_loyalty_by_member[m["memberId"]] = int(m.get("loyalty", 0))
+			_loyalty_by_member[m["memberId"]] = _base_loyalty_by_member[m["memberId"]]
 	TerritoryManager.district_claimed.connect(func(district_id: String, _district: Dictionary) -> void:
 		auto_fill_district(district_id))
 
@@ -117,6 +122,48 @@ func any_recruited() -> bool:
 			return true
 	return false
 
+func member_loyalty(member_id: String) -> int:
+	if not members.has(member_id):
+		return 0
+	return int(_loyalty_by_member.get(member_id, members[member_id].get("loyalty", 0)))
+
+func loyalty_text(member_id: String) -> String:
+	var value := member_loyalty(member_id)
+	if value >= 85:
+		return "ride-or-die"
+	if value >= 65:
+		return "solid"
+	if value >= 45:
+		return "warm"
+	if value >= 25:
+		return "testing you"
+	return "distant"
+
+## Crew role bonuses deepen as the member has reasons to trust the
+## writer. At 50 loyalty the data-defined bonus is unchanged; 100
+## loyalty is a small upgrade, not a second progression tree.
+func role_bonus_scale(role: String) -> float:
+	var member := first_with_role(role)
+	if member.is_empty():
+		return 0.0
+	return clampf(0.75 + float(member_loyalty(String(member["memberId"]))) / 200.0, 0.75, 1.25)
+
+func note_role_helped(role: String, amount := 2) -> void:
+	var member := first_with_role(role)
+	if member.is_empty() or amount <= 0:
+		return
+	var member_id := String(member["memberId"])
+	var before := member_loyalty(member_id)
+	var after := mini(MAX_LOYALTY, before + amount)
+	if after == before:
+		return
+	_loyalty_by_member[member_id] = after
+	member["loyalty"] = after
+	stage_changed.emit(member_id, String(member.get("stage", "")))
+	if after == MAX_LOYALTY or after / 10 > before / 10:
+		crew_event.emit("%s trusts the crew more. Loyalty %d/%d." % [
+			String(member.get("alias", member_id)), after, MAX_LOYALTY])
+
 ## Rico "Caps" (Milestone 22): once a block is already yours, he fills
 ## a few open/non-player walls with no-rep throw-ups so held territory
 ## looks lived-in. Passive crew work deliberately does not advance
@@ -158,6 +205,7 @@ func try_getaway_escape(heat_level: String) -> bool:
 	if bool(_getaway_used_levels.get(heat_level, false)):
 		return false
 	_getaway_used_levels[heat_level] = true
+	note_role_helped("getaway", 4)
 	crew_event.emit("%s calls the route — free escape at %s heat." % [
 		String(getaway.get("alias", "Metro")), heat_level])
 	return true
@@ -169,13 +217,15 @@ func shop_price_multiplier() -> float:
 	var runner := first_with_role("supply_runner")
 	if runner.is_empty():
 		return 1.0
-	return maxf(float(runner.get("shopPriceMultiplier", 1.0)), 0.5)
+	var raw := maxf(float(runner.get("shopPriceMultiplier", 1.0)), 0.5)
+	return 1.0 - (1.0 - raw) * role_bonus_scale("supply_runner")
 
 func delivery_multiplier() -> float:
 	var runner := first_with_role("supply_runner")
 	if runner.is_empty():
 		return 1.0
-	return maxf(float(runner.get("deliveryMultiplier", 1.0)), 1.0)
+	return 1.0 + (maxf(float(runner.get("deliveryMultiplier", 1.0)), 1.0) - 1.0) \
+		* role_bonus_scale("supply_runner")
 
 ## Hype role: turns spectators into louder street credit and helps club
 ## sets travel further. Crowd rep is a tiny integer tick, so data uses
@@ -184,13 +234,14 @@ func crowd_reaction_rep(base := 1) -> int:
 	var hype := first_with_role("hype")
 	if hype.is_empty():
 		return base
-	return maxi(base, base + int(hype.get("crowdRepBonus", 1)))
+	return maxi(base, base + roundi(float(hype.get("crowdRepBonus", 1)) * role_bonus_scale("hype")))
 
 func hype_payout_multiplier() -> float:
 	var hype := first_with_role("hype")
 	if hype.is_empty():
 		return 1.0
-	return maxf(float(hype.get("nightlifeMultiplier", 1.0)), 1.0)
+	return 1.0 + (maxf(float(hype.get("nightlifeMultiplier", 1.0)), 1.0) - 1.0) \
+		* role_bonus_scale("hype")
 
 ## Fixer role: knows which guard takes a warning and which city crew can
 ## be slowed down. Penalty multipliers lower caught costs; cleanup
@@ -199,19 +250,22 @@ func caught_rep_multiplier() -> float:
 	var fixer := first_with_role("fixer")
 	if fixer.is_empty():
 		return 1.0
-	return clampf(float(fixer.get("caughtRepMultiplier", 1.0)), 0.0, 1.0)
+	var raw := clampf(float(fixer.get("caughtRepMultiplier", 1.0)), 0.0, 1.0)
+	return 1.0 - (1.0 - raw) * role_bonus_scale("fixer")
 
 func caught_paint_multiplier() -> float:
 	var fixer := first_with_role("fixer")
 	if fixer.is_empty():
 		return 1.0
-	return clampf(float(fixer.get("caughtPaintMultiplier", 1.0)), 0.0, 1.0)
+	var raw := clampf(float(fixer.get("caughtPaintMultiplier", 1.0)), 0.0, 1.0)
+	return 1.0 - (1.0 - raw) * role_bonus_scale("fixer")
 
 func cleanup_chance_multiplier() -> float:
 	var fixer := first_with_role("fixer")
 	if fixer.is_empty():
 		return 1.0
-	return clampf(float(fixer.get("cleanupChanceMultiplier", 1.0)), 0.0, 1.0)
+	var raw := clampf(float(fixer.get("cleanupChanceMultiplier", 1.0)), 0.0, 1.0)
+	return 1.0 - (1.0 - raw) * role_bonus_scale("fixer")
 
 func save_state() -> Dictionary:
 	var stages := {}
@@ -220,6 +274,7 @@ func save_state() -> Dictionary:
 	return {
 		"stages": stages,
 		"getaway_used_levels": _getaway_used_levels.duplicate(true),
+		"loyalty_by_member": _loyalty_by_member.duplicate(true),
 	}
 
 func load_state(data: Dictionary) -> void:
@@ -230,7 +285,20 @@ func load_state(data: Dictionary) -> void:
 			stage_changed.emit(String(member_id), String(stages[member_id]))
 			_sync_pickup_for_member(String(member_id))
 	_getaway_used_levels = data.get("getaway_used_levels", {}).duplicate(true)
+	_loyalty_by_member = _default_loyalty_by_member()
+	var saved_loyalty: Dictionary = data.get("loyalty_by_member", {})
+	for member_id in saved_loyalty:
+		if members.has(member_id):
+			_loyalty_by_member[member_id] = int(saved_loyalty[member_id])
+	for member_id in members:
+		members[member_id]["loyalty"] = member_loyalty(String(member_id))
 	crew_changed.emit()
+
+func _default_loyalty_by_member() -> Dictionary:
+	var result := {}
+	for member_id in members:
+		result[member_id] = int(_base_loyalty_by_member.get(member_id, members[member_id].get("loyalty", 0)))
+	return result
 
 ## One status line per member for the crew menu.
 func status_text(m: Dictionary) -> String:
@@ -242,5 +310,9 @@ func status_text(m: Dictionary) -> String:
 		"item_recovered":
 			return "Return %s to them." % String(m.get("item", {}).get("name", "the item"))
 		"recruited":
-			return "Recruited — %s" % String(m.get("bonusDescription", ""))
+			return "Recruited — %s\n      Loyalty %d/%d (%s) · role scale %.2fx" % [
+				String(m.get("bonusDescription", "")),
+				member_loyalty(String(m["memberId"])), MAX_LOYALTY,
+				loyalty_text(String(m["memberId"])),
+				role_bonus_scale(String(m.get("role", "")))]
 	return ""

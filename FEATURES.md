@@ -139,9 +139,12 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 * ✅ Moth (lookout), Caps (filler), Metro (getaway), Stash (supply runner),
   Echo (hype), Fix (fixer) with recruitment mini-chains and passive role
   bonuses.
+* ✅ Loyalty/role upgrades: recruited crew earn saved loyalty when their
+  role helps, and loyalty gently scales their role bonus; blackbook shows
+  loyalty state and role scale.
 * ✅ Crew board in safehouse (opens blackbook Crew page).
 * 🟡 Remaining role: Battle Specialist (blocked on battle prototype);
-  loyalty/morale/upgrade paths.
+  morale paths.
 
 ### Missions (Plan.md §15, §16)
 * ✅ Data-driven mission chains (`missions.json`), triggered in order
@@ -187,7 +190,7 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
   self-disables headless).
 
 ### Save/load (Plan.md §32)
-* ✅ Versioned save (`SAVE_VERSION`, currently v6 era) with per-version
+* ✅ Versioned save (`SAVE_VERSION`, currently v8) with per-version
   migration; wall_states round-trip wholesale.
 
 ### Stickers & wheatpaste (Product_reqs.md)
@@ -245,7 +248,7 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 **Designed in Plan.md, deferred:**
 * Full §6 stat set (Nerve, Speed, Influence, Technique) and full §7 perk
   trees.
-* Remaining crew roles + loyalty/upgrade paths; rival alliances/duels.
+* Battle Specialist / morale paths; rival alliances/duels.
 * Safehouse depth (sketch editor, outfit, sleep-to-skip, room).
 * Additional districts (Downtown, Train Yard, Gallery Quarter, Substation).
 

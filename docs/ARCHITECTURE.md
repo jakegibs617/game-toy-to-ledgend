@@ -36,7 +36,7 @@ extends a section.
 | GameState | Scripts/Data/game_state.gd | Alias selection, rep, rank, paint, cash, selected type, unlocked types, fill palette, current district, input map |
 | WallManager | Scripts/Walls/wall_manager.gd | Wall defs/styles JSON, wall spawning, **wall_states** (the world's memory), player/rival/buff paint paths, rep formula |
 | RivalManager | Scripts/Rivals/rival_manager.gd | Rival crews, initial territory, retaliation queue, cross-outs |
-| CrewManager | Scripts/Crew/crew_manager.gd | NPC spawning, recruitment stages, crew roles (lookout/filler/getaway), crew save state |
+| CrewManager | Scripts/Crew/crew_manager.gd | NPC spawning, recruitment stages, crew roles, loyalty-scaled role bonuses, crew save state |
 | TerritoryManager | Scripts/Territory/territory_manager.gd | Per-district influence shares, claim threshold/bonus |
 | HeatManager | Scripts/Heat/heat_manager.gd | Per-district heat (`heat` reads the player's block), levels, rep multiplier, decay tick (absent blocks cool 2×), city cleanup (buffing) |
 | MissionManager | Scripts/Missions/mission_manager.gd | Mission **chains** from Data/missions.json (triggered in order, e.g. enter_district), world actors/zones, `notify_actor` |
@@ -154,7 +154,7 @@ fields `push_error` at startup, and the smoke test asserts
 | dialogue.json | speaker → node tree | DialogueManager |
 | supplies.json | shop catalog + delivery def (items may carry unlockType) | SupplyManager |
 | patrols.json | guard counts per heat level, speeds | PatrolManager |
-| npc_data.json | recruitable NPCs (Moth, Caps, Metro), item pickups, role metadata, optional `visuals` manifests | CrewManager |
+| npc_data.json | recruitable NPCs (Moth, Caps, Metro, Stash, Echo, Fix), item pickups, loyalty starts, role metadata, optional `visuals` manifests | CrewManager |
 | stats.json | stat defs (xpPerLevel, maxLevel, per-level effect coefficients) | StatsManager |
 | perks.json | tree → perk list (perkId, name, desc, effects dict) | StatsManager |
 | climbs.json | climb routes (climbId, label, position, top, fallChance, fallRepPenalty, optional targetDistrictId) | district.gd (spawns ClimbZone) |
@@ -197,7 +197,7 @@ Modal conventions:
 `user://toy_to_legend_save.json`, written by SaveManager with
 `version: SAVE_VERSION`. Sections per system: player transform,
 GameState fields (including crew_rep — the §11 public/crew split),
-WallManager (wall_states + next id), crew stages, territory claims,
+WallManager (wall_states + next id), crew stages/loyalty, territory claims,
 heat, mission progress, supplies owned, dialogue flags, stats/perks,
 train service state, the gallery sales log, and crew getaway route
 usage. Loading refuses saves newer than SAVE_VERSION. **Bump
