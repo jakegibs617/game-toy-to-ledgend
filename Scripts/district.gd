@@ -489,6 +489,7 @@ func _run_smoke_test() -> void:
 	_smoke_data_validation()
 	_smoke_world_hardening()
 	_smoke_walls_and_rivals()
+	_smoke_difficulty_presets()
 	_smoke_missions()
 	_smoke_crew()
 	_smoke_territory()
@@ -624,6 +625,50 @@ func _smoke_walls_and_rivals() -> void:
 	# that older smoke path stable and test duel resolution separately.
 	RivalManager.active_wall_duels.erase(first_id)
 	print("SMOKE: rival event = %s" % events[0][0])
+
+## Plan_v4 candidate 3: new-game difficulty/accessibility presets stay
+## data-driven and default to Standard so the v3 target route is unchanged.
+func _smoke_difficulty_presets() -> void:
+	assert(GameState.selected_difficulty_preset == "standard")
+	assert(GameState.difficulty_order.size() == 3)
+	var paint_pack := SupplyManager.item("paint_pack")
+	assert(SupplyManager.item_price(paint_pack) == int(paint_pack.get("price", 0)))
+
+	var cash_before := GameState.cash
+	var heat_before := HeatManager.heat
+	assert(GameState.set_difficulty_preset("relaxed"))
+	assert(GameState.difficulty_heat_multiplier() < 1.0)
+	HeatManager.add_heat(10.0)
+	assert(is_equal_approx(HeatManager.heat, heat_before + 8.0))
+	HeatManager.heat = heat_before
+	assert(SupplyManager.item_price(paint_pack) == 9)
+	assert(PatrolManager.guards_for_level("Watched") == 1)
+	GameState.cash = 100
+	GameState.add_cash(10)
+	assert(GameState.cash == 111)
+
+	assert(GameState.set_difficulty_preset("hard"))
+	assert(GameState.difficulty_heat_multiplier() > 1.0)
+	HeatManager.add_heat(10.0)
+	assert(is_equal_approx(HeatManager.heat, heat_before + 12.0))
+	HeatManager.heat = heat_before
+	assert(SupplyManager.item_price(paint_pack) == 12)
+	assert(PatrolManager.guards_for_level("Watched") == 3)
+	GameState.cash = 100
+	GameState.add_cash(10)
+	assert(GameState.cash == 109)
+
+	var saved := GameState.save_state()
+	GameState.set_difficulty_preset("standard")
+	GameState.load_state(saved)
+	assert(GameState.selected_difficulty_preset == "hard")
+	var migrated: Dictionary = SaveManager._migrate({"version": 12, "game": {}})
+	assert(int(migrated["version"]) == SaveManager.SAVE_VERSION)
+	assert(String(migrated["game"]["difficulty_preset"]) == "standard")
+	GameState.set_difficulty_preset("standard")
+	GameState.cash = cash_before
+	HeatManager.heat = heat_before
+	print("SMOKE: difficulty presets — Relaxed/Standard/Hard tune heat, patrols, and economy")
 
 ## Assumes: the main playthrough smoke checks are complete. Opens a
 ## contested-wall callout directly, then answers it through the normal

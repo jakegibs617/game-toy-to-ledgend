@@ -36,6 +36,7 @@ var _shop_panel: PanelContainer
 var _shop_label: Label
 var _alias_panel: PanelContainer
 var _alias_line: LineEdit
+var _alias_difficulty_label: Label
 var _dialogue_panel: PanelContainer
 var _dialogue_speaker_label: Label
 var _dialogue_label: Label
@@ -143,7 +144,8 @@ func _ready() -> void:
 		_commit_alias())
 	alias_box.add_child(_alias_line)
 	var alias_hint := UiKit.make_label(alias_box, 14, Color(1, 1, 1, 0.68))
-	alias_hint.text = "Enter/E to start · 1 NOVA · 2 KILO · 3 ECHO"
+	alias_hint.text = "Enter/E to start · 1 NOVA · 2 KILO · 3 ECHO · 4 Relaxed · 5 Standard · 6 Hard"
+	_alias_difficulty_label = UiKit.make_label(alias_box, 14, Color(1, 1, 1, 0.78))
 
 	_blackbook = BlackbookPanelScript.new()
 	_blackbook.set_anchors_preset(Control.PRESET_CENTER)
@@ -316,6 +318,7 @@ func _open_blackbook() -> void:
 func _open_alias() -> void:
 	_alias_panel.visible = true
 	_alias_line.text = GameState.alias
+	_refresh_alias_difficulty()
 	_alias_line.grab_focus()
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 
@@ -441,7 +444,26 @@ func _handle_alias_input(event: InputEvent) -> bool:
 	if event.is_action_pressed("slot_3"):
 		_commit_alias("ECHO")
 		return true
+	if event.is_action_pressed("slot_4"):
+		_select_alias_difficulty("relaxed")
+		return true
+	if event.is_action_pressed("slot_5"):
+		_select_alias_difficulty("standard")
+		return true
+	if event.is_action_pressed("slot_6"):
+		_select_alias_difficulty("hard")
+		return true
 	return false
+
+func _select_alias_difficulty(preset_id: String) -> void:
+	GameState.set_difficulty_preset(preset_id)
+	_refresh_alias_difficulty()
+
+func _refresh_alias_difficulty() -> void:
+	if _alias_difficulty_label == null:
+		return
+	_alias_difficulty_label.text = "Difficulty: %s — %s" % [
+		GameState.difficulty_name(), GameState.difficulty_description()]
 
 ## Keyboard conversation (Milestone 12): number keys pick choices,
 ## E/Esc walks away. Returns true when the event was consumed.

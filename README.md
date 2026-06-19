@@ -83,10 +83,11 @@ B cycles spray cap, right shoulder opens freehand, Back opens the
 blackbook, d-pad up opens perks, d-pad down opens the map, d-pad
 left/right cycles cans, Start toggles mouse capture.
 
-New games open on the title/alias panel. Pick a writer name, then walk
-up to a wall panel (the lighter slabs on building faces) until the
-prompt appears at the bottom of the screen, then press E. Once the Mill
-Yard is claimed, cross the canal footbridge east (E at the gate) into
+New games open on the title/alias panel. Pick a writer name and choose
+Relaxed, Standard, or Hard, then walk up to a wall panel (the lighter
+slabs on building faces) until the prompt appears at the bottom of the
+screen, then press E. Once the Mill Yard is claimed, cross the canal
+footbridge east (E at the gate) into
 Canal Side — Ghost Line turf with its own mission chain, walls, patrols,
 and heat: each block heats and cools on its own, and a block you leave
 cools twice as fast. Glowing rail-and-rung ladders mark climb routes up
@@ -189,6 +190,10 @@ static rooster GLB, then the old debug capsule.
   to `user://toy_to_legend_playtest_metrics.json`; the smoke test uses
   the same recorder for a repeatable baseline, balance snapshot, and
   diffable economy regression guard.
+- **Difficulty presets** (`Data/difficulty_presets.json`) — new games choose
+  Relaxed, Standard, or Hard from the alias modal. Standard is the tuned v3
+  baseline; the other presets scale heat gain, patrol density, shop prices,
+  and cash rewards without changing mission data.
 - **RivalManager** (autoload, `Scripts/Rivals/rival_manager.gd`,
   Milestone 4) — loads `Data/crews.json` (The Buff Kings, Ghost Line,
   Chrome Saints). Crews claim their home walls at session start. When

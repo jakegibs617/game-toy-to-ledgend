@@ -160,6 +160,8 @@ fields `push_error` at startup, and the smoke test asserts
 | climbs.json | climb routes (climbId, label, position, top, fallChance, fallRepPenalty, optional targetDistrictId) | district.gd (spawns ClimbZone) |
 | trains.json | scheduled cars (trainId, label, districtId, yardPosition, size, stop/travel ticks, paint/pass rep, heat, serviceDistricts; Ghost Local services all three districts) | TrainManager, district.gd (spawns TrainCar) |
 | gallery.json | gallery config (contactName, minRank, canvasLabel, canvasSize, basePay, repBase, crewRepCost, acceptScore) | GalleryManager |
+| difficulty_presets.json | presets (presetId, name, desc, heatMultiplier, patrolMultiplier, shopPriceMultiplier, cashRewardMultiplier) | GameState, HeatManager, PatrolManager, SupplyManager |
+| balance_regression_targets.json | balance snapshot paths with target/tolerance rows | PlaytestMetrics smoke guard |
 
 ## UI layer
 
@@ -178,8 +180,9 @@ Modal conventions:
   input first).
 * **Alias/title modal** (Milestone 23): new games start with
   `GameState.alias_chosen == false`; HUD opens the alias modal before
-  world input, `GameState.choose_alias` stores the name, and
-  `MissionManager.notify_alias_chosen` advances the first mission.
+  world input, slots 4-6 choose the difficulty preset,
+  `GameState.choose_alias` stores the name, and `MissionManager.notify_alias_chosen`
+  advances the first mission.
 * **Modal registry** (Plan_v2.md §3.1): `Hud._register_modals` lists
   every modal — alias, freehand, dialogue, shop, blackbook, map — in input
   priority order with `is_open`/`close`/`input` callables. The first

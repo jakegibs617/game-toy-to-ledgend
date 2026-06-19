@@ -38,6 +38,8 @@ func _ready() -> void:
 	WallManager.wall_painted.connect(_on_wall_painted)
 	HeatManager.heat_changed.connect(func(_heat: float, _gained: float) -> void:
 		_sync_guard_count())
+	GameState.difficulty_changed.connect(func(_preset_id: String) -> void:
+		_sync_guard_count())
 	# Milestone 18: patrols belong to a block. Crossing districts swaps
 	# the active guard set for the new block's routes, quietly.
 	GameState.district_changed.connect(func(_district_id: String) -> void:
@@ -59,7 +61,11 @@ func guards() -> Array[PatrolGuard]:
 ## Plan.md section 12: higher heat causes more patrols.
 func guards_for_level(level: String) -> int:
 	var per_level: Dictionary = config.get("guardsPerLevel", {})
-	return mini(int(per_level.get(level, 1)), _current_routes().size())
+	var base := int(per_level.get(level, 1))
+	var patrol_mult := GameState.difficulty_patrol_multiplier()
+	var scaled := ceili(float(base) * patrol_mult) if patrol_mult >= 1.0 \
+		else floori(float(base) * patrol_mult)
+	return mini(maxi(scaled, 1 if base > 0 else 0), _current_routes().size())
 
 ## Routes belonging to the player's current district (Milestone 18).
 func _current_routes() -> Array:
