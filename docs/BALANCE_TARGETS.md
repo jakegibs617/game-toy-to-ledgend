@@ -61,6 +61,11 @@ Rival wall-duel forfeits are tuned per crew in `Data/crews.json`. Penalties
 should sting enough to make ignoring callouts meaningful without undoing more
 than a normal mistake budget's worth of main-path progress.
 
+Morale-driven crew events are deliberately small. High morale can grant a
+single supply favor, and low morale suppresses one recruited role until the
+crew recovers; neither should rewrite the Standard target route's paint,
+cash, or reputation pacing.
+
 The main path should always have:
 
 * Piece unlocked before any required piece objective.

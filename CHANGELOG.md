@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-06-20 — v4 Morale-Driven Crew Events
+
+Adds Plan_v4 crew-depth candidate 9: morale now has data-driven moments
+that affect the crew without becoming a separate progression tree.
+
+- New `Data/crew_morale_events.json` defines one-shot high-morale favors and
+  the low-morale quiet/recovery thresholds.
+- `CrewManager` consumes those events: a fired-up crew can earn a small supply
+  favor once, while a rattled crew temporarily loses one recruited member's
+  role until morale recovers.
+- Save schema bumps to **v14** with `morale_events_used` and
+  `quiet_member_id`; older saves migrate with no events spent and nobody quiet.
+- Smoke coverage verifies the one-shot favor, quiet role suppression,
+  recovery, save/load, and v13 migration.
+
 ## 2026-06-20 — v4 Duel Forfeit Penalties
 
 Adds Plan_v4 rival-conflict candidate 5: ignoring a wall duel now has tuned

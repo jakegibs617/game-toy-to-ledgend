@@ -834,6 +834,8 @@ func _smoke_crew() -> void:
 	assert(chance_after < chance_before)
 	print("SMOKE: lookout bonus %.2f -> %.2f" % [chance_before, chance_after])
 
+	var paint_before_recruit_favor := GameState.paint
+	var cash_before_recruit_favor := GameState.cash
 	for member_id in ["npc_rico_caps", "npc_jay_metro", "npc_nia_stash", "npc_tali_echo", "npc_vale_fix", "npc_inez_clash"]:
 		var member: Dictionary = CrewManager.members[member_id]
 		CrewManager.interact(member_id)
@@ -851,6 +853,12 @@ func _smoke_crew() -> void:
 	assert(CrewManager.has_role("fixer"))
 	assert(CrewManager.has_role("battle_specialist"))
 	assert(GameState.crew_rep == CrewManager.RECRUIT_CREW_REP * 7)
+	var recruit_event_save := CrewManager.save_state()
+	assert(bool(recruit_event_save["morale_events_used"].get("stash_supply_favor", false)))
+	assert(GameState.paint == paint_before_recruit_favor + 12)
+	assert(GameState.cash == cash_before_recruit_favor + 15)
+	GameState.paint = paint_before_recruit_favor
+	GameState.cash = cash_before_recruit_favor
 	assert(get_node_or_null("npc_rico_caps/CharacterVisual/RicoCapsModel") != null)
 	assert(get_node_or_null("npc_jay_metro/CharacterVisual/JayMetroModel") != null)
 	assert(get_node_or_null("npc_nia_stash/CharacterVisual/NiaStashModel") != null)
@@ -911,20 +919,68 @@ func _smoke_crew() -> void:
 	assert(morale_events.any(func(m: String) -> bool: return m.begins_with("Crew morale")))
 	CrewManager.adjust_morale(-9999)  # clamps at the floor, never negative
 	assert(CrewManager.team_morale == 0)
+	# Plan_v4 morale events: high morale grants one crew favour; low morale
+	# makes one recruited member go quiet until the crew steadies.
+	CrewManager._quiet_member_id = ""
+	CrewManager.team_morale = 73
+	var paint_before_favor := GameState.paint
+	CrewManager.adjust_morale(20, "crew is rolling")
+	assert(CrewManager.team_morale >= 80)
+	assert(GameState.paint == paint_before_favor)
+	var high_save := CrewManager.save_state()
+	assert(bool(high_save["morale_events_used"].get("stash_supply_favor", false)))
+	# Triggering high morale again does not repeat the one-time favour.
+	paint_before_favor = GameState.paint
+	CrewManager.adjust_morale(1, "still rolling")
+	assert(GameState.paint == paint_before_favor)
+	assert(GameState.cash == cash_before_recruit_favor)
+
+	CrewManager.adjust_morale(-9999, "crew rattled")
+	assert(CrewManager.team_morale == 0)
+	assert(CrewManager.status_text(CrewManager.members["npc_mina_moth"]).contains("quiet"))
+	assert(not CrewManager.has_role("lookout"))
+	assert(is_equal_approx(CrewManager.role_bonus_scale("lookout"), 0.0))
+	var quiet_save := CrewManager.save_state()
+	assert(String(quiet_save["quiet_member_id"]) == "npc_mina_moth")
+	CrewManager.adjust_morale(45, "crew steadied")
+	assert(CrewManager.has_role("lookout"))
+	assert(not CrewManager.status_text(CrewManager.members["npc_mina_moth"]).contains("quiet"))
+	assert(morale_events.any(func(m: String) -> bool: return m.contains("back in the mix")))
+	# Recovery runs before high-morale checks, so a quiet supply runner can
+	# return and immediately carry the high-morale favor.
+	CrewManager._quiet_member_id = "npc_nia_stash"
+	CrewManager._morale_events_used.erase("stash_supply_favor")
+	CrewManager.team_morale = 79
+	var cash_before_recovery_favor := GameState.cash
+	paint_before_favor = GameState.paint
+	CrewManager.adjust_morale(1, "crew snapped back")
+	assert(CrewManager._quiet_member_id == "")
+	assert(GameState.paint == paint_before_favor + 12)
+	assert(GameState.cash == cash_before_recovery_favor + 15)
+	GameState.paint = paint_before_favor
+	GameState.cash = cash_before_recovery_favor
+
 	# Morale survives save/load and v10 saves migrate to a neutral mood.
 	CrewManager.team_morale = 73
 	var morale_save := CrewManager.save_state()
 	assert(int(morale_save["team_morale"]) == 73)
+	assert(morale_save.has("morale_events_used"))
+	assert(morale_save.has("quiet_member_id"))
 	CrewManager.team_morale = 5
 	CrewManager.load_state(morale_save)
 	assert(CrewManager.team_morale == 73)
 	var migrated_v10 := SaveManager._migrate({"version": 10, "crew": {}})
 	assert(int(migrated_v10["version"]) == SaveManager.SAVE_VERSION)
 	assert(int(migrated_v10["crew"]["team_morale"]) == CrewManager.MORALE_NEUTRAL)
+	var migrated_v13 := SaveManager._migrate({"version": 13, "crew": {}})
+	assert(int(migrated_v13["version"]) == SaveManager.SAVE_VERSION)
+	assert(migrated_v13["crew"].has("morale_events_used"))
+	assert(migrated_v13["crew"].has("quiet_member_id"))
 	# Leave the crew at neutral so later smoke sections read role bonuses
 	# exactly as they did before morale existed (factor 1.0).
 	CrewManager.team_morale = CrewManager.MORALE_NEUTRAL
-	print("SMOKE: crew morale — recruits lift mood, neutral = 1.0x, clamps + saves")
+	CrewManager._quiet_member_id = ""
+	print("SMOKE: crew morale — recruits lift mood, events fire once, quiet recovers")
 
 ## Assumes: the player holds the two mill walls; the landmark is still
 ## Buff Kings'. District influence reflects wall ownership (Milestone

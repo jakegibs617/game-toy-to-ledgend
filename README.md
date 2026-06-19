@@ -212,7 +212,8 @@ static rooster GLB, then the old debug capsule.
   (`Scripts/Rivals/rival_tagger.gd`, capsule fallback when the GLBs are
   missing).
 - **CrewManager** (autoload, `Scripts/Crew/crew_manager.gd`,
-  Milestones 5 and 22) — loads `Data/npc_data.json`. Mina "Moth"
+  Milestones 5 and 22) — loads `Data/npc_data.json` and
+  `Data/crew_morale_events.json`. Mina "Moth"
   joins as your Lookout (rivals back off more often and she warns you
   about patrols/retaliation), Rico "Caps" joins as your Filler
   (auto-fills throw-ups on a few open/non-player walls in claimed
@@ -220,7 +221,10 @@ static rooster GLB, then the old debug capsule.
   per heat level before normal security penalties apply). Stash, Echo,
   Fix, and Clash extend the crew into supply routes, hype, quiet favors,
   and rival wall-duel coaching. Recruited crew earn loyalty when their
-  role helps, and loyalty gently scales their role bonus. The blackbook's
+  role helps, and loyalty gently scales their role bonus. Crew morale adds
+  small data-driven events: high morale can pay a one-time supply favor, while
+  low morale can send one recruited member quiet until the crew steadies.
+  The blackbook's
   Crew page and the safehouse crew board track their status and loyalty.
 - **TerritoryManager** (autoload, `Scripts/Territory/territory_manager.gd`,
   Milestone 6) — loads `Data/districts.json` and scores district
