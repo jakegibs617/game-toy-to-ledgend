@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-06-20 — v4 Gloves & Masks
+
+Adds Plan_v4 supply candidate 17 by extending the equipped paint-tool lane
+with stealth gear.
+
+- Lupe now sells Nitrile Gloves and a Painter's Mask through the existing
+  `grantsCap`/equipped-tool path.
+- Gloves lower patrol suspicion with a small rep trade-off; the mask lowers
+  heat and suspicion at a larger identity/rep cost.
+- Smoke coverage buys both, verifies their heat/suspicion/rep trade-offs,
+  preserves the target cash baseline, and keeps tool save/load coverage.
+
 ## 2026-06-20 — v4 Safehouse Rest Beat
 
 Adds Plan_v4 atmosphere candidate 21 in a small, deterministic form.

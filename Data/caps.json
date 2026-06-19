@@ -52,6 +52,24 @@
       "heatMultiplier": 1.25,
       "suspicion": 0.04,
       "appliesTo": ["throwup", "piece"]
+    },
+    {
+      "capId": "gloves",
+      "name": "Nitrile Gloves",
+      "desc": "clean hands — lower patrol suspicion, no style boost",
+      "paintDelta": 0,
+      "repMultiplier": 0.95,
+      "heatMultiplier": 1.0,
+      "suspicion": -0.08
+    },
+    {
+      "capId": "mask",
+      "name": "Painter's Mask",
+      "desc": "keeps your face down — lower heat, less identity",
+      "paintDelta": 0,
+      "repMultiplier": 0.9,
+      "heatMultiplier": 0.85,
+      "suspicion": -0.04
     }
   ]
 }
