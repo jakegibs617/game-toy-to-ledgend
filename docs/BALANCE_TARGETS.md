@@ -46,6 +46,13 @@ Smoke now includes both systems in the balance snapshot (`caps` and `crew`)
 and asserts their headline ceilings: Calligraphy stays at or below 1.25x
 rep, and morale role scaling stays at or below 1.1x.
 
+The v4 economy regression guard stores headline target values in
+`Data/balance_regression_targets.json`. Each row names a snapshot path,
+target, and tolerance. Smoke fails when one of those values moves outside
+its tolerance, so tuning PRs need to update the ledger deliberately instead
+of quietly shifting paint costs, mission recovery, train rewards, gallery
+payouts, claim bonuses, cap multipliers, or morale ceilings.
+
 The main path should always have:
 
 * Piece unlocked before any required piece objective.

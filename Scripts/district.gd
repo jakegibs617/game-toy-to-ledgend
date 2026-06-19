@@ -2408,8 +2408,14 @@ func _smoke_playtest_metrics() -> void:
 	assert((balance["trains"] as Dictionary).has("canal_ghost_local"))
 	assert(not (balance["gallery"] as Dictionary).is_empty())
 	assert(not (balance["stats"] as Dictionary).is_empty())
+	var regression := PlaytestMetrics.balance_regression_report()
+	assert(not (regression["rows"] as Array).is_empty())
+	if not (regression["failures"] as Array).is_empty():
+		push_error("Balance regression failures: %s" % JSON.stringify(regression["failures"]))
+	assert((regression["failures"] as Array).is_empty())
 	print("SMOKE: playtest metrics — %s" % PlaytestMetrics.summary_text())
 	print("SMOKE: balance snapshot — %s" % PlaytestMetrics.balance_summary_text())
+	print("SMOKE: balance regression — %s" % PlaytestMetrics.balance_regression_summary_text())
 
 ## Plan_v3.md Milestone 31: the runtime budget snapshot reads the live
 ## city — node/mesh/wall/material counts, character-visual import status,

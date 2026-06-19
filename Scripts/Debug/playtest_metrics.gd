@@ -6,6 +6,8 @@ extends Node
 signal metrics_event(name: String, details: Dictionary)
 
 const METRICS_PATH := "user://toy_to_legend_playtest_metrics.json"
+const BALANCE_REGRESSION_TARGETS_PATH := "res://Data/balance_regression_targets.json"
+const DataLoader := preload("res://Scripts/Data/data_loader.gd")
 
 var enabled := false
 var write_to_disk := false
@@ -116,6 +118,38 @@ func balance_summary_text() -> String:
 		float((snapshot["crew"] as Dictionary).get("moraleFactorMin", 1.0)),
 		float((snapshot["crew"] as Dictionary).get("moraleFactorMax", 1.0)),
 		float((snapshot["heat"] as Dictionary).get("tickSeconds", 0.0)),
+	]
+
+func balance_regression_report() -> Dictionary:
+	var snapshot := balance_snapshot()
+	var rows: Array = []
+	var failures: Array = []
+	for target in _balance_regression_targets():
+		var def: Dictionary = target
+		var actual = _value_at_path(snapshot, def.get("path", []))
+		var expected := float(def.get("target", 0.0))
+		var tolerance := absf(float(def.get("tolerance", 0.0)))
+		var actual_numeric := actual is int or actual is float
+		var ok := actual_numeric and absf(float(actual) - expected) <= tolerance
+		var row := {
+			"id": String(def.get("id", "")),
+			"label": String(def.get("label", def.get("id", ""))),
+			"path": def.get("path", []),
+			"actual": actual,
+			"target": expected,
+			"tolerance": tolerance,
+			"ok": ok,
+		}
+		rows.append(row)
+		if not ok:
+			failures.append(row)
+	return {"rows": rows, "failures": failures}
+
+func balance_regression_summary_text() -> String:
+	var report := balance_regression_report()
+	return "%d targets, %d failures" % [
+		(report["rows"] as Array).size(),
+		(report["failures"] as Array).size(),
 	]
 
 ## Plan_v3.md Milestone 31: documented desktop budgets for the prototype.
@@ -282,6 +316,7 @@ func _graffiti_balance() -> Dictionary:
 		var style: Dictionary = WallManager.styles[type]
 		rows[type] = {
 			"label": String(style.get("label", type)),
+			"basePaintCost": int(style.get("paintCost", 1)),
 			"paintCost": SupplyManager.paint_cost(style),
 			"baseValue": int(style.get("baseValue", 0)),
 			"heatValue": float(style.get("heatValue", 0.0)),
@@ -369,6 +404,7 @@ func _supply_balance() -> Dictionary:
 	for item in SupplyManager.catalog:
 		rows[String(item.get("itemId", ""))] = {
 			"name": String(item.get("name", "")),
+			"basePrice": int(item.get("price", 0)),
 			"price": SupplyManager.item_price(item),
 			"paint": int(item.get("paint", 0)),
 			"unlockType": String(item.get("unlockType", "")),
@@ -399,3 +435,25 @@ func _crew_balance() -> Dictionary:
 		"moraleFactorNeutral": CrewManager.morale_factor_for(CrewManager.MORALE_NEUTRAL),
 		"moraleFactorMax": CrewManager.morale_factor_for(CrewManager.MAX_MORALE),
 	}
+
+func _balance_regression_targets() -> Array:
+	var parsed: Variant = DataLoader.load_json(BALANCE_REGRESSION_TARGETS_PATH, "PlaytestMetrics")
+	var rows: Array = []
+	if parsed is Dictionary:
+		for target in parsed.get("targets", []):
+			if target is Dictionary:
+				DataLoader.require_fields(target, ["id", "label", "path", "target", "tolerance"],
+					"PlaytestMetrics: balance regression target")
+				rows.append(target)
+	return rows
+
+func _value_at_path(root: Variant, path: Variant) -> Variant:
+	var current: Variant = root
+	if not path is Array:
+		return null
+	for segment in path:
+		if current is Dictionary and (current as Dictionary).has(segment):
+			current = (current as Dictionary)[segment]
+		else:
+			return null
+	return current

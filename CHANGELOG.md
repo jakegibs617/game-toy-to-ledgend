@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-06-20 — v4 Economy Regression Guard
+
+Adds a diffable balance ledger for Plan_v4 candidate 2 so headline economy
+values cannot drift silently.
+
+- New `Data/balance_regression_targets.json` lists key snapshot paths with
+  target values and tolerances for paint costs, paint-pack recovery, delivery
+  pay, Ghost Local rewards, gallery rep, Rooftop Row claim rep, Calligraphy,
+  and max morale scaling.
+- `PlaytestMetrics` now reports `balance_regression_report()` and keeps
+  `basePaintCost` in graffiti balance rows so the ledger is stable even when
+  smoke leaves Fat Cap equipped for later checks.
+- Smoke coverage fails if any ledger row moves outside tolerance and prints a
+  compact balance regression summary.
+
 ## 2026-06-20 — v4 Cap/Morale Balance Integration
 
 Folds the late v3 cap and crew-morale modifiers into the balance audit trail
