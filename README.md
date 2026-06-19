@@ -109,8 +109,8 @@ watch your crew rep pay the price. Locals now walk small loops in both
 districts, stop to clock nearby fresh player paint for a tiny one-time
 crowd rep bump, and scatter when their block gets Hot. At the
 safehouse, E on the crew board opens the blackbook's Crew page, while R
-rests until the block cools: the existing heat/cleanup clock advances,
-territory upkeep ticks once, and you top up a few cans before heading
+rests through a short time-passing beat until the block cools: the existing
+heat/cleanup clock advances, territory upkeep ticks once, and you top up a few cans before heading
 back out. Benches on the sidewalks face the street — sit down (E) and
 the view drops to first person, then your blackbook opens to sketch tag
 styles: number keys fill in a page of a locked style, and after enough

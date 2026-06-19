@@ -1212,6 +1212,7 @@ func _smoke_safehouse_rest() -> void:
 	assert(GameState.paint == paint_before + GameState.SAFEHOUSE_REST_PAINT)
 	assert(is_equal_approx(float(result["heat_before"]), 28.0))
 	assert(is_equal_approx(float(result["heat_after"]), 20.0))
+	assert(String(result["presentation"]) == GameState.safehouse_rest_beat(GameState.safehouse_rests))
 	assert(int(result["rests"]) == GameState.safehouse_rests)
 
 	var migrated: Dictionary = SaveManager._migrate({"version": 9, "game": {}})

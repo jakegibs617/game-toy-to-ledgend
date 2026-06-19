@@ -27,6 +27,7 @@ func _ready() -> void:
 		"rival": {"stream": _rival_buzz(), "db": -9.0},
 		"buff": {"stream": _roller_swipe(), "db": -10.0},
 		"whistle": {"stream": _arpeggio([1567.98, 1244.51, 1567.98], 0.09), "db": -9.0},
+		"rest": {"stream": _arpeggio([329.63, 392.0, 493.88], 0.16), "db": -12.0},
 	}
 	for i in POOL_SIZE:
 		var player := AudioStreamPlayer.new()
@@ -50,6 +51,7 @@ func _ready() -> void:
 	RivalManager.rival_event.connect(func(_msg: String, _wall: String) -> void: play("rival"))
 	HeatManager.cleanup_event.connect(func(_msg: String, _wall: String) -> void: play("buff"))
 	GameState.district_changed.connect(_set_ambience)
+	GameState.safehouse_rest_changed.connect(func(_rests: int) -> void: play("rest"))
 	TerritoryManager.district_claimed.connect(func(_id: String, _d: Dictionary) -> void: play("claim"))
 	CrewManager.crew_event.connect(func(_msg: String) -> void: play("ui"))
 	SupplyManager.supply_event.connect(func(_msg: String) -> void: play("ui"))
