@@ -76,8 +76,9 @@ class Game:
     def __init__(self, base: str):
         self.base = base.rstrip("/")
 
-    def observe(self) -> dict:
-        return _get(self.base + "/observe")
+    def observe(self, want_shot: bool = True) -> dict:
+        url = self.base + "/observe" + ("" if want_shot else "?shot=0")
+        return _get(url)
 
     def act(self, action: dict) -> dict:
         return _post(self.base + "/act", action)
@@ -91,9 +92,14 @@ def heuristic_brain(obs: dict) -> dict:
     if not obs.get("alias_chosen", True):
         return {"reason": "start game", "action": "paint"}  # E confirms the alias
 
+    walls = obs.get("nearby_walls") or []
+    states = {w["wallId"]: w.get("state") for w in walls}
+
     focused = obs.get("focused_wall") or ""
     prompt = obs.get("prompt") or ""
-    if focused and "Paint" in prompt:
+    # Only tag a wall we don't already own — otherwise we'd repaint it forever.
+    fresh_focus = focused and not str(states.get(focused, "")).startswith("player_")
+    if fresh_focus and "Paint" in prompt:
         if obs.get("selected_can") != "tag":
             return {"reason": "use the tag can", "action": "select_can", "slot": 1}
         return {"reason": f"tag {focused}", "action": "paint"}
@@ -102,9 +108,9 @@ def heuristic_brain(obs: dict) -> dict:
     if nav.get("goto_target"):
         return {"reason": "walking to wall", "action": "wait"}
 
-    walls = obs.get("nearby_walls") or []
     blank = next((w for w in walls if w.get("state") == "blank"), None)
-    target = blank or (walls[0] if walls else None)
+    target = blank or next(
+        (w for w in walls if not str(w.get("state")).startswith("player_")), None)
     if target:
         return {"reason": f"head to {target['wallId']}", "action": "goto_wall",
                 "wallId": target["wallId"]}
@@ -165,20 +171,21 @@ def summarize(obs: dict) -> str:
 
 def run(args) -> int:
     game = Game(args.server)
+    want_shot = args.brain == "ollama" and not args.no_vision
     if args.brain == "ollama":
         brain = OllamaBrain(args.ollama, args.model, not args.no_vision)
     else:
         brain = heuristic_brain
 
     try:
-        game.observe()
+        game.observe(want_shot=False)
     except (urllib.error.URLError, OSError) as e:
         print(f"Cannot reach the game at {args.server}: {e}\n"
               f"Launch it with AGENT=1 first.", file=sys.stderr)
         return 2
 
     for turn in range(1, args.max_turns + 1):
-        obs = game.observe()
+        obs = game.observe(want_shot)
         action = brain(obs)
         reason = action.get("reason", "")
         print(f"[{turn:03d}] {summarize(obs)}")

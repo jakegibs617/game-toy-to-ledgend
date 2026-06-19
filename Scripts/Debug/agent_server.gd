@@ -70,6 +70,13 @@ func _tick_holds() -> void:
 			Input.action_release(action)
 			_holds.erase(action)
 
+## Release every timed hold now (used when nav takes over movement, so a stale
+## move hold can't release a key the goto controller still believes is down).
+func _clear_holds() -> void:
+	for action in _holds.keys():
+		Input.action_release(action)
+	_holds.clear()
+
 # --- navigation controllers (aim_at / goto_wall) ----------------------------
 
 ## Each frame, steer the camera (and, for goto, the legs) toward the stored
@@ -184,10 +191,14 @@ func _try_handle_request() -> void:
 	_respond(_route(method, path, body))
 
 func _route(_method: String, path: String, body: String) -> Dictionary:
-	var clean := path.split("?")[0]
+	var parts := path.split("?")
+	var clean := parts[0]
 	match clean:
 		"/observe":
-			return _observe()
+			# Skip the screenshot when the client opts out (?shot=0) — heuristic
+			# and text-only pilots never read it, so don't pay the PNG write.
+			var want_shot := not (parts.size() > 1 and "shot=0" in parts[1])
+			return _observe(want_shot)
 		"/act":
 			var parsed = JSON.parse_string(body)
 			if parsed is Dictionary:
@@ -210,7 +221,7 @@ func _respond(payload: Dictionary) -> void:
 
 # --- observation ------------------------------------------------------------
 
-func _observe() -> Dictionary:
+func _observe(want_shot := true) -> Dictionary:
 	var obj: Dictionary = MissionManager.current_objective()
 	return {
 		"alias": GameState.alias,
@@ -229,7 +240,7 @@ func _observe() -> Dictionary:
 		"nearby_walls": _nearby_walls(),
 		"nav": {"aim_target": _aim_target, "goto_target": _goto_target},
 		"legal_actions": _legal_actions(),
-		"screenshot": _capture_screenshot(),
+		"screenshot": _capture_screenshot() if want_shot else "",
 	}
 
 func _hud_prompt() -> String:
@@ -329,12 +340,14 @@ func _act(data: Dictionary) -> Dictionary:
 			var wall := String(data.get("wallId", ""))
 			if not WallManager.wall_nodes.has(wall):
 				return {"ok": false, "error": "unknown wallId: %s" % wall}
+			_clear_holds()
 			_stop_goto()
 			_aim_target = wall
 		"goto_wall":
 			var wall := String(data.get("wallId", ""))
 			if not WallManager.wall_nodes.has(wall):
 				return {"ok": false, "error": "unknown wallId: %s" % wall}
+			_clear_holds()
 			_aim_target = ""
 			_goto_target = wall
 		"stop":
