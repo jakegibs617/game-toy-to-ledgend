@@ -42,18 +42,49 @@ review → merge loop.
   `RivalManager.respond()` now clears stale pending entries just like timed
   responses.
 
+### PR #47 — Safehouse Rest
+
+- Added the first safehouse-depth slice: `R` at the focused safehouse zone
+  rests while `E` still opens the crew board.
+- Resting advances the existing heat/cleanup clock, runs one territory upkeep
+  tick, restores a small amount of paint, records `game.safehouse_rests`, and
+  shows one compact HUD outcome message.
+- `HeatManager` and `TerritoryManager` now expose small public tick-advance
+  helpers for scripted time skips.
+- Save schema bumps to **v10** with migration for older saves.
+- Review found and fixed an input-routing risk: rest now routes through HUD
+  focus/modal state, so it cannot fire underneath an open modal.
+
+### PR #48 — Battle Specialist Crew Role
+
+- Added data-driven crew member **Inez "Clash"** as the Battle Specialist.
+- `CrewManager` now has battle-specialist helpers that loyalty-scale wall-duel
+  rep and crew-rep rewards.
+- `RivalManager` stamps boosted rewards onto active wall-duel callouts when
+  they open, so saved callouts keep stable stakes.
+- Answering a wall duel gives Clash loyalty, matching the existing crew-role
+  progression pattern.
+- Smoke coverage recruits Clash, verifies her model and role helpers, checks
+  boosted saved duel rewards, and confirms loyalty gain on duel win.
+
 ## Verification
 
 - PR #43: 3 clean headless smoke runs and 1 clean windowed boot.
 - PR #44: 3 clean headless smoke runs and 1 clean windowed boot.
 - PR #46: 3 clean headless smoke runs and 1 clean windowed boot.
-- Final pushed `main`: `308983b` Update implementation report after rival duel merge.
+- PR #47: 4 clean headless smoke runs total and 1 clean windowed boot.
+- PR #48: 3 clean sequential headless smoke runs and 1 clean windowed boot.
+  A parallel smoke attempt was discarded because concurrent runs raced on the
+  shared `user://` save file.
+- Final pushed `main`: `94daf24` Add battle specialist crew role.
 
 ## Current Project State
 
 - v3 milestones 27–32 are complete.
 - Product_reqs.md items are implemented.
-- The first post-M32 battle-system slice, rival wall duels, is implemented.
+- The first post-M32 battle-system slice, rival wall duels, is implemented and
+  now has the Battle Specialist crew hook.
+- Safehouse sleep-to-skip is implemented as a compact rest action.
 - The main feature blocker is now **M33 Playtest Feedback Pass**, which needs
   real tester observations rather than more speculative feature work.
 - M34 v3 demo candidate should follow only after M33 findings are captured and
@@ -66,27 +97,30 @@ review → merge loop.
    fixes tied to findings.
 2. **M34 v3 demo candidate.** Freeze after M33, run the full verification
    loop, update known issues, and tag a candidate.
-3. **Battle Specialist crew role.** Hook into wall duels: improve duel rewards,
-   soften forfeits, or reveal active callouts sooner.
-4. **Duel pressure and forfeits.** Add a clear timer or cleanup/fail condition
+3. **Duel pressure and forfeits.** Add a clear timer or cleanup/fail condition
    so ignored callouts can become losses without surprising the player.
-5. **Crew morale layer.** Small team-level morale affected by gallery sales,
+4. **Crew morale layer.** Small team-level morale affected by gallery sales,
    rival losses, duel wins, and loyalty milestones.
-6. **Rival duel ladder.** Let each crew escalate from one-off callouts to a
+5. **Rival duel ladder.** Let each crew escalate from one-off callouts to a
    named three-wall challenge arc without building full faction diplomacy.
-7. **Sketch editor / blackbook customization.** Save a bench sketch or
+6. **Sketch editor / blackbook customization.** Save a bench sketch or
    freehand motif and reuse it as a custom piece.
-8. **Cap/can inventory expansion.** Generalize fat cap into skinny/fat/
+7. **Cap/can inventory expansion.** Generalize fat cap into skinny/fat/
    calligraphy caps with paint-cost, detail, and suspicion tradeoffs.
-9. **Rival alliance / ceasefire path.** Dialogue/data path for softening one
+8. **Rival alliance / ceasefire path.** Dialogue/data path for softening one
    crew relationship without building full faction diplomacy.
-10. **MultiMesh street-detail pass.** Reduce the repeated street-detail node
+9. **MultiMesh street-detail pass.** Reduce the repeated street-detail node
     count flagged by runtime budgets before adding a fourth district.
-11. **Outfit / alias presentation pass.** Let rank or crew loyalty unlock
+10. **Outfit / alias presentation pass.** Let rank or crew loyalty unlock
     visible outfit accents and stronger alias identity.
-12. **Safehouse room depth.** Small room upgrades that display earned posters,
+11. **Safehouse room depth.** Small room upgrades that display earned posters,
     sketches, and crew mementos without becoming a decorating sim.
-13. **Fourth district groundwork.** Scope Downtown or Gallery Quarter only
+12. **Fourth district groundwork.** Scope Downtown or Gallery Quarter only
     after M34 and the runtime budget confirms headroom.
-14. **Playtest metrics export polish.** Make capture files easier to compare
+13. **Playtest metrics export polish.** Make capture files easier to compare
     between testers and candidate builds.
+14. **Safehouse rest presentation.** Add a short clock/lighting/audio beat to
+    make the new rest action feel like time passed without building full
+    day/night simulation.
+15. **Duel reward tuning pass.** Revisit wall-duel rewards after playtest data
+    now that Clash can boost the reward envelope.
