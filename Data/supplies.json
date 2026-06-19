@@ -9,6 +9,14 @@
       "paint": 12
     },
     {
+      "itemId": "pocket_flask",
+      "name": "Pocket Paint Flask",
+      "desc": "one-shot emergency refill, +6 paint",
+      "price": 8,
+      "repeatable": false,
+      "paint": 6
+    },
+    {
       "itemId": "fat_cap",
       "name": "Fat Cap",
       "desc": "wide coverage — 1 less paint per piece",

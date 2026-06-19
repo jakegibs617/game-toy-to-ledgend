@@ -60,6 +60,11 @@ its tolerance, so tuning PRs need to update the ledger deliberately instead
 of quietly shifting paint costs, mission recovery, train rewards, gallery
 payouts, claim bonuses, cap multipliers, or morale ceilings.
 
+The Pocket Paint Flask is a one-shot emergency refill, not a repeatable
+recovery economy. Its smoke check restores the target-route paint/cash baseline
+after purchase so Standard pacing remains measured by the existing pack and
+mission recovery points.
+
 Difficulty presets must keep **Standard** as the unchanged target-run baseline.
 Relaxed and Hard scale heat gain, patrol density, shop prices, and cash rewards
 only after the player chooses them from the new-game alias modal.

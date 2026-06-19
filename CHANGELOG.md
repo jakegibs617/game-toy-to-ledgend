@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-06-20 — v4 Pocket Paint Flask
+
+Adds a first Plan_v4 consumables-lane slice without new UI.
+
+- Lupe now sells a one-shot Pocket Paint Flask: a cheap emergency +6 paint
+  refill that uses the existing non-repeatable shop ownership path.
+- Smoke coverage verifies the refill, one-time purchase guard, and restores
+  the target route's paint/cash baseline before the rest of the supply checks.
+
 ## 2026-06-20 — v4 Gloves & Masks
 
 Adds Plan_v4 supply candidate 17 by extending the equipped paint-tool lane
