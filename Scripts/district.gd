@@ -689,11 +689,10 @@ func _smoke_rival_wall_duels() -> void:
 	assert(deadline_events.any(func(e: Array) -> bool:
 		return String(e[0]).begins_with("Last chance")))
 	var losses_before := GameState.rival_duel_losses
-	var streak_at_forfeit := GameState.rival_duel_streak
 	RivalManager._age_wall_duels()  # ticksLeft hits 0 -> forfeit
 	assert(not RivalManager.active_wall_duels.has(deadline_id))
 	assert(GameState.rival_duel_losses == losses_before + 1)
-	assert(GameState.rival_duel_streak == 0 and streak_at_forfeit >= 0)
+	assert(GameState.rival_duel_streak == 0)
 	assert(deadline_events.any(func(e: Array) -> bool:
 		return String(e[0]).contains("let the callout cool")))
 	print("SMOKE: rival wall duel answered, deadline forfeits unanswered callout")
