@@ -13,6 +13,7 @@ signal stage_changed(member_id: String, stage: String)
 signal morale_changed(value: int)
 
 const NPC_PATH := "res://Data/npc_data.json"
+const MORALE_EVENTS_PATH := "res://Data/crew_morale_events.json"
 const DataLoader := preload("res://Scripts/Data/data_loader.gd")
 ## Bringing somebody into the crew is the loudest pro-street move there
 ## is (§11 crew rep, Milestone 21).
@@ -32,6 +33,9 @@ var _pickup_nodes: Dictionary = {}
 var _getaway_used_levels: Dictionary = {}
 var _loyalty_by_member: Dictionary = {}
 var _base_loyalty_by_member: Dictionary = {}
+var _morale_event_defs: Dictionary = {}
+var _morale_events_used: Dictionary = {}
+var _quiet_member_id := ""
 var team_morale := MORALE_NEUTRAL
 
 func _ready() -> void:
@@ -45,6 +49,7 @@ func _ready() -> void:
 			members[m["memberId"]] = m
 			_base_loyalty_by_member[m["memberId"]] = int(m.get("loyalty", 0))
 			_loyalty_by_member[m["memberId"]] = _base_loyalty_by_member[m["memberId"]]
+	_load_morale_events()
 	TerritoryManager.district_claimed.connect(func(district_id: String, _district: Dictionary) -> void:
 		auto_fill_district(district_id))
 
@@ -121,7 +126,8 @@ func _sync_pickup_for_member(member_id: String) -> void:
 
 func first_with_role(role: String) -> Dictionary:
 	for m in members.values():
-		if String(m["stage"]) == "recruited" and String(m["role"]) == role:
+		if String(m["memberId"]) != _quiet_member_id \
+				and String(m["stage"]) == "recruited" and String(m["role"]) == role:
 			return m
 	return {}
 
@@ -197,6 +203,7 @@ func adjust_morale(delta: int, reason := "") -> void:
 		var tail := " (%s)" % reason if reason != "" else ""
 		crew_event.emit("Crew morale is %s — %d/%d%s." % [
 			morale_text(), team_morale, MAX_MORALE, tail])
+	_evaluate_morale_events()
 
 func note_role_helped(role: String, amount := 2) -> void:
 	var member := first_with_role(role)
@@ -346,6 +353,8 @@ func save_state() -> Dictionary:
 		"getaway_used_levels": _getaway_used_levels.duplicate(true),
 		"loyalty_by_member": _loyalty_by_member.duplicate(true),
 		"team_morale": team_morale,
+		"morale_events_used": _morale_events_used.duplicate(true),
+		"quiet_member_id": _quiet_member_id,
 	}
 
 func load_state(data: Dictionary) -> void:
@@ -357,6 +366,10 @@ func load_state(data: Dictionary) -> void:
 			_sync_pickup_for_member(String(member_id))
 	_getaway_used_levels = data.get("getaway_used_levels", {}).duplicate(true)
 	team_morale = clampi(int(data.get("team_morale", MORALE_NEUTRAL)), 0, MAX_MORALE)
+	_morale_events_used = data.get("morale_events_used", {}).duplicate(true)
+	_quiet_member_id = String(data.get("quiet_member_id", ""))
+	if _quiet_member_id != "" and not members.has(_quiet_member_id):
+		_quiet_member_id = ""
 	morale_changed.emit(team_morale)
 	_loyalty_by_member = _default_loyalty_by_member()
 	var saved_loyalty: Dictionary = data.get("loyalty_by_member", {})
@@ -373,6 +386,71 @@ func _default_loyalty_by_member() -> Dictionary:
 		result[member_id] = int(_base_loyalty_by_member.get(member_id, members[member_id].get("loyalty", 0)))
 	return result
 
+func _load_morale_events() -> void:
+	var parsed: Variant = DataLoader.load_json(MORALE_EVENTS_PATH, "CrewManager")
+	if parsed is Dictionary:
+		_morale_event_defs = parsed
+		for event in _morale_event_defs.get("highMorale", []):
+			if event is Dictionary:
+				DataLoader.require_fields(event, ["eventId", "minMorale", "role", "message"],
+					"CrewManager: high morale event")
+		if _morale_event_defs.get("lowMorale", {}) is Dictionary:
+			DataLoader.require_fields(_morale_event_defs["lowMorale"],
+				["maxMorale", "recoverMorale", "message", "recoveredMessage"],
+				"CrewManager: low morale event")
+
+func _evaluate_morale_events() -> void:
+	_check_low_morale_event()
+	_check_high_morale_events()
+
+func _check_high_morale_events() -> void:
+	for event in _morale_event_defs.get("highMorale", []):
+		if not event is Dictionary:
+			continue
+		var event_id := String(event.get("eventId", ""))
+		if event_id == "" or bool(_morale_events_used.get(event_id, false)):
+			continue
+		if team_morale < int(event.get("minMorale", MAX_MORALE)):
+			continue
+		var member := first_with_role(String(event.get("role", "")))
+		if member.is_empty():
+			continue
+		_morale_events_used[event_id] = true
+		var paint_gain := int(event.get("paint", 0))
+		var cash_gain := int(event.get("cash", 0))
+		if paint_gain > 0:
+			GameState.add_paint(paint_gain)
+		if cash_gain > 0:
+			GameState.add_cash(cash_gain)
+		crew_event.emit(String(event.get("message", "%s helps the crew.")) % [
+			String(member.get("alias", member.get("memberId", "Crew"))), paint_gain, cash_gain])
+
+func _check_low_morale_event() -> void:
+	var low: Dictionary = _morale_event_defs.get("lowMorale", {})
+	if low.is_empty():
+		return
+	if _quiet_member_id != "" and team_morale >= int(low.get("recoverMorale", 40)):
+		var restored: Dictionary = members.get(_quiet_member_id, {})
+		_quiet_member_id = ""
+		if not restored.is_empty():
+			crew_event.emit(String(low.get("recoveredMessage", "%s is back.")) % [
+				String(restored.get("alias", restored.get("memberId", "Crew")))])
+		return
+	if _quiet_member_id != "" or team_morale > int(low.get("maxMorale", 20)):
+		return
+	var member := _first_recruited_for_quiet()
+	if member.is_empty():
+		return
+	_quiet_member_id = String(member["memberId"])
+	crew_event.emit(String(low.get("message", "%s goes quiet.")) % [
+		String(member.get("alias", _quiet_member_id))])
+
+func _first_recruited_for_quiet() -> Dictionary:
+	for m in members.values():
+		if String(m.get("stage", "")) == "recruited":
+			return m
+	return {}
+
 ## One status line per member for the crew menu.
 func status_text(m: Dictionary) -> String:
 	match String(m["stage"]):
@@ -383,9 +461,10 @@ func status_text(m: Dictionary) -> String:
 		"item_recovered":
 			return "Return %s to them." % String(m.get("item", {}).get("name", "the item"))
 		"recruited":
-			return "Recruited — %s\n      Loyalty %d/%d (%s) · role scale %.2fx" % [
+			var quiet_note := " · quiet" if String(m["memberId"]) == _quiet_member_id else ""
+			return "Recruited — %s\n      Loyalty %d/%d (%s)%s · role scale %.2fx" % [
 				String(m.get("bonusDescription", "")),
 				member_loyalty(String(m["memberId"])), MAX_LOYALTY,
-				loyalty_text(String(m["memberId"])),
+				loyalty_text(String(m["memberId"])), quiet_note,
 				role_bonus_scale(String(m.get("role", "")))]
 	return ""

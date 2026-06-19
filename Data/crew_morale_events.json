@@ -1,0 +1,18 @@
+{
+  "highMorale": [
+    {
+      "eventId": "stash_supply_favor",
+      "minMorale": 80,
+      "role": "supply_runner",
+      "paint": 12,
+      "cash": 15,
+      "message": "%s runs a clean supply favor for the crew. +%d paint, +$%d."
+    }
+  ],
+  "lowMorale": {
+    "maxMorale": 20,
+    "recoverMorale": 40,
+    "message": "%s goes quiet until the crew steadies.",
+    "recoveredMessage": "%s is back in the mix."
+  }
+}

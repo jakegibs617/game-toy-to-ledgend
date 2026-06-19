@@ -155,6 +155,7 @@ fields `push_error` at startup, and the smoke test asserts
 | supplies.json | shop catalog + delivery def (items may carry unlockType) | SupplyManager |
 | patrols.json | guard counts per heat level, speeds | PatrolManager |
 | npc_data.json | recruitable NPCs (Moth, Caps, Metro, Stash, Echo, Fix, Clash), item pickups, loyalty starts, role metadata, optional `visuals` manifests | CrewManager |
+| crew_morale_events.json | high-morale one-shot favors and low-morale quiet/recovery thresholds | CrewManager |
 | stats.json | stat defs (xpPerLevel, maxLevel, per-level effect coefficients) | StatsManager |
 | perks.json | tree → perk list (perkId, name, desc, effects dict) | StatsManager |
 | climbs.json | climb routes (climbId, label, position, top, fallChance, fallRepPenalty, optional targetDistrictId) | district.gd (spawns ClimbZone) |
@@ -200,8 +201,8 @@ Modal conventions:
 `user://toy_to_legend_save.json`, written by SaveManager with
 `version: SAVE_VERSION`. Sections per system: player transform,
 GameState fields (including crew_rep — the §11 public/crew split),
-WallManager (wall_states + next id), crew stages/loyalty, territory claims,
-heat, mission progress, supplies owned, dialogue flags, stats/perks,
+WallManager (wall_states + next id), crew stages/loyalty/morale events,
+territory claims, heat, mission progress, supplies owned, dialogue flags, stats/perks,
 train service state, the gallery sales log, and crew getaway route
 usage. Loading refuses saves newer than SAVE_VERSION. **Bump
 SAVE_VERSION whenever a section's shape changes.**

@@ -21,7 +21,8 @@ const SAVE_PATH := "user://toy_to_legend_save.json"
 ## v11 (crew morale): crew gains team_morale.
 ## v12 (cap inventory): supplies gains owned_caps and equipped_cap.
 ## v13 (difficulty presets): game gains difficulty_preset.
-const SAVE_VERSION := 13
+## v14 (morale crew events): crew gains morale_events_used and quiet_member_id.
+const SAVE_VERSION := 14
 
 var _player: Player
 
@@ -179,6 +180,12 @@ func _migrate(data: Dictionary) -> Dictionary:
 		if data.has("game"):
 			data["game"]["difficulty_preset"] = String(data["game"].get("difficulty_preset", "standard"))
 		version = 13
+	if version < 14:
+		if not data.has("crew"):
+			data["crew"] = {}
+		data["crew"]["morale_events_used"] = data["crew"].get("morale_events_used", {})
+		data["crew"]["quiet_member_id"] = String(data["crew"].get("quiet_member_id", ""))
+		version = 14
 	data["version"] = version
 	return data
 
