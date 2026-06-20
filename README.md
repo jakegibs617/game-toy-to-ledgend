@@ -4,7 +4,8 @@ Open-world graffiti RPG prototype. Original design in [Plan.md](Plan.md);
 current roadmap in [Plan_v3.md](Plan_v3.md); completed v2 roadmap in
 [Plan_v2.md](Plan_v2.md); system map in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md);
 v3 balance targets in [docs/BALANCE_TARGETS.md](docs/BALANCE_TARGETS.md);
-agent/dev workflow in [CLAUDE.md](CLAUDE.md).
+agent/dev workflow in [CLAUDE.md](CLAUDE.md); platform notes in
+[docs/PLATFORM_READINESS.md](docs/PLATFORM_READINESS.md).
 
 Engine: **Godot 4.6** (chosen per Plan.md §29 — open source, text-based scenes/scripts, headless CLI testing).
 
@@ -14,6 +15,23 @@ Open the project in Godot 4.6+ and press Play, or from the terminal:
 
 ```sh
 /Applications/Godot.app/Contents/MacOS/Godot --path .
+```
+
+Windows PowerShell:
+
+```powershell
+godot --path .
+```
+
+On a fresh checkout, run one editor import/cache pass before the first
+headless smoke test:
+
+```sh
+/Applications/Godot.app/Contents/MacOS/Godot --headless --editor --path . --quit
+```
+
+```powershell
+godot_console --headless --editor --path . --quit
 ```
 
 Scenes:
@@ -26,6 +44,12 @@ Headless smoke test (per-system `_smoke_*()` checks in
 
 ```sh
 SMOKE_TEST=1 /Applications/Godot.app/Contents/MacOS/Godot --headless --path .
+```
+
+Windows PowerShell:
+
+```powershell
+$env:SMOKE_TEST = "1"; godot_console --headless --path .
 ```
 
 The smoke path also prints the v3 playtest baseline metrics, balance
