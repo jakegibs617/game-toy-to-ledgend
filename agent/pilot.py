@@ -130,9 +130,15 @@ class OllamaBrain:
         # Strip the screenshot path out of the text view; pass the image
         # separately so a vision model sees the frame.
         view = {k: v for k, v in obs.items() if k != "screenshot"}
+        hint = _opening_hint(obs)
         user = (
             "Current observation (JSON):\n" + json.dumps(view, indent=2) +
-            "\n\nChoose exactly one action to progress the current objective. "
+            ("\n\nCurrent tactical hint: " + hint if hint else "") +
+            "\n\nChoose exactly one action from legal_actions to progress the current objective. "
+            "Do not choose rest unless rest is listed in legal_actions. "
+            "If the objective says to return to the safehouse but no safehouse action is available, "
+            "keep exploring or tag another unowned wall. "
+            "Avoid no-op actions, such as selecting the can that is already selected. "
             "Respond only as a JSON action object."
         )
         message = {"role": "user", "content": user}
@@ -157,6 +163,11 @@ class OllamaBrain:
             return {"reason": "unparseable model output", "action": "wait"}
         if not isinstance(action, dict) or "action" not in action:
             return {"reason": "no action field", "action": "wait"}
+        legal = obs.get("legal_actions") or []
+        if legal and action.get("action") not in legal:
+            return _fallback_action(obs, f"model chose unavailable {action.get('action')}")
+        if _is_noop_action(obs, action):
+            return _fallback_action(obs, f"model chose no-op {action.get('action')}")
         return action
 
 
@@ -167,6 +178,57 @@ def summarize(obs: dict) -> str:
             f"heat={obs.get('heat')} can={obs.get('selected_can')} "
             f"focus={obs.get('focused_wall') or '-'} "
             f"obj={(obs.get('objective') or '')[:40]!r}")
+
+
+def _fallback_action(obs: dict, reason: str) -> dict:
+    if not obs.get("alias_chosen", True):
+        return {"reason": reason + "; confirm alias", "action": "paint"}
+    walls = obs.get("nearby_walls") or []
+    focused = obs.get("focused_wall") or ""
+    states = {w["wallId"]: w.get("state") for w in walls}
+    prompt = obs.get("prompt") or ""
+    legal = obs.get("legal_actions") or []
+    if focused and not str(states.get(focused, "")).startswith("player_") and "paint" in legal and "Paint" in prompt:
+        return {"reason": reason + "; paint focused wall", "action": "paint"}
+    target = next((w for w in walls if not str(w.get("state")).startswith("player_")), None)
+    if target and "goto_wall" in legal:
+        return {"reason": reason + "; go to unowned wall", "action": "goto_wall", "wallId": target["wallId"]}
+    if "move" in legal:
+        return {"reason": reason + "; explore", "action": "move", "dir": "forward", "seconds": 0.5}
+    return {"reason": reason + "; wait", "action": "wait"}
+
+
+def _opening_hint(obs: dict) -> str:
+    if not obs.get("alias_chosen", True):
+        return "Choose paint to confirm the alias modal."
+    objective = (obs.get("objective") or "").lower()
+    legal = obs.get("legal_actions") or []
+    prompt = obs.get("prompt") or ""
+    focused = obs.get("focused_wall") or ""
+    walls = obs.get("nearby_walls") or []
+    if "first tag" in objective:
+        if focused and "paint" in legal and "Paint" in prompt:
+            return "The wall is focused and paint is legal; choose paint."
+        target = next((w for w in walls if not str(w.get("state")).startswith("player_")), None)
+        if target and "goto_wall" in legal:
+            return f"Choose goto_wall with wallId {target['wallId']}."
+    return ""
+
+
+def _is_noop_action(obs: dict, action: dict) -> bool:
+    if action.get("action") != "select_can":
+        return False
+    slot = int(action.get("slot", 1))
+    selected = obs.get("selected_can")
+    slot_to_can = {
+        1: "tag",
+        2: "throwup",
+        3: "piece",
+        4: "stencil",
+        5: "roller",
+        6: "mural",
+    }
+    return slot_to_can.get(slot) == selected
 
 
 def run(args) -> int:
@@ -188,17 +250,17 @@ def run(args) -> int:
         obs = game.observe(want_shot)
         action = brain(obs)
         reason = action.get("reason", "")
-        print(f"[{turn:03d}] {summarize(obs)}")
-        print(f"      -> {action.get('action')} {('('+reason+')') if reason else ''}")
+        print(f"[{turn:03d}] {summarize(obs)}", flush=True)
+        print(f"      -> {action.get('action')} {('('+reason+')') if reason else ''}", flush=True)
         result = game.act(action)
         if not result.get("ok"):
-            print(f"      !! rejected: {result.get('error')}")
+            print(f"      !! rejected: {result.get('error')}", flush=True)
         if args.goal and args.goal.lower() in (obs.get("objective") or "").lower():
-            print(f"Reached goal objective: {obs.get('objective')!r}")
+            print(f"Reached goal objective: {obs.get('objective')!r}", flush=True)
             return 0
         time.sleep(args.delay)
 
-    print("Max turns reached.")
+    print("Max turns reached.", flush=True)
     return 0
 
 

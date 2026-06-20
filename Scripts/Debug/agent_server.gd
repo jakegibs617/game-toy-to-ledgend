@@ -31,6 +31,8 @@ var _buf := ""
 # read Player/Hud members dynamically (see CLAUDE.md class-cache rule).
 var _player = null
 var _hud = null
+# Watchable on-screen overlay (Scripts/UI/agent_overlay.gd); only under AGENT=1.
+var _overlay = null
 # action -> physics frames remaining, so timed holds (movement) release later.
 var _holds: Dictionary = {}
 # Persistent navigation targets, pursued each frame in _update_nav.
@@ -55,6 +57,9 @@ func _ready() -> void:
 		set_process(false)
 		return
 	print("AGENT: listening on http://%s:%d  (GET /observe, POST /act)" % [HOST, PORT])
+	# Watchable overlay so a human can see what the pilot perceives and chooses.
+	_overlay = preload("res://Scripts/UI/agent_overlay.gd").new()
+	add_child(_overlay)
 
 func _process(_delta: float) -> void:
 	_tick_holds()
@@ -223,7 +228,7 @@ func _respond(payload: Dictionary) -> void:
 
 func _observe(want_shot := true) -> Dictionary:
 	var obj: Dictionary = MissionManager.current_objective()
-	return {
+	var view := {
 		"alias": GameState.alias,
 		"alias_chosen": GameState.alias_chosen,
 		"selected_can": GameState.selected_graffiti_type,
@@ -242,6 +247,9 @@ func _observe(want_shot := true) -> Dictionary:
 		"legal_actions": _legal_actions(),
 		"screenshot": _capture_screenshot() if want_shot else "",
 	}
+	if _overlay != null:
+		_overlay.set_state(view)
+	return view
 
 func _hud_prompt() -> String:
 	if _hud != null and "_prompt_label" in _hud and _hud._prompt_label != null:
@@ -290,12 +298,26 @@ func _nearby_walls() -> Array:
 	return out
 
 func _legal_actions() -> Array:
-	# Static for the scaffold; the pilot still validates against the schema.
-	# goto_wall/aim_at are listed but stubbed until the navigation pass.
-	return [
+	var actions := [
 		"select_can", "cycle_color", "cycle_cap", "look", "move",
-		"aim_at", "goto_wall", "stop", "paint", "freehand", "rest", "wait",
+		"stop", "wait",
 	]
+	if not _nearby_walls().is_empty():
+		actions.append("aim_at")
+		actions.append("goto_wall")
+	var prompt := _hud_prompt()
+	var focused_wall := _focused_wall_id()
+	var focused_state := ""
+	if focused_wall != "" and WallManager.wall_states.has(focused_wall):
+		focused_state = String(WallManager.wall_states[focused_wall].get("state", ""))
+	var fresh_focused_wall := focused_wall != "" and not focused_state.begins_with("player_")
+	if not GameState.alias_chosen or ("Paint" in prompt and fresh_focused_wall):
+		actions.append("paint")
+	if "Rest" in prompt:
+		actions.append("rest")
+	if "Paint" in prompt and fresh_focused_wall and GameState.selected_graffiti_type == "piece":
+		actions.append("freehand")
+	return actions
 
 func _capture_screenshot() -> String:
 	if DisplayServer.get_name() == "headless":
@@ -315,7 +337,15 @@ func _capture_screenshot() -> String:
 
 # --- actions (executed via synthesized real input) --------------------------
 
+## Run one action and mirror the result to the overlay (so the watcher sees
+## rejections too), then hand the result back to the HTTP responder.
 func _act(data: Dictionary) -> Dictionary:
+	var res := _act_impl(data)
+	if _overlay != null:
+		_overlay.log_action(data, res)
+	return res
+
+func _act_impl(data: Dictionary) -> Dictionary:
 	var action := String(data.get("action", ""))
 	match action:
 		"select_can":

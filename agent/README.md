@@ -40,6 +40,15 @@ path → the brain picks one action → `POST /act`. Actions are macro-intents
 **synthesizing real input**, so the agent plays through the same chain a human
 keypress takes.
 
+## Watching it play
+
+When the game runs with `AGENT=1`, a cyan overlay appears in the top-right
+(`Scripts/UI/agent_overlay.gd`). It mirrors what the pilot perceives each turn —
+rep/cash/paint/heat, selected can, focused wall, objective, HUD prompt — plus the
+action it chose with the model's stated reason, and a rolling log of recent
+turns. That's the point of running windowed: you can watch *why* the agent acts,
+not just that it's running. It costs nothing outside `AGENT=1`.
+
 ## Flags
 
 | Flag | Default | Meaning |

@@ -13,12 +13,20 @@ game the way a human does — see `docs/OLLAMA_AGENT_PLAN.md`.
 - Macro-actions: `select_can`, `cycle_color`/`cycle_cap`, `move`/`look`,
   `aim_at`/`goto_wall` (per-frame camera/leg controllers), `paint`, `freehand`,
   `rest`, `stop`, `wait`.
+- `Scripts/UI/agent_overlay.gd`: a watchable on-screen overlay (`AGENT=1` only,
+  owned by the server) showing what the pilot last perceived, the action it
+  chose with its reason, and a rolling log of recent turns — so you can sit and
+  watch *why* the agent acts. Top-right, cyan, clear of the HUD readouts.
 - `agent/pilot.py`: stdlib-only pilot with two brains — `heuristic` (baseline)
   and `ollama` (multimodal, structured-output actions). `agent/README.md` +
   `docs/AGENT_CHEATSHEET.md` (the model's system prompt).
 - Verified live: the heuristic pilot autonomously completes the opening
   objective (dismiss alias → walk to wall → tag, rep 0→29). Smoke unaffected
   (server gated off headless).
+- Ollama tuning pass: `legal_actions` now reflects the current focus/prompt
+  instead of advertising unusable actions, the pilot adds opening hints plus
+  no-op/unavailable-action fallbacks, and turn logs flush live for watchable
+  model iteration.
 
 ## 2026-06-20 — v4 Crew Hangout Beats
 
