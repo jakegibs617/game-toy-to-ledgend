@@ -49,6 +49,20 @@ action it chose with the model's stated reason, and a rolling log of recent
 turns. That's the point of running windowed: you can watch *why* the agent acts,
 not just that it's running. It costs nothing outside `AGENT=1`.
 
+## Recommendation loop
+
+The Ollama brain is also prompted as a playtester. When it notices friction,
+confusion, delight, missing feedback, or a likely improvement, it may include a
+structured recommendation with its action. The pilot appends those notes to:
+
+```text
+agent/playtest_recommendations.jsonl
+```
+
+Each row includes the turn, objective, district, chosen action, note,
+recommendation, category, and priority. Treat these as triage input: useful
+ideas to review, not automatic work orders.
+
 ## Flags
 
 | Flag | Default | Meaning |
@@ -61,3 +75,4 @@ not just that it's running. It costs nothing outside `AGENT=1`.
 | `--max-turns` | 60 | stop after N turns |
 | `--delay` | 0.4 | seconds between turns (let the world advance) |
 | `--goal` | "" | stop when the objective text contains this substring |
+| `--notes` | `agent/playtest_recommendations.jsonl` | JSONL file for playtest recommendations |

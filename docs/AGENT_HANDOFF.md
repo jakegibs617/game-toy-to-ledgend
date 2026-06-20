@@ -1,75 +1,208 @@
-# Agent play harness — handoff
+# Agent Playtest Harness Handoff
 
-Continue the agent play harness for Toy to Legend (Godot 4.6 graffiti RPG).
+Current date: 2026-06-20. Project: Toy to Legend, Godot graffiti RPG.
 
-## Context — what already exists
+## Current Goal
 
-A localhost bridge that lets an external pilot (a local Ollama model, or a
-rule-based baseline) play the game through synthesized real input. Design doc:
-`docs/OLLAMA_AGENT_PLAN.md`. Model system-prompt: `docs/AGENT_CHEATSHEET.md`.
+Build a useful local agent playtest loop:
 
-- **`Scripts/Debug/agent_server.gd`** — HTTP server on 127.0.0.1:8088, gated by
-  `AGENT=1`, self-disables under `SMOKE_TEST`. `GET /observe` → player-view JSON
-  (cans, paint/cash/rep/heat, objective, HUD prompt, focused_wall, nearby_walls,
-  nav state) + screenshot path; `GET /observe?shot=0` skips the screenshot.
-  `POST /act` runs macro-actions (`select_can`, `cycle_color`/`cap`, `move`/
-  `look`, `aim_at`, `goto_wall`, `stop`, `paint`, `freehand`, `rest`, `wait`) by
-  feeding `InputEventAction` / mouse-motion / movement holds through the real
-  input chain. `_act` is a thin logging wrapper over `_act_impl`. Wired into
-  `Scripts/district.gd` boot.
-- **`Scripts/UI/agent_overlay.gd`** — watchable on-screen overlay (PR #65, branch
-  `agent-watch-overlay`, **awaiting user merge** as of this handoff). Cyan
-  top-right panel, created only under `AGENT=1` by `agent_server.gd`. Shows last
-  perceived state (rep/cash/paint/heat, can, focused wall, objective, HUD
-  prompt), the chosen action + the pilot's `reason` (green ok / red rejected),
-  and a rolling 8-turn log. Pushed via `_overlay.set_state()` on each `/observe`
-  and `_overlay.log_action()` on each `/act`.
-- **`agent/pilot.py`** — stdlib-only loop with two brains: `heuristic` (default,
-  baseline) and `ollama` (multimodal, structured-output). `agent/README.md` has
-  run instructions.
+1. Run the game windowed with `AGENT=1`.
+2. Let a local Ollama model play through real input via the Godot agent server.
+3. Watch the game and overlay as the agent explores.
+4. Capture model recommendations for game improvements.
+5. Use only the useful recommendations as triage input for future build work.
 
-**Verified:** the heuristic pilot autonomously plays the opening objective
-(dismiss alias → goto wall → tag), tags multiple distinct walls without
-repainting (rep 0→58 over two walls), the overlay updates live each turn and
-stays clear of the HUD, and smoke stays `SMOKE: OK` ×3.
+The agent should act like a curious open-world game enthusiast and
+completionist. It should try to see systems, characters, options, districts, and
+mechanics, but 80% coverage is an acceptable playtest win. It is also asked to
+notice friction, confusion, delight, missing feedback, and build opportunities.
 
-## Next — open items
+## Current Environment
 
-1. **Actually drive the Ollama brain** (the main remaining item): `ollama serve`
-   + `ollama pull qwen2.5vl` (or `llama3.2-vision`), launch the game windowed
-   with `AGENT=1`, then
-   `python3 agent/pilot.py --brain ollama --model qwen2.5vl`. Tune the
-   observation/action/prompt (`docs/AGENT_CHEATSHEET.md` is the system prompt)
-   until a small local model reliably tags a wall and reacts to heat. Use the
-   agent overlay to *watch* the tuning. (Ollama installed at
-   `/opt/homebrew/bin/ollama`, v0.21.0; as of last check the server was not
-   running and no models were pulled — the vision model is a multi-GB download.)
-2. **Later phase (not now):** agents *inside* the game — model-driven
-   NPCs/rivals/crew acting while a human plays. See the "Future phase" section in
-   `docs/OLLAMA_AGENT_PLAN.md`.
+- Windows machine.
+- Godot Engine 4.7 stable installed through `winget`.
+- Local Ollama is available.
+- Local models currently observed:
+  - `qwen3.5:latest`
+  - `mistral:7b`
+- No vision model is installed yet. Current runs use text-only mode:
 
-## Gotchas
+```powershell
+python agent\pilot.py --brain ollama --model qwen3.5 --no-vision --max-turns 20 --delay 0.5
+```
 
-- If PR #65 isn't merged yet, work off branch `agent-watch-overlay` (or pull main
-  once merged). Direct push to main is blocked — branch → PR → review → user
-  merges.
-- Run **windowed** for screenshots:
-  `AGENT=1 /Applications/Godot.app/Contents/MacOS/Godot --path .` — server prints
-  "AGENT: listening on http://127.0.0.1:8088". Headless has no renderer (empty
-  screenshots).
-- To kill instances use `pkill -9 -f "Godot.app/Contents/MacOS/Godot --path"` — a
-  pattern matching the project NAME won't match (cmd line is `Godot --path .`),
-  so stale instances pile up and keep serving port 8088 with old code. Always
-  kill before relaunching after a code change.
-- New game opens on the alias modal (`alias_chosen=false`); the first pilot
-  action is a `paint` (=interact) to dismiss it.
-- Cross-file script refs in new files must use `preload("res://...")` not bare
-  `class_name` (headless class-cache rule, `CLAUDE.md`). `agent_overlay.gd` has
-  no committed `.uid` yet — the editor will generate one; preload-by-path doesn't
-  need it.
-- Smoke before PR: `SMOKE_TEST=1 godot --headless --path .` (run 3x, expect
-  `SMOKE: OK`). Update `CHANGELOG.md` (and `agent/README.md` if behavior changes)
-  in the same PR.
-- Pre-existing dirty files (`FEATURES.md`, `Plan_v3.md`, untracked `Plan_v4.md`,
-  `agent/__pycache__`) are from a separate Codex loop — leave them out of harness
-  PRs.
+## How To Launch
+
+Start the game window with the agent server:
+
+```powershell
+$env:AGENT = "1"
+Start-Process -FilePath "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7-stable_win64.exe" -ArgumentList "--path","." -WorkingDirectory "C:\Users\jakeg\OneDrive\Desktop\game-toy-to-ledgend"
+```
+
+Then run the pilot:
+
+```powershell
+python agent\pilot.py --brain ollama --model qwen3.5 --no-vision --max-turns 20 --delay 0.5 --notes agent\playtest_recommendations.jsonl
+```
+
+Stop stale processes before relaunching after code changes:
+
+```powershell
+Get-Process | Where-Object { $_.ProcessName -like "Godot_v4.7-stable_win64*" } | Stop-Process -Force
+Get-Process | Where-Object { $_.ProcessName -like "python*" } | Stop-Process -Force
+```
+
+## What Exists Now
+
+- `Scripts/Debug/agent_server.gd`
+  - Runs a localhost HTTP server on `127.0.0.1:8088`.
+  - `GET /observe` returns player state, objective, prompt, focused wall,
+    nearby walls, nearby actors, nav state, legal actions, and optional
+    screenshot path.
+  - `GET /observe?shot=0` skips screenshots for text-only models.
+  - `POST /act` executes macro-actions through real Godot input, not by mutating
+    managers directly.
+  - Current actions include `goto_wall`, `goto_actor`, `goto_objective`,
+    `aim_at`, `paint`, `select_can`, `move`, `look`, `rest`, and `wait`.
+  - `objective_target` is now exposed. It resolves mission objectives to exact
+    actors or walls, including remembered mission refs such as the first tag
+    wall.
+  - Autonomous nav captures the mouse only while `aim_at`/`goto_*` is active,
+    then restores the previous mouse mode when nav becomes idle. This prevents
+    the agent from fighting modal/UI mouse state.
+  - `goto_objective` can carry an explicit `targetType` plus `targetWallId` or
+    `targetActorId`, so the pilot can act on the target it observed instead of
+    always re-resolving the current mission target at execution time.
+
+- `Scripts/UI/agent_overlay.gd`
+  - Shows what the agent sees and does.
+  - Displays latest action, reason, recent turn log, and latest recommendation
+    when the model emits one.
+
+- `agent/pilot.py`
+  - Has heuristic and Ollama brains.
+  - Uses `docs/AGENT_CHEATSHEET.md` as the Ollama system prompt.
+  - Handles `goto_objective`.
+  - Falls back to useful deterministic actions when model JSON is malformed.
+  - Treats repeated nav commands as no-ops only when the target is the same,
+    so the model can still course-correct to a different wall or actor.
+  - Writes model recommendations to `agent/playtest_recommendations.jsonl`.
+
+- `docs/AGENT_CHEATSHEET.md`
+  - Defines the agent as a curious completionist playtester.
+  - Instructs the model to emit optional structured recommendations:
+    `playtest_note`, `recommendation`, `recommendation_category`,
+    `recommendation_priority`.
+
+## Latest Run Results
+
+The agent loop was tried repeatedly with `qwen3.5` text-only.
+
+Progress achieved:
+
+- Confirmed writer alias.
+- Went to a wall.
+- Painted the first tag.
+- Returned to the safehouse with `goto_objective`.
+- Advanced to `Go check on your first tag`.
+- After adding `objective_target`, reached the remembered first-tag objective in
+  at least one run.
+- Advanced to the throw-up objective:
+  `Paint a throw-up over it - press 2, then E`.
+- Selected the throw-up can via fallback.
+
+Issues found and addressed:
+
+- `qwen3.5` frequently emits malformed/non-JSON output despite structured
+  schema instructions.
+- Fallback now recovers from malformed output by using objective targets,
+  selecting required cans, painting focused walls, or waiting while navigation is
+  already active.
+- `goto_objective` originally reset navigation every malformed turn; fixed by
+  treating same-target navigation actions as no-ops while nav is active, while
+  still allowing course corrections to different targets.
+- For `reach_wall`, objective target now prefers the spawned `reach_<wall>` zone
+  actor instead of only the wall.
+- Wall navigation now switches into aim mode after arriving within stop
+  distance.
+- Actor navigation now keeps steering until the actor is both close and roughly
+  centered, instead of stopping while still looking away.
+- Agent steering now captures mouse at nav start and restores it when idle,
+  rather than re-capturing every `_look()` call.
+- `goto_actor` is only exposed as a general legal action when actors are nearby;
+  objective navigation can still target mission actors outside the nearby list.
+- Recommendation logging now warns and continues if the notes file cannot be
+  created or written.
+
+Current remaining problem:
+
+- The agent can still stall around paint-specific objectives. It may reach the
+  target wall area and select the correct can but not reliably focus the wall and
+  press `paint`.
+
+## Recommended Next Fixes
+
+1. Add a dedicated `paint_objective` macro.
+   - Resolve `objective_target`.
+   - Select required can if needed.
+   - Move toward the target.
+   - Aim at the target wall.
+   - Press `paint` once focused and prompt says paint.
+   - This should be server-side stateful, not model-dependent.
+
+2. Add observe fields for paint objectives:
+   - `objective_required_can`
+   - `objective_can_slot`
+   - `objective_ready_to_interact`
+   - `objective_distance`
+
+3. Improve malformed output handling:
+   - When Ollama output is invalid, log a compact parse-failure row.
+   - Optionally retry once with a terse “return only JSON” repair prompt.
+   - If repair fails, use deterministic fallback.
+
+4. Add recommendation scaffolding independent of model compliance:
+   - If the pilot detects repeated fallback, repeated same objective, or no
+     distance change, write an automatic harness recommendation.
+   - This would have captured the navigation/focus issues even when the model
+     did not emit `recommendation`.
+
+5. Install and test a vision model later:
+
+```powershell
+ollama pull llama3.2-vision
+python agent\pilot.py --brain ollama --model llama3.2-vision --max-turns 20
+```
+
+Vision is not required for the harness fixes above, but it may improve
+playtester-style observations.
+
+## Verification Commands
+
+Python syntax:
+
+```powershell
+python -m py_compile agent\pilot.py
+```
+
+Godot smoke:
+
+```powershell
+$env:SMOKE_TEST = "1"
+& "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7-stable_win64_console.exe" --headless --path .
+```
+
+Latest checks passed with `SMOKE: OK`.
+
+## Repo Notes
+
+- Godot 4.7 first import changed many tracked `.import` files and created a few
+  `.gd.uid` files. Review generated import churn before committing if the repo
+  remains targeted at Godot 4.6.
+- PR #66 contains the current agent harness work. After merge, continue from
+  `main`.
+- `docs/PLATFORM_READINESS.md` was added to document Windows/Mac platform setup.
+- `README.md` was updated with Windows run/smoke commands.
+- `agent/playtest_recommendations.jsonl` may not exist yet if the model has not
+  emitted recommendations.

@@ -23,6 +23,7 @@ var _turn := 0
 var _title_label: Label
 var _state_label: Label
 var _action_label: Label
+var _recommendation_label: Label
 var _log_label: Label
 var _log: Array[String] = []
 
@@ -50,6 +51,8 @@ func _ready() -> void:
 	_state_label.text = "(no observation yet)"
 	_action_label = UiKit.make_label(box, 16, OK_COLOR)
 	_action_label.text = "→ —"
+	_recommendation_label = UiKit.make_label(box, 13, DIM)
+	_recommendation_label.text = ""
 	var log_title := UiKit.make_label(box, 13, DIM)
 	log_title.text = "recent turns"
 	_log_label = UiKit.make_label(box, 13, DIM)
@@ -78,10 +81,15 @@ func log_action(action: Dictionary, result: Dictionary) -> void:
 	_turn += 1
 	var act_name := String(action.get("action", "?"))
 	var reason := String(action.get("reason", ""))
+	var recommendation := String(action.get("recommendation", ""))
+	var category := String(action.get("recommendation_category", "other"))
 	var ok := bool(result.get("ok", true))
 	_title_label.text = "AGENT  ·  turn %d" % _turn
 	_action_label.text = "→ %s%s" % [act_name, "   (%s)" % reason if reason != "" else ""]
 	_action_label.add_theme_color_override("font_color", OK_COLOR if ok else REJECT_COLOR)
+	if _recommendation_label != null:
+		_recommendation_label.text = "rec[%s]: %s" % [
+			category, _trim(recommendation, 70)] if recommendation != "" else ""
 	var detail := _action_detail(act_name, action)
 	var line := "%3d  %s%s%s" % [
 		_turn, act_name, "  %s" % detail if detail != "" else "", "" if ok else "  ✗"]
@@ -97,6 +105,10 @@ func _action_detail(act_name: String, action: Dictionary) -> String:
 			return "slot %s" % action.get("slot", "?")
 		"aim_at", "goto_wall":
 			return String(action.get("wallId", ""))
+		"goto_actor":
+			return String(action.get("actorId", ""))
+		"goto_objective":
+			return "objective"
 		"move":
 			return String(action.get("dir", ""))
 		_:
