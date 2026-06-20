@@ -23,6 +23,10 @@ game the way a human does — see `docs/OLLAMA_AGENT_PLAN.md`.
 - Verified live: the heuristic pilot autonomously completes the opening
   objective (dismiss alias → walk to wall → tag, rep 0→29). Smoke unaffected
   (server gated off headless).
+- Ollama tuning pass: `legal_actions` now reflects the current focus/prompt
+  instead of advertising unusable actions, the pilot adds opening hints plus
+  no-op/unavailable-action fallbacks, and turn logs flush live for watchable
+  model iteration.
 
 ## 2026-06-20 — v4 Crew Hangout Beats
 

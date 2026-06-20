@@ -298,12 +298,26 @@ func _nearby_walls() -> Array:
 	return out
 
 func _legal_actions() -> Array:
-	# Static for the scaffold; the pilot still validates against the schema.
-	# goto_wall/aim_at are listed but stubbed until the navigation pass.
-	return [
+	var actions := [
 		"select_can", "cycle_color", "cycle_cap", "look", "move",
-		"aim_at", "goto_wall", "stop", "paint", "freehand", "rest", "wait",
+		"stop", "wait",
 	]
+	if not _nearby_walls().is_empty():
+		actions.append("aim_at")
+		actions.append("goto_wall")
+	var prompt := _hud_prompt()
+	var focused_wall := _focused_wall_id()
+	var focused_state := ""
+	if focused_wall != "" and WallManager.wall_states.has(focused_wall):
+		focused_state = String(WallManager.wall_states[focused_wall].get("state", ""))
+	var fresh_focused_wall := focused_wall != "" and not focused_state.begins_with("player_")
+	if not GameState.alias_chosen or ("Paint" in prompt and fresh_focused_wall):
+		actions.append("paint")
+	if "Rest" in prompt:
+		actions.append("rest")
+	if "Paint" in prompt and fresh_focused_wall and GameState.selected_graffiti_type == "piece":
+		actions.append("freehand")
+	return actions
 
 func _capture_screenshot() -> String:
 	if DisplayServer.get_name() == "headless":
