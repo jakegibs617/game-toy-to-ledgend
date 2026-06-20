@@ -68,6 +68,12 @@ Get-Process | Where-Object { $_.ProcessName -like "python*" } | Stop-Process -Fo
   - `objective_target` is now exposed. It resolves mission objectives to exact
     actors or walls, including remembered mission refs such as the first tag
     wall.
+  - Autonomous nav captures the mouse only while `aim_at`/`goto_*` is active,
+    then restores the previous mouse mode when nav becomes idle. This prevents
+    the agent from fighting modal/UI mouse state.
+  - `goto_objective` can carry an explicit `targetType` plus `targetWallId` or
+    `targetActorId`, so the pilot can act on the target it observed instead of
+    always re-resolving the current mission target at execution time.
 
 - `Scripts/UI/agent_overlay.gd`
   - Shows what the agent sees and does.
@@ -79,6 +85,8 @@ Get-Process | Where-Object { $_.ProcessName -like "python*" } | Stop-Process -Fo
   - Uses `docs/AGENT_CHEATSHEET.md` as the Ollama system prompt.
   - Handles `goto_objective`.
   - Falls back to useful deterministic actions when model JSON is malformed.
+  - Treats repeated nav commands as no-ops only when the target is the same,
+    so the model can still course-correct to a different wall or actor.
   - Writes model recommendations to `agent/playtest_recommendations.jsonl`.
 
 - `docs/AGENT_CHEATSHEET.md`
@@ -104,7 +112,7 @@ Progress achieved:
   `Paint a throw-up over it - press 2, then E`.
 - Selected the throw-up can via fallback.
 
-Issues found:
+Issues found and addressed:
 
 - `qwen3.5` frequently emits malformed/non-JSON output despite structured
   schema instructions.
@@ -112,12 +120,20 @@ Issues found:
   selecting required cans, painting focused walls, or waiting while navigation is
   already active.
 - `goto_objective` originally reset navigation every malformed turn; fixed by
-  treating repeated navigation actions as no-ops while nav is active.
+  treating same-target navigation actions as no-ops while nav is active, while
+  still allowing course corrections to different targets.
 - For `reach_wall`, objective target now prefers the spawned `reach_<wall>` zone
   actor instead of only the wall.
 - Wall navigation now switches into aim mode after arriving within stop
   distance.
-- Agent steering now re-captures mouse before injecting mouse motion.
+- Actor navigation now keeps steering until the actor is both close and roughly
+  centered, instead of stopping while still looking away.
+- Agent steering now captures mouse at nav start and restores it when idle,
+  rather than re-capturing every `_look()` call.
+- `goto_actor` is only exposed as a general legal action when actors are nearby;
+  objective navigation can still target mission actors outside the nearby list.
+- Recommendation logging now warns and continues if the notes file cannot be
+  created or written.
 
 Current remaining problem:
 
@@ -184,6 +200,8 @@ Latest checks passed with `SMOKE: OK`.
 - Godot 4.7 first import changed many tracked `.import` files and created a few
   `.gd.uid` files. Review generated import churn before committing if the repo
   remains targeted at Godot 4.6.
+- PR #66 contains the current agent harness work. After merge, continue from
+  `main`.
 - `docs/PLATFORM_READINESS.md` was added to document Windows/Mac platform setup.
 - `README.md` was updated with Windows run/smoke commands.
 - `agent/playtest_recommendations.jsonl` may not exist yet if the model has not

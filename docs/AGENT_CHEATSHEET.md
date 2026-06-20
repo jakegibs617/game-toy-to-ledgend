@@ -93,7 +93,7 @@ The harness exposes intents (not raw keys); it executes each via real input.
 |---|---|
 | `select_can(slot)` | choose can 1–6 |
 | `cycle_color` / `cycle_cap` | change fill color / paint tool |
-| `goto_objective` | walk toward the exact active objective target when exposed |
+| `goto_objective` | walk toward the exact active objective target when exposed; include `targetType` plus `targetWallId` or `targetActorId` if known |
 | `goto_actor(actorId)` | walk toward a mission actor or zone, such as `safehouse` |
 | `goto_wall(wallId)` | walk toward a wall *(navigation — later phase)* |
 | `aim_at(wallId)` | turn camera toward a wall *(later phase)* |

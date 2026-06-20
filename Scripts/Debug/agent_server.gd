@@ -41,6 +41,7 @@ var _aim_target := ""
 var _goto_target := ""
 var _goto_actor := ""
 var _goto_moving := false
+var _nav_mouse_mode_before := -1
 
 func bind_world(player, hud) -> void:
 	_player = player
@@ -102,10 +103,12 @@ func _pursue_aim() -> void:
 	var node = WallManager.wall_nodes.get(_aim_target, null)
 	if node == null:
 		_aim_target = ""
+		_restore_nav_mouse_mode_if_idle()
 		return
 	var err := _steer_toward(node.global_position)
 	if _focused_wall_id() == _aim_target or absf(err) <= AIM_DONE_RAD:
 		_aim_target = ""
+		_restore_nav_mouse_mode_if_idle()
 
 func _pursue_goto() -> void:
 	var node = WallManager.wall_nodes.get(_goto_target, null)
@@ -118,7 +121,8 @@ func _pursue_goto() -> void:
 		return
 	if dist <= GOTO_STOP_DIST:
 		var target := _goto_target
-		_stop_goto()
+		_stop_goto(false)
+		_begin_nav_capture()
 		_aim_target = target
 		return
 	var err := _steer_toward(node.global_position)
@@ -131,12 +135,14 @@ func _pursue_goto() -> void:
 		Input.action_release("move_forward")
 		_goto_moving = false
 
-func _stop_goto() -> void:
+func _stop_goto(restore_mouse := true) -> void:
 	if _goto_moving:
 		Input.action_release("move_forward")
 		_goto_moving = false
 	_goto_target = ""
 	_goto_actor = ""
+	if restore_mouse:
+		_restore_nav_mouse_mode_if_idle()
 
 func _cancel_nav() -> void:
 	_aim_target = ""
@@ -148,10 +154,10 @@ func _pursue_actor_goto() -> void:
 		_stop_goto()
 		return
 	var dist: float = _player.global_position.distance_to(node.global_position)
-	if dist <= GOTO_ACTOR_STOP_DIST:
+	var err := _steer_toward(node.global_position)
+	if dist <= GOTO_ACTOR_STOP_DIST and absf(err) <= AIM_DONE_RAD:
 		_stop_goto()
 		return
-	var err := _steer_toward(node.global_position)
 	if absf(err) <= GOTO_MOVE_CONE:
 		if not _goto_moving:
 			Input.action_press("move_forward")
@@ -179,6 +185,20 @@ func _steer_toward(pos: Vector3) -> float:
 		rel_y = clampf(-pitch_err / MOUSE_SENSITIVITY, -AIM_STEP_MAX, AIM_STEP_MAX)
 	_look(rel_x, rel_y)
 	return yaw_err
+
+func _begin_nav_capture() -> void:
+	if _nav_mouse_mode_before == -1:
+		_nav_mouse_mode_before = int(Input.get_mouse_mode())
+	if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED:
+		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+
+func _restore_nav_mouse_mode_if_idle() -> void:
+	if _nav_mouse_mode_before == -1:
+		return
+	if _aim_target != "" or _goto_target != "" or _goto_actor != "":
+		return
+	Input.set_mouse_mode(_nav_mouse_mode_before)
+	_nav_mouse_mode_before = -1
 
 # --- HTTP plumbing ----------------------------------------------------------
 
@@ -405,6 +425,18 @@ func _objective_target(obj: Dictionary) -> Dictionary:
 			return {"type": "actor", "actorId": actor_id}
 	return {}
 
+func _action_objective_target(data: Dictionary) -> Dictionary:
+	match String(data.get("targetType", "")):
+		"wall":
+			var wall_id := String(data.get("targetWallId", ""))
+			if wall_id != "":
+				return {"type": "wall", "wallId": wall_id}
+		"actor":
+			var actor_id := String(data.get("targetActorId", ""))
+			if actor_id != "":
+				return {"type": "actor", "actorId": actor_id}
+	return {}
+
 func _resolve_mission_wall(ref: String) -> String:
 	if ref == "":
 		return ""
@@ -413,6 +445,8 @@ func _resolve_mission_wall(ref: String) -> String:
 	return ref
 
 func _legal_actions() -> Array:
+	if not GameState.alias_chosen:
+		return ["paint", "wait"]
 	var actions := [
 		"select_can", "cycle_color", "cycle_cap", "look", "move",
 		"stop", "wait",
@@ -420,7 +454,7 @@ func _legal_actions() -> Array:
 	if not _nearby_walls().is_empty():
 		actions.append("aim_at")
 		actions.append("goto_wall")
-	if not _all_actor_nodes().is_empty():
+	if not _nearby_actors().is_empty():
 		actions.append("goto_actor")
 	if not _objective_target(MissionManager.current_objective()).is_empty():
 		actions.append("goto_objective")
@@ -466,6 +500,8 @@ func _act(data: Dictionary) -> Dictionary:
 
 func _act_impl(data: Dictionary) -> Dictionary:
 	var action := String(data.get("action", ""))
+	if not GameState.alias_chosen and action not in ["paint", "wait"]:
+		return {"ok": false, "error": "alias modal is active"}
 	match action:
 		"select_can":
 			_press("slot_%d" % clampi(int(data.get("slot", 1)), 1, GameState.SLOT_COUNT))
@@ -491,6 +527,7 @@ func _act_impl(data: Dictionary) -> Dictionary:
 				return {"ok": false, "error": "unknown wallId: %s" % wall}
 			_clear_holds()
 			_stop_goto()
+			_begin_nav_capture()
 			_aim_target = wall
 		"goto_wall":
 			var wall := String(data.get("wallId", ""))
@@ -499,6 +536,7 @@ func _act_impl(data: Dictionary) -> Dictionary:
 			_clear_holds()
 			_aim_target = ""
 			_goto_actor = ""
+			_begin_nav_capture()
 			_goto_target = wall
 		"goto_actor":
 			var actor_id := String(data.get("actorId", ""))
@@ -507,9 +545,12 @@ func _act_impl(data: Dictionary) -> Dictionary:
 			_clear_holds()
 			_aim_target = ""
 			_goto_target = ""
+			_begin_nav_capture()
 			_goto_actor = actor_id
 		"goto_objective":
-			var target := _objective_target(MissionManager.current_objective())
+			var target := _action_objective_target(data)
+			if target.is_empty():
+				target = _objective_target(MissionManager.current_objective())
 			if target.is_empty():
 				return {"ok": false, "error": "objective has no navigation target"}
 			match String(target.get("type", "")):
@@ -520,6 +561,7 @@ func _act_impl(data: Dictionary) -> Dictionary:
 					_clear_holds()
 					_aim_target = ""
 					_goto_actor = ""
+					_begin_nav_capture()
 					_goto_target = wall
 				"actor":
 					var actor_id := String(target.get("actorId", ""))
@@ -528,6 +570,7 @@ func _act_impl(data: Dictionary) -> Dictionary:
 					_clear_holds()
 					_aim_target = ""
 					_goto_target = ""
+					_begin_nav_capture()
 					_goto_actor = actor_id
 				_:
 					return {"ok": false, "error": "unsupported objective target"}
@@ -564,8 +607,6 @@ func _move(dir: String, seconds: float) -> void:
 ## Nudge the camera, as a mouse motion event (Player reads relative motion
 ## while the mouse is captured).
 func _look(dx: float, dy: float) -> void:
-	if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED:
-		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	var ev := InputEventMouseMotion.new()
 	ev.relative = Vector2(dx, dy)
 	Input.parse_input_event(ev)

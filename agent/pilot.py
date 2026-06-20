@@ -23,6 +23,7 @@ import argparse
 import base64
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -48,6 +49,9 @@ ACTION_SCHEMA = {
         "slot": {"type": "integer"},
         "wallId": {"type": "string"},
         "actorId": {"type": "string"},
+        "targetType": {"type": "string", "enum": ["wall", "actor"]},
+        "targetWallId": {"type": "string"},
+        "targetActorId": {"type": "string"},
         "dir": {"type": "string", "enum": ["forward", "back", "left", "right"]},
         "seconds": {"type": "number"},
         "dx": {"type": "number"},
@@ -121,7 +125,7 @@ def heuristic_brain(obs: dict) -> dict:
 
     target = obs.get("objective_target") or {}
     if target and "goto_objective" in (obs.get("legal_actions") or []):
-        return {"reason": "follow the objective marker", "action": "goto_objective"}
+        return _goto_objective_action(target, "follow the objective marker")
 
     objective = (obs.get("objective") or "").lower()
     actors = obs.get("nearby_actors") or []
@@ -194,7 +198,7 @@ class OllamaBrain:
         except json.JSONDecodeError:
             return _fallback_action(obs, "unparseable model output")
         if not isinstance(action, dict) or "action" not in action:
-            return {"reason": "no action field", "action": "wait"}
+            return _fallback_action(obs, "no action field")
         legal = obs.get("legal_actions") or []
         if legal and action.get("action") not in legal:
             return _fallback_action(obs, f"model chose unavailable {action.get('action')}")
@@ -231,7 +235,8 @@ def _fallback_action(obs: dict, reason: str) -> dict:
     if focused and not str(states.get(focused, "")).startswith("player_") and "paint" in legal and "Paint" in prompt:
         return {"reason": reason + "; paint focused wall", "action": "paint"}
     if obs.get("objective_target") and "goto_objective" in legal:
-        return {"reason": reason + "; go to objective target", "action": "goto_objective"}
+        return _goto_objective_action(obs.get("objective_target") or {},
+                                      reason + "; go to objective target")
     objective = (obs.get("objective") or "").lower()
     actors = obs.get("nearby_actors") or []
     if "safehouse" in objective and "goto_actor" in legal:
@@ -271,10 +276,21 @@ def _opening_hint(obs: dict) -> str:
 
 def _is_noop_action(obs: dict, action: dict) -> bool:
     nav = obs.get("nav") or {}
-    if action.get("action") in ["goto_wall", "goto_actor", "goto_objective", "aim_at"] \
-            and (nav.get("goto_target") or nav.get("goto_actor") or nav.get("aim_target")):
-        return True
-    if action.get("action") != "select_can":
+    chosen = action.get("action")
+    if chosen == "goto_wall":
+        return bool(nav.get("goto_target")) and nav.get("goto_target") == action.get("wallId")
+    if chosen == "goto_actor":
+        return bool(nav.get("goto_actor")) and nav.get("goto_actor") == action.get("actorId")
+    if chosen == "aim_at":
+        return bool(nav.get("aim_target")) and nav.get("aim_target") == action.get("wallId")
+    if chosen == "goto_objective":
+        target = _action_objective_target(obs, action)
+        if target.get("type") == "wall":
+            return bool(nav.get("goto_target")) and nav.get("goto_target") == target.get("wallId")
+        if target.get("type") == "actor":
+            return bool(nav.get("goto_actor")) and nav.get("goto_actor") == target.get("actorId")
+        return False
+    if chosen != "select_can":
         return False
     slot = int(action.get("slot", 1))
     selected = obs.get("selected_can")
@@ -291,17 +307,17 @@ def _is_noop_action(obs: dict, action: dict) -> bool:
 
 def _required_slot_for_objective(obs: dict) -> int:
     objective = (obs.get("objective") or "").lower()
-    if "throw-up" in objective or "throwup" in objective:
+    if re.search(r"\bthrow[- ]?up\b", objective):
         return 2
-    if "piece" in objective:
+    if re.search(r"\bpiece\b", objective):
         return 3
-    if "stencil" in objective:
+    if re.search(r"\bstencil\b", objective):
         return 4
-    if "roller" in objective:
+    if re.search(r"\broller\b", objective):
         return 5
-    if "mural" in objective:
+    if re.search(r"\bmural\b", objective):
         return 6
-    if "tag" in objective:
+    if re.search(r"\btag\b", objective):
         return 1
     return 0
 
@@ -309,17 +325,38 @@ def _required_slot_for_objective(obs: dict) -> int:
 def _parse_action_content(content: str) -> dict:
     text = content.strip()
     if text.startswith("```"):
-        text = text.strip("`").strip()
-        if text.lower().startswith("json"):
-            text = text[4:].strip()
+        lines = text.splitlines()
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        text = "\n".join(lines).strip()
     try:
         return json.loads(text)
     except json.JSONDecodeError:
         start = text.find("{")
-        end = text.rfind("}")
-        if start != -1 and end > start:
-            return json.loads(text[start:end + 1])
+        if start != -1:
+            obj, _ = json.JSONDecoder().raw_decode(text[start:])
+            return obj
         raise
+
+
+def _goto_objective_action(target: dict, reason: str) -> dict:
+    action = {"reason": reason, "action": "goto_objective"}
+    if target.get("type") == "wall" and target.get("wallId"):
+        action.update({"targetType": "wall", "targetWallId": target["wallId"]})
+    elif target.get("type") == "actor" and target.get("actorId"):
+        action.update({"targetType": "actor", "targetActorId": target["actorId"]})
+    return action
+
+
+def _action_objective_target(obs: dict, action: dict) -> dict:
+    target_type = action.get("targetType")
+    if target_type == "wall" and action.get("targetWallId"):
+        return {"type": "wall", "wallId": action.get("targetWallId")}
+    if target_type == "actor" and action.get("targetActorId"):
+        return {"type": "actor", "actorId": action.get("targetActorId")}
+    return obs.get("objective_target") or {}
 
 
 def run(args) -> int:
@@ -378,9 +415,12 @@ def _record_recommendation(path: str, turn: int, obs: dict, action: dict, result
         "priority": action.get("recommendation_priority", "medium") or "medium",
         "result_ok": bool(result.get("ok", True)),
     }
-    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
-    with open(path, "a", encoding="utf-8") as f:
-        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    try:
+        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except OSError as e:
+        print(f"Warning: could not record recommendation to {path}: {e}", file=sys.stderr)
 
 
 def main() -> int:
