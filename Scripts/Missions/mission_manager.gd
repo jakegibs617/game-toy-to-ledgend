@@ -413,8 +413,10 @@ func _spawn_reach_zone(obj: Dictionary) -> void:
 	var pos: Array = def["position"]
 	var size: Array = def["size"]
 	var zone := MissionZoneScene.new()
+	# Zone depth 8 m (±4 m) ensures the player triggers it after stopping at
+	# GOTO_STOP_DIST (3 m) from the wall center during agent nav.
 	zone.setup("reach_%s" % wall_id,
-		Vector3(pos[0], 1.2, pos[2]), Vector3(float(size[0]) + 2.0, 3.0, 5.0), true)
+		Vector3(pos[0], 1.2, pos[2]), Vector3(float(size[0]) + 4.0, 3.0, 8.0), true)
 	scene.add_child(zone)
 
 ## Visual marker for a zone actor: a door slab and floating label.

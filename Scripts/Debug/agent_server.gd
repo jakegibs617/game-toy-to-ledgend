@@ -20,8 +20,9 @@ const NEARBY_RADIUS := 14.0
 const MOUSE_SENSITIVITY := 0.0025
 const INTERACT_RANGE := 3.5
 const AIM_STEP_MAX := 45.0      # max synthesized mouse px/frame, so turns look human
+const CAMERA_DISTANCE := 3.5    # mirror Player; spring arm length (camera behind player)
 const GOTO_STOP_DIST := 3.0     # stop walking once this close to the target wall
-const GOTO_ACTOR_STOP_DIST := 1.6
+const GOTO_ACTOR_STOP_DIST := 2.5
 const AIM_DONE_RAD := deg_to_rad(3.0)
 const GOTO_MOVE_CONE := deg_to_rad(35.0)  # only walk forward when roughly facing target
 
@@ -42,6 +43,13 @@ var _goto_target := ""
 var _goto_actor := ""
 var _goto_moving := false
 var _nav_mouse_mode_before := -1
+# paint_objective macro: navigate → aim → press paint once focused on the target wall.
+var _paint_obj_wall := ""
+var _paint_obj_can_slot := 0       # 0 = no can swap needed
+var _paint_obj_can_selected := false
+# Frames spent steering at the wall after aim exits but before physics confirms focus.
+var _paint_obj_stall := 0
+const PAINT_OBJ_STALL_MAX := 120  # ~2s at 60fps before giving up and re-approaching
 
 func bind_world(player, hud) -> void:
 	_player = player
@@ -98,6 +106,8 @@ func _update_nav() -> void:
 		_pursue_actor_goto()
 	elif _aim_target != "":
 		_pursue_aim()
+	if _paint_obj_wall != "":
+		_pursue_paint_obj()
 
 func _pursue_aim() -> void:
 	var node = WallManager.wall_nodes.get(_aim_target, null)
@@ -146,6 +156,7 @@ func _stop_goto(restore_mouse := true) -> void:
 
 func _cancel_nav() -> void:
 	_aim_target = ""
+	_clear_paint_obj()
 	_stop_goto()
 
 func _pursue_actor_goto() -> void:
@@ -155,8 +166,16 @@ func _pursue_actor_goto() -> void:
 		return
 	var dist: float = _player.global_position.distance_to(node.global_position)
 	var err := _steer_toward(node.global_position)
-	if dist <= GOTO_ACTOR_STOP_DIST and absf(err) <= AIM_DONE_RAD:
+	# Stop when close and roughly facing — use GOTO_MOVE_CONE (35°) not AIM_DONE_RAD (3°)
+	# so the player doesn't overshoot trying to hit an impossibly precise angle.
+	if dist <= GOTO_ACTOR_STOP_DIST and absf(err) <= GOTO_MOVE_CONE:
 		_stop_goto()
+		return
+	# Don't walk forward once close — prevents oscillating past the target.
+	if dist <= GOTO_ACTOR_STOP_DIST:
+		if _goto_moving:
+			Input.action_release("move_forward")
+			_goto_moving = false
 		return
 	if absf(err) <= GOTO_MOVE_CONE:
 		if not _goto_moving:
@@ -186,6 +205,80 @@ func _steer_toward(pos: Vector3) -> float:
 	_look(rel_x, rel_y)
 	return yaw_err
 
+func _graffiti_type_slot(graffiti_type: String) -> int:
+	match graffiti_type:
+		"tag": return 1
+		"throwup": return 2
+		"piece": return 3
+		"stencil": return 4
+		"roller": return 5
+		"mural": return 6
+	return 0
+
+func _clear_paint_obj() -> void:
+	_paint_obj_wall = ""
+	_paint_obj_can_slot = 0
+	_paint_obj_can_selected = false
+	_paint_obj_stall = 0
+
+## Drives the paint_objective macro each frame: select can → navigate → aim → press paint.
+func _pursue_paint_obj() -> void:
+	# Phase 1: select the required can once before starting nav.
+	if _paint_obj_can_slot > 0 and not _paint_obj_can_selected:
+		_press("slot_%d" % _paint_obj_can_slot)
+		_paint_obj_can_selected = true
+		return
+	# Phase 2: wait while goto or aim nav is still running.
+	if _goto_target != "" or _aim_target != "":
+		return
+	# Phase 3a: standard path — RayCast3D confirms focus (common after aim cycle).
+	if _focused_wall_id() == _paint_obj_wall and "Paint" in _hud_prompt():
+		_press("interact")
+		_clear_paint_obj()
+		_restore_nav_mouse_mode_if_idle()
+		return
+	# Phase 3b: yaw-based check — _player.rotation.y is already updated by aim's mouse
+	# events, while direct_space_state still reflects the previous physics step (so a
+	# raycast would always return false here). If close enough and roughly facing the
+	# wall, force-set focus and fire interact directly.
+	if WallManager.wall_nodes.has(_paint_obj_wall):
+		var wnode: Node3D = WallManager.wall_nodes[_paint_obj_wall] as Node3D
+		if wnode != null:
+			var to: Vector3 = wnode.global_position - _player.global_position
+			var dist: float = to.length()
+			if dist <= INTERACT_RANGE + 1.5:
+				var desired_yaw: float = atan2(-to.x, -to.z)
+				var yaw_err: float = absf(wrapf(desired_yaw - _player.rotation.y, -PI, PI))
+				if yaw_err <= AIM_DONE_RAD * 4.0:
+					_player._focused = wnode
+					_player.focus_changed.emit(_player._focused)
+					_press("interact")
+					_clear_paint_obj()
+					_restore_nav_mouse_mode_if_idle()
+					return
+	# Phase 4: camera not yet on wall — rotate toward it directly (more reliable
+	# than synthesized mouse events which can be lost if routing is wrong).
+	if not WallManager.wall_nodes.has(_paint_obj_wall):
+		_clear_paint_obj()
+		_restore_nav_mouse_mode_if_idle()
+		return
+	_paint_obj_stall += 1
+	if _paint_obj_stall > PAINT_OBJ_STALL_MAX:
+		_paint_obj_stall = 0
+		_begin_nav_capture()
+		_goto_target = _paint_obj_wall
+		return
+	var node = WallManager.wall_nodes[_paint_obj_wall]
+	var to: Vector3 = node.global_position - _player.global_position
+	var desired_yaw := atan2(-to.x, -to.z)
+	_player.rotation.y = lerp_angle(_player.rotation.y, desired_yaw, 0.3)
+	if "_pivot" in _player and _player._pivot != null:
+		var horiz: float = Vector2(to.x, to.z).length()
+		if horiz > 0.01:
+			var desired_pitch := atan2(to.y - 1.5, horiz)
+			_player._pivot.rotation.x = lerp_angle(
+				_player._pivot.rotation.x, desired_pitch, 0.3)
+
 func _begin_nav_capture() -> void:
 	if _nav_mouse_mode_before == -1:
 		_nav_mouse_mode_before = int(Input.get_mouse_mode())
@@ -195,7 +288,7 @@ func _begin_nav_capture() -> void:
 func _restore_nav_mouse_mode_if_idle() -> void:
 	if _nav_mouse_mode_before == -1:
 		return
-	if _aim_target != "" or _goto_target != "" or _goto_actor != "":
+	if _aim_target != "" or _goto_target != "" or _goto_actor != "" or _paint_obj_wall != "":
 		return
 	Input.set_mouse_mode(_nav_mouse_mode_before)
 	_nav_mouse_mode_before = -1
@@ -276,6 +369,7 @@ func _respond(payload: Dictionary) -> void:
 
 func _observe(want_shot := true) -> Dictionary:
 	var obj: Dictionary = MissionManager.current_objective()
+	var paint_fields := _paint_objective_fields(obj)
 	var view := {
 		"alias": GameState.alias,
 		"alias_chosen": GameState.alias_chosen,
@@ -289,6 +383,10 @@ func _observe(want_shot := true) -> Dictionary:
 		"heat": HeatManager.heat,
 		"objective": String(obj.get("text", "")) if obj else "",
 		"objective_target": _objective_target(obj),
+		"objective_required_can": paint_fields["objective_required_can"],
+		"objective_can_slot": paint_fields["objective_can_slot"],
+		"objective_ready_to_interact": paint_fields["objective_ready_to_interact"],
+		"objective_distance": paint_fields["objective_distance"],
 		"prompt": _hud_prompt(),
 		"focused_wall": _focused_wall_id(),
 		"nearby_walls": _nearby_walls(),
@@ -304,6 +402,39 @@ func _observe(want_shot := true) -> Dictionary:
 	if _overlay != null:
 		_overlay.set_state(view)
 	return view
+
+## Compute the four paint-objective observe fields from the current objective dict.
+func _paint_objective_fields(obj: Dictionary) -> Dictionary:
+	var required_can := ""
+	var can_slot := 0
+	var ready := false
+	var dist := -1.0
+	if not obj.is_empty() and String(obj.get("type", "")) == "paint":
+		var types: Array = obj.get("graffitiTypes", [])
+		required_can = String(types[0]) if not types.is_empty() else ""
+		can_slot = _graffiti_type_slot(required_can)
+		var target_wall := _resolve_mission_wall(String(obj.get("wall", "")))
+		if target_wall != "":
+			var focused := _focused_wall_id()
+			var correct_can := required_can == "" or GameState.selected_graffiti_type == required_can
+			ready = focused == target_wall and correct_can and "Paint" in _hud_prompt()
+	var target := _objective_target(obj)
+	if not target.is_empty() and _player != null:
+		match String(target.get("type", "")):
+			"wall":
+				var wnode = WallManager.wall_nodes.get(String(target.get("wallId", "")), null)
+				if wnode != null:
+					dist = snappedf(_player.global_position.distance_to(wnode.global_position), 0.1)
+			"actor":
+				var anode := _actor_node(String(target.get("actorId", "")))
+				if anode != null:
+					dist = snappedf(_player.global_position.distance_to(anode.global_position), 0.1)
+	return {
+		"objective_required_can": required_can,
+		"objective_can_slot": can_slot,
+		"objective_ready_to_interact": ready,
+		"objective_distance": dist,
+	}
 
 func _hud_prompt() -> String:
 	if _hud != null and "_prompt_label" in _hud and _hud._prompt_label != null:
@@ -456,8 +587,13 @@ func _legal_actions() -> Array:
 		actions.append("goto_wall")
 	if not _nearby_actors().is_empty():
 		actions.append("goto_actor")
-	if not _objective_target(MissionManager.current_objective()).is_empty():
+	var cur_obj: Dictionary = MissionManager.current_objective()
+	if not _objective_target(cur_obj).is_empty():
 		actions.append("goto_objective")
+	if String(cur_obj.get("type", "")) == "paint" and cur_obj.has("wall"):
+		var paint_wall_id := _resolve_mission_wall(String(cur_obj.get("wall", "")))
+		if paint_wall_id != "" and WallManager.wall_nodes.has(paint_wall_id):
+			actions.append("paint_objective")
 	var prompt := _hud_prompt()
 	var focused_wall := _focused_wall_id()
 	var focused_state := ""
@@ -468,6 +604,9 @@ func _legal_actions() -> Array:
 		actions.append("paint")
 	if "Rest" in prompt:
 		actions.append("rest")
+	# Expose a generic interact for NPC / pickup prompts that aren't paint or rest.
+	if "[E]" in prompt and not "Paint" in prompt and not "Rest" in prompt:
+		actions.append("interact")
 	if "Paint" in prompt and fresh_focused_wall and GameState.selected_graffiti_type == "piece":
 		actions.append("freehand")
 	return actions
@@ -515,6 +654,8 @@ func _act_impl(data: Dictionary) -> Dictionary:
 			_press("freehand_paint")
 		"rest":
 			_press("safehouse_rest")
+		"interact":
+			_press("interact")
 		"look":
 			_cancel_nav()
 			_look(float(data.get("dx", 0.0)), float(data.get("dy", 0.0)))
@@ -547,6 +688,31 @@ func _act_impl(data: Dictionary) -> Dictionary:
 			_goto_target = ""
 			_begin_nav_capture()
 			_goto_actor = actor_id
+		"paint_objective":
+			var pobj: Dictionary = MissionManager.current_objective()
+			if pobj.is_empty() or String(pobj.get("type", "")) != "paint":
+				return {"ok": false, "error": "current objective is not a paint task"}
+			var wall_ref := String(pobj.get("wall", ""))
+			if wall_ref == "":
+				return {"ok": false, "error": "paint objective has no specific wall target"}
+			var resolved_wall := _resolve_mission_wall(wall_ref)
+			if resolved_wall == "" or not WallManager.wall_nodes.has(resolved_wall):
+				return {"ok": false, "error": "cannot resolve objective wall: %s" % wall_ref}
+			# If the macro is already running for this wall, don't restart it — let
+			# the existing navigate→aim→paint sequence complete uninterrupted.
+			if _paint_obj_wall == resolved_wall:
+				return {"ok": true, "action": "paint_objective", "status": "macro_running"}
+			var types: Array = pobj.get("graffitiTypes", [])
+			var required_slot := _graffiti_type_slot(String(types[0]) if not types.is_empty() else "")
+			_clear_holds()
+			_aim_target = ""
+			_goto_actor = ""
+			_goto_target = ""
+			_paint_obj_wall = resolved_wall
+			_paint_obj_can_slot = required_slot
+			_paint_obj_can_selected = false
+			_begin_nav_capture()
+			_goto_target = resolved_wall
 		"goto_objective":
 			var target := _action_objective_target(data)
 			if target.is_empty():

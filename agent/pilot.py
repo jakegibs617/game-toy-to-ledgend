@@ -42,8 +42,8 @@ ACTION_SCHEMA = {
             "type": "string",
             "enum": [
                 "select_can", "cycle_color", "cycle_cap", "look", "move",
-                "aim_at", "goto_wall", "goto_actor", "goto_objective",
-                "stop", "paint", "freehand", "rest", "wait",
+                "aim_at", "goto_wall", "goto_actor", "goto_objective", "paint_objective",
+                "stop", "paint", "interact", "freehand", "rest", "wait",
             ],
         },
         "slot": {"type": "integer"},
@@ -146,14 +146,17 @@ def heuristic_brain(obs: dict) -> dict:
 
 
 class OllamaBrain:
-    def __init__(self, host: str, model: str, use_vision: bool):
+    def __init__(self, host: str, model: str, use_vision: bool, notes_path: str = ""):
         self.host = host.rstrip("/")
         self.model = model
         self.use_vision = use_vision
+        self.notes_path = notes_path
+        self._turn = 0
         with open(CHEATSHEET, "r", encoding="utf-8") as f:
             self.system = f.read()
 
     def __call__(self, obs: dict) -> dict:
+        self._turn += 1
         # Strip the screenshot path out of the text view; pass the image
         # separately so a vision model sees the frame.
         view = {k: v for k, v in obs.items() if k != "screenshot"}
@@ -170,6 +173,9 @@ class OllamaBrain:
             "recommendation with recommendation_category and recommendation_priority. Leave those "
             "fields empty when there is nothing useful to recommend. "
             "Do not choose rest unless rest is listed in legal_actions. "
+            "If paint_objective is in legal_actions and the objective requires painting a specific "
+            "wall, prefer paint_objective — it handles navigation, can selection, and painting in "
+            "one stateful macro. "
             "If objective_target is present, prefer goto_objective unless you are already focused "
             "on the required interaction. "
             "If the objective says to return to the safehouse but no safehouse action is available, "
@@ -196,7 +202,15 @@ class OllamaBrain:
         try:
             action = _parse_action_content(content)
         except json.JSONDecodeError:
-            return _fallback_action(obs, "unparseable model output")
+            _record_parse_failure(self.notes_path, self._turn, obs, content)
+            repaired = _try_repair_json(self.host, self.model, content)
+            if repaired:
+                try:
+                    action = _parse_action_content(repaired)
+                except json.JSONDecodeError:
+                    return _fallback_action(obs, "unparseable model output (repair failed)")
+            else:
+                return _fallback_action(obs, "unparseable model output")
         if not isinstance(action, dict) or "action" not in action:
             return _fallback_action(obs, "no action field")
         legal = obs.get("legal_actions") or []
@@ -204,19 +218,30 @@ class OllamaBrain:
             return _fallback_action(obs, f"model chose unavailable {action.get('action')}")
         if _is_noop_action(obs, action):
             return _fallback_action(obs, f"model chose no-op {action.get('action')}")
+        invalid = _invalid_nav_params(obs, action)
+        if invalid:
+            return _fallback_action(obs, invalid)
         return action
 
 
 # --- main loop --------------------------------------------------------------
 
 def summarize(obs: dict) -> str:
+    dist = obs.get("objective_distance", -1.0)
+    dist_str = f" d={dist:.0f}m" if dist >= 0 else ""
     return (f"rep={obs.get('reputation')} paint={obs.get('paint')} "
             f"heat={obs.get('heat')} can={obs.get('selected_can')} "
-            f"focus={obs.get('focused_wall') or '-'} "
+            f"focus={obs.get('focused_wall') or '-'}{dist_str} "
             f"obj={(obs.get('objective') or '')[:40]!r}")
 
 
 def _fallback_action(obs: dict, reason: str) -> dict:
+    action = _compute_fallback(obs, reason)
+    action["_harness_fallback"] = True
+    return action
+
+
+def _compute_fallback(obs: dict, reason: str) -> dict:
     if not obs.get("alias_chosen", True):
         return {"reason": reason + "; confirm alias", "action": "paint"}
     nav = obs.get("nav") or {}
@@ -227,11 +252,16 @@ def _fallback_action(obs: dict, reason: str) -> dict:
     states = {w["wallId"]: w.get("state") for w in walls}
     prompt = obs.get("prompt") or ""
     legal = obs.get("legal_actions") or []
+    # Use paint_objective macro when available (Fix 1).
+    if "paint_objective" in legal and obs.get("objective_required_can"):
+        return {"reason": reason + "; use paint_objective macro", "action": "paint_objective"}
     slot = _required_slot_for_objective(obs)
     if slot and "select_can" in legal:
         slot_to_can = {1: "tag", 2: "throwup", 3: "piece", 4: "stencil", 5: "roller", 6: "mural"}
         if obs.get("selected_can") != slot_to_can.get(slot):
             return {"reason": reason + "; select objective can", "action": "select_can", "slot": slot}
+    if "interact" in legal and "[E]" in prompt and "Paint" not in prompt:
+        return {"reason": reason + "; interact with focused object", "action": "interact"}
     if focused and not str(states.get(focused, "")).startswith("player_") and "paint" in legal and "Paint" in prompt:
         return {"reason": reason + "; paint focused wall", "action": "paint"}
     if obs.get("objective_target") and "goto_objective" in legal:
@@ -266,11 +296,52 @@ def _opening_hint(obs: dict) -> str:
         if target and "goto_wall" in legal:
             return f"Choose goto_wall with wallId {target['wallId']}."
     if obs.get("objective_target") and "goto_objective" in legal:
+        tgt = obs["objective_target"]
+        ttype = tgt.get("type", "")
+        if ttype == "actor":
+            aid = tgt.get("actorId", "")
+            return (f"Use goto_objective with targetType=actor and targetActorId={aid} "
+                    f"to reach the objective. Do NOT use goto_wall here.")
+        if ttype == "wall":
+            wid = tgt.get("wallId", "")
+            return (f"Use goto_objective with targetType=wall and targetWallId={wid} "
+                    f"to reach the objective. Do NOT use goto_wall here.")
         return "Choose goto_objective to follow the current objective target."
     if "safehouse" in objective and "goto_actor" in legal:
         actors = obs.get("nearby_actors") or []
         if any(a.get("actorId") == "safehouse" for a in actors):
             return "Choose goto_actor with actorId safehouse."
+    return ""
+
+
+def _is_paint_objective_running(obs: dict) -> bool:
+    """True if the server-side paint_objective macro is already running for the current wall."""
+    nav = obs.get("nav") or {}
+    obj_target = obs.get("objective_target") or {}
+    target_wall = obj_target.get("wallId") if obj_target.get("type") == "wall" else ""
+    # Server considers it running if goto_target or aim_target is set to the objective wall.
+    return bool(target_wall and (
+        nav.get("goto_target") == target_wall or nav.get("aim_target") == target_wall
+    ))
+
+
+def _invalid_nav_params(obs: dict, action: dict) -> str:
+    """Return a non-empty reason string if a nav action is missing a required ID."""
+    chosen = action.get("action", "")
+    wall_id = action.get("wallId") or ""
+    actor_id = action.get("actorId") or ""
+    walls_by_id = {w["wallId"] for w in (obs.get("nearby_walls") or [])}
+    actors_by_id = {a["actorId"] for a in (obs.get("nearby_actors") or [])}
+    if chosen in ("goto_wall", "aim_at"):
+        if not wall_id:
+            return f"{chosen} with no wallId"
+        if wall_id not in walls_by_id:
+            return f"{chosen} wallId {wall_id!r} not in nearby_walls"
+    if chosen == "goto_actor":
+        if not actor_id:
+            return "goto_actor with no actorId"
+        if actor_id not in actors_by_id:
+            return f"goto_actor actorId {actor_id!r} not in nearby_actors"
     return ""
 
 
@@ -290,6 +361,8 @@ def _is_noop_action(obs: dict, action: dict) -> bool:
         if target.get("type") == "actor":
             return bool(nav.get("goto_actor")) and nav.get("goto_actor") == target.get("actorId")
         return False
+    if chosen == "paint_objective":
+        return _is_paint_objective_running(obs)
     if chosen != "select_can":
         return False
     slot = int(action.get("slot", 1))
@@ -320,6 +393,43 @@ def _required_slot_for_objective(obs: dict) -> int:
     if re.search(r"\btag\b", objective):
         return 1
     return 0
+
+
+def _try_repair_json(host: str, model: str, bad_content: str) -> str:
+    """Ask the model to return just the JSON, given its malformed output. Returns '' on failure."""
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": 'Return only valid JSON with an "action" field. No explanation.'},
+            {"role": "user", "content": f"Fix this malformed JSON:\n{bad_content[:400]}"},
+        ],
+        "format": {"type": "object", "properties": {"action": {"type": "string"}}, "required": ["action"]},
+        "stream": False,
+        "options": {"temperature": 0.0},
+    }
+    try:
+        resp = _post(host + "/api/chat", payload, timeout=30.0)
+        return resp.get("message", {}).get("content", "")
+    except Exception:
+        return ""
+
+
+def _record_parse_failure(path: str, turn: int, obs: dict, raw: str) -> None:
+    if not path:
+        return
+    entry = {
+        "turn": turn,
+        "time": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+        "type": "parse_failure",
+        "objective": obs.get("objective", ""),
+        "raw_excerpt": raw[:200],
+    }
+    try:
+        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except OSError as e:
+        print(f"Warning: could not record parse failure to {path}: {e}", file=sys.stderr)
 
 
 def _parse_action_content(content: str) -> dict:
@@ -363,7 +473,7 @@ def run(args) -> int:
     game = Game(args.server)
     want_shot = args.brain == "ollama" and not args.no_vision
     if args.brain == "ollama":
-        brain = OllamaBrain(args.ollama, args.model, not args.no_vision)
+        brain = OllamaBrain(args.ollama, args.model, not args.no_vision, notes_path=args.notes)
     else:
         brain = heuristic_brain
 
@@ -373,6 +483,13 @@ def run(args) -> int:
         print(f"Cannot reach the game at {args.server}: {e}\n"
               f"Launch it with AGENT=1 first.", file=sys.stderr)
         return 2
+
+    # Stall tracking for automatic harness recommendations.
+    fallback_streak = 0
+    same_obj_streak = 0
+    rejected_streak = 0
+    prev_objective = ""
+    last_auto_rec_turn = -99  # ensures first eligible stall can fire immediately
 
     for turn in range(1, args.max_turns + 1):
         obs = game.observe(want_shot)
@@ -387,6 +504,35 @@ def run(args) -> int:
         if action.get("recommendation"):
             print(f"      ?? rec[{action.get('recommendation_category', 'other')}]: "
                   f"{action.get('recommendation')}", flush=True)
+
+        # Update stall counters.
+        obj_text = obs.get("objective") or ""
+        is_fallback = bool(action.get("_harness_fallback"))
+        is_rejected = not result.get("ok", True)
+        if obj_text == prev_objective:
+            same_obj_streak += 1
+        else:
+            same_obj_streak = 0
+            prev_objective = obj_text
+            fallback_streak = 0
+            rejected_streak = 0
+        fallback_streak = fallback_streak + 1 if is_fallback else 0
+        rejected_streak = rejected_streak + 1 if is_rejected else 0
+
+        # Emit an auto-recommendation when stalled, with a per-stall cooldown.
+        _AUTO_REC_FALLBACK = 3
+        _AUTO_REC_SAME_OBJ = 6
+        _AUTO_REC_REJECTED = 3
+        _AUTO_REC_COOLDOWN = 5
+        stalled = (fallback_streak >= _AUTO_REC_FALLBACK
+                   or same_obj_streak >= _AUTO_REC_SAME_OBJ
+                   or rejected_streak >= _AUTO_REC_REJECTED)
+        if stalled and turn - last_auto_rec_turn >= _AUTO_REC_COOLDOWN:
+            _record_auto_recommendation(args.notes, turn, obs, fallback_streak, same_obj_streak)
+            print(f"      !! auto-rec: stall detected (fallback={fallback_streak} "
+                  f"same_obj={same_obj_streak} rejected={rejected_streak})", flush=True)
+            last_auto_rec_turn = turn
+
         if args.goal and args.goal.lower() in (obs.get("objective") or "").lower():
             print(f"Reached goal objective: {obs.get('objective')!r}", flush=True)
             return 0
@@ -394,6 +540,42 @@ def run(args) -> int:
 
     print("Max turns reached.", flush=True)
     return 0
+
+
+def _record_auto_recommendation(path: str, turn: int, obs: dict,
+                                fallback_streak: int, same_obj_streak: int) -> None:
+    obj = obs.get("objective") or ""
+    dist = obs.get("objective_distance", -1.0)
+    dist_str = f"{dist:.1f}" if dist >= 0 else "unknown"
+    note = (f"Harness detected stall: fallback_streak={fallback_streak} "
+            f"same_obj_streak={same_obj_streak} dist={dist_str}")
+    priority = "high" if fallback_streak >= 5 or same_obj_streak >= 8 else "medium"
+    entry = {
+        "turn": turn,
+        "time": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+        "type": "auto_recommendation",
+        "objective": obj,
+        "district": obs.get("district", ""),
+        "focused_wall": obs.get("focused_wall", ""),
+        "action": "",
+        "reason": note,
+        "playtest_note": note,
+        "recommendation": (
+            f"Agent stalled on {obj!r} for {same_obj_streak} turns "
+            f"(fallback {fallback_streak} times, dist={dist_str}). "
+            "Consider: clearer progress signal, paint_objective macro if this is a paint task, "
+            "or smaller navigation steps."
+        ),
+        "category": "objective",
+        "priority": priority,
+        "result_ok": True,
+    }
+    try:
+        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except OSError as e:
+        print(f"Warning: could not record auto-recommendation to {path}: {e}", file=sys.stderr)
 
 
 def _record_recommendation(path: str, turn: int, obs: dict, action: dict, result: dict) -> None:
@@ -430,7 +612,7 @@ def main() -> int:
     p.add_argument("--brain", choices=["heuristic", "ollama"], default="heuristic")
     p.add_argument("--ollama", default="http://localhost:11434",
                    help="Ollama API base URL")
-    p.add_argument("--model", default="qwen2.5vl", help="Ollama model name")
+    p.add_argument("--model", default="qwen3:14b", help="Ollama model name")
     p.add_argument("--no-vision", action="store_true",
                    help="text-only (skip the screenshot)")
     p.add_argument("--max-turns", type=int, default=60)

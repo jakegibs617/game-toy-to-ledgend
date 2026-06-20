@@ -93,32 +93,49 @@ The harness exposes intents (not raw keys); it executes each via real input.
 |---|---|
 | `select_can(slot)` | choose can 1–6 |
 | `cycle_color` / `cycle_cap` | change fill color / paint tool |
+| `paint_objective` | **preferred for paint tasks** — one-shot macro: selects the required can, walks to the objective wall, aims, and presses paint once focused. Use whenever `paint_objective` appears in `legal_actions`. |
 | `goto_objective` | walk toward the exact active objective target when exposed; include `targetType` plus `targetWallId` or `targetActorId` if known |
 | `goto_actor(actorId)` | walk toward a mission actor or zone, such as `safehouse` |
-| `goto_wall(wallId)` | walk toward a wall *(navigation — later phase)* |
-| `aim_at(wallId)` | turn camera toward a wall *(later phase)* |
+| `goto_wall(wallId)` | walk toward a wall |
+| `aim_at(wallId)` | turn camera toward a wall |
 | `look(dx, dy)` | nudge the camera |
 | `move(dir, seconds)` | walk forward/back/left/right briefly |
 | `paint` | press E on the focused wall |
+| `interact` | press E to talk to an NPC / pick up an item / use an object — exposed in `legal_actions` when prompt contains `[E]` and it is not a paint or rest |
 | `freehand` | start a freehand piece |
 | `rest` | rest at the safehouse |
 | `wait` | do nothing, let the world advance |
 
+## Paint-objective observe fields
+
+When the current objective requires painting a specific wall, these extra fields
+are populated in every observation:
+
+| Field | Meaning |
+|---|---|
+| `objective_required_can` | graffiti type required (e.g. `"throwup"`) — empty when no specific type |
+| `objective_can_slot` | slot number (1–6) that selects the required can; 0 when none |
+| `objective_ready_to_interact` | `true` when focused on the objective wall, correct can is active, and prompt says `[E] Paint` |
+| `objective_distance` | metres to the objective target; `-1` when there is no positional target |
+
 ## How to decide each turn
 
 1. Read `objective` — that's the current goal.
-2. Read `prompt` — if it says `[E] Paint …`, you're aimed at a paintable wall;
-   `paint` now.
-3. Read `objective_target`: if present, use `goto_objective` unless you are
+2. **If `paint_objective` is in `legal_actions`**, use it immediately — it
+   handles can selection, navigation, aiming, and pressing paint automatically.
+3. Read `objective_ready_to_interact`: if `true`, choose `paint` now.
+4. Read `prompt` — if it says `[E] Paint …`, choose `paint`; if it says `[E]`
+   something else (talk, shop, pick up), choose `interact`.
+5. Read `objective_target`: if present, use `goto_objective` unless you are
    already focused on the needed interaction.
-4. Read `nearby_actors`: if the objective names an actor/place, use
+6. Read `nearby_actors`: if the objective names an actor/place, use
    `goto_actor` when available.
-5. Else use `nearby_walls` (id, distance, bearing) to pick a useful target and
+7. Else use `nearby_walls` (id, distance, bearing) to pick a useful target and
    `goto_wall`/`aim_at`/`move` toward it.
-6. Keep `paint > 0` and `heat` manageable; `rest` when low on paint or hot.
-7. When several actions seem useful, choose the one that reveals a new mechanic,
+8. Keep `paint > 0` and `heat` manageable; `rest` when low on paint or hot.
+9. When several actions seem useful, choose the one that reveals a new mechanic,
    area, character, can, tool, or menu instead of repeating something already
    proven.
-8. If a turn suggests a useful design/build improvement, include a concise
-   `playtest_note`, `recommendation`, `recommendation_category`, and
-   `recommendation_priority` in your action object.
+10. If a turn suggests a useful design/build improvement, include a concise
+    `playtest_note`, `recommendation`, `recommendation_category`, and
+    `recommendation_priority` in your action object.
