@@ -25,6 +25,9 @@ const GOTO_STOP_DIST := 3.0     # stop walking once this close to the target wal
 const GOTO_ACTOR_STOP_DIST := 2.5
 const AIM_DONE_RAD := deg_to_rad(3.0)
 const GOTO_MOVE_CONE := deg_to_rad(35.0)  # only walk forward when roughly facing target
+const STUCK_FRAMES_MAX := 90       # ~1.5 s at 60 fps before triggering a side-step
+const STUCK_MIN_PROGRESS := 0.3   # metres per STUCK_FRAMES_MAX window to count as moving
+const STUCK_SIDESTEP_DUR := 0.5   # seconds to hold the side-step key
 
 var _server: TCPServer = null
 var _conn: StreamPeerTCP = null
@@ -43,6 +46,11 @@ var _goto_target := ""
 var _goto_actor := ""
 var _goto_moving := false
 var _nav_mouse_mode_before := -1
+# Stuck-detection: fires a side-step when dist hasn't decreased by STUCK_MIN_PROGRESS
+# over STUCK_FRAMES_MAX consecutive frames while move_forward is held.
+var _stuck_check_dist := -1.0
+var _stuck_frames := 0
+var _stuck_side := 1   # +1 = right next, -1 = left next (alternates each unstick)
 # paint_objective macro: navigate → aim → press paint once focused on the target wall.
 var _paint_obj_wall := ""
 var _paint_obj_can_slot := 0       # 0 = no can swap needed
@@ -141,6 +149,7 @@ func _pursue_goto() -> void:
 		if not _goto_moving:
 			Input.action_press("move_forward")
 			_goto_moving = true
+		_update_stuck(dist)
 	elif _goto_moving:
 		Input.action_release("move_forward")
 		_goto_moving = false
@@ -151,8 +160,37 @@ func _stop_goto(restore_mouse := true) -> void:
 		_goto_moving = false
 	_goto_target = ""
 	_goto_actor = ""
+	_reset_stuck()
 	if restore_mouse:
 		_restore_nav_mouse_mode_if_idle()
+
+func _reset_stuck() -> void:
+	_stuck_check_dist = -1.0
+	_stuck_frames = 0
+
+## Call once per frame while move_forward is held. If dist hasn't decreased by
+## STUCK_MIN_PROGRESS over STUCK_FRAMES_MAX frames, side-steps to get around
+## blocking geometry or an NPC standing in the way.
+func _update_stuck(dist: float) -> void:
+	# Pause counting during an active side-step so the counter doesn't re-fire
+	# before the player has had time to move clear of the blocker.
+	if _holds.has("move_left") or _holds.has("move_right"):
+		_stuck_check_dist = dist
+		return
+	if _stuck_check_dist < 0.0:
+		_stuck_check_dist = dist
+		return
+	if _stuck_check_dist - dist >= STUCK_MIN_PROGRESS:
+		_stuck_check_dist = dist
+		_stuck_frames = 0
+		return
+	_stuck_frames += 1
+	if _stuck_frames >= STUCK_FRAMES_MAX:
+		_stuck_frames = 0
+		_stuck_check_dist = -1.0
+		var side := "right" if _stuck_side > 0 else "left"
+		_stuck_side *= -1
+		_move(side, STUCK_SIDESTEP_DUR)
 
 func _cancel_nav() -> void:
 	_aim_target = ""
@@ -181,6 +219,7 @@ func _pursue_actor_goto() -> void:
 		if not _goto_moving:
 			Input.action_press("move_forward")
 			_goto_moving = true
+		_update_stuck(dist)
 	elif _goto_moving:
 		Input.action_release("move_forward")
 		_goto_moving = false
