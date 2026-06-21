@@ -123,6 +123,9 @@ def heuristic_brain(obs: dict) -> dict:
     if nav.get("goto_target") or nav.get("goto_actor"):
         return {"reason": "walking to target", "action": "wait"}
 
+    if _objective_actor_nearby(obs) and "interact" in legal:
+        return {"reason": "interact with objective actor", "action": "interact"}
+
     target = obs.get("objective_target") or {}
     if target and "goto_objective" in (obs.get("legal_actions") or []):
         return _goto_objective_action(target, "follow the objective marker")
@@ -216,6 +219,12 @@ class OllamaBrain:
         legal = obs.get("legal_actions") or []
         if legal and action.get("action") not in legal:
             return _fallback_action(obs, f"model chose unavailable {action.get('action')}")
+        if action.get("action") == "goto_wall" and _focused_wall_ready_to_paint(obs):
+            return _fallback_action(obs, "focused wall is ready to paint")
+        if (action.get("action") in ("goto_actor", "goto_objective")
+                and _objective_actor_nearby(obs)
+                and "interact" in legal):
+            return _fallback_action(obs, "objective actor already in interact range")
         if _is_noop_action(obs, action):
             return _fallback_action(obs, f"model chose no-op {action.get('action')}")
         invalid = _invalid_nav_params(obs, action)
@@ -260,12 +269,15 @@ def _compute_fallback(obs: dict, reason: str) -> dict:
     # Use paint_objective macro when available (Fix 1).
     if "paint_objective" in legal and obs.get("objective_required_can"):
         return {"reason": reason + "; use paint_objective macro", "action": "paint_objective"}
+    if _objective_actor_nearby(obs) and "interact" in legal:
+        return {"reason": reason + "; interact with objective actor", "action": "interact"}
     slot = _required_slot_for_objective(obs)
     if slot and "select_can" in legal:
         slot_to_can = {1: "tag", 2: "throwup", 3: "piece", 4: "stencil", 5: "roller", 6: "mural"}
         if obs.get("selected_can") != slot_to_can.get(slot):
             return {"reason": reason + "; select objective can", "action": "select_can", "slot": slot}
-    if "interact" in legal and "[E]" in prompt and "Paint" not in prompt:
+    if "interact" in legal and "[E]" in prompt and "Paint" not in prompt \
+            and not obs.get("objective_target"):
         return {"reason": reason + "; interact with focused object", "action": "interact"}
     if focused and not str(states.get(focused, "")).startswith("player_") and "paint" in legal and "Paint" in prompt:
         return {"reason": reason + "; paint focused wall", "action": "paint"}
@@ -281,6 +293,8 @@ def _compute_fallback(obs: dict, reason: str) -> dict:
     target = next((w for w in walls if not str(w.get("state")).startswith("player_")), None)
     if target and "goto_wall" in legal:
         return {"reason": reason + "; go to unowned wall", "action": "goto_wall", "wallId": target["wallId"]}
+    if "goto_wall" in legal:
+        return {"reason": reason + "; ask server for nearest unowned wall", "action": "goto_wall"}
     if "move" in legal:
         return {"reason": reason + "; explore", "action": "move", "dir": "forward", "seconds": 0.5}
     return {"reason": reason + "; wait", "action": "wait"}
@@ -290,6 +304,10 @@ def _opening_hint(obs: dict) -> str:
     if not obs.get("alias_chosen", True):
         return "Choose paint to confirm the alias modal."
     legal = obs.get("legal_actions") or []
+    if _objective_actor_nearby(obs) and "interact" in legal:
+        target = obs.get("objective_target") or {}
+        aid = target.get("actorId", "the objective actor")
+        return f"{aid} is already close enough; choose interact now."
     if "paint_objective" in legal and obs.get("objective_required_can"):
         req = obs.get("objective_required_can", "")
         return (f"paint_objective is available — it selects the {req} can, navigates to "
@@ -334,6 +352,30 @@ def _is_paint_objective_running(obs: dict) -> bool:
     ))
 
 
+def _objective_actor_nearby(obs: dict, max_dist: float = 3.5) -> bool:
+    target = obs.get("objective_target") or {}
+    if target.get("type") != "actor":
+        return False
+    actor_id = target.get("actorId")
+    if not actor_id:
+        return False
+    for actor in obs.get("nearby_actors") or []:
+        if actor.get("actorId") == actor_id and float(actor.get("distance", 999.0)) <= max_dist:
+            return True
+    return False
+
+
+def _focused_wall_ready_to_paint(obs: dict) -> bool:
+    focused = obs.get("focused_wall") or ""
+    if not focused or "paint" not in (obs.get("legal_actions") or []):
+        return False
+    prompt = obs.get("prompt") or ""
+    if "Paint" not in prompt:
+        return False
+    states = {w["wallId"]: w.get("state") for w in (obs.get("nearby_walls") or [])}
+    return not str(states.get(focused, "")).startswith("player_")
+
+
 def _invalid_nav_params(obs: dict, action: dict) -> str:
     """Return a non-empty reason string if a nav action is missing a required ID."""
     chosen = action.get("action", "")
@@ -342,9 +384,11 @@ def _invalid_nav_params(obs: dict, action: dict) -> str:
     walls_by_id = {w["wallId"] for w in (obs.get("nearby_walls") or [])}
     actors_by_id = {a["actorId"] for a in (obs.get("nearby_actors") or [])}
     if chosen in ("goto_wall", "aim_at"):
-        if not wall_id:
+        if not wall_id and chosen == "aim_at":
             return f"{chosen} with no wallId"
         if wall_id not in walls_by_id:
+            if chosen == "goto_wall" and not wall_id:
+                return ""
             return f"{chosen} wallId {wall_id!r} not in nearby_walls"
     if chosen == "goto_actor":
         if not actor_id:

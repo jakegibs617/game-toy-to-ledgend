@@ -23,6 +23,7 @@ const AIM_STEP_MAX := 45.0      # max synthesized mouse px/frame, so turns look 
 const CAMERA_DISTANCE := 3.5    # mirror Player; spring arm length (camera behind player)
 const GOTO_STOP_DIST := 3.0     # stop walking once this close to the target wall
 const GOTO_ACTOR_STOP_DIST := 2.5
+const GOTO_ACTOR_HARD_STOP_DIST := 1.5
 const AIM_DONE_RAD := deg_to_rad(3.0)
 const GOTO_MOVE_CONE := deg_to_rad(35.0)  # only walk forward when roughly facing target
 const STUCK_FRAMES_MAX := 90       # ~1.5 s at 60 fps before triggering a side-step
@@ -206,18 +207,24 @@ func _pursue_actor_goto() -> void:
 	# interact range — stop nav and let the model press E instead of pressing
 	# deeper into counter/desk geometry trying to close the last 0.5 m.
 	var prompt := _hud_prompt()
-	if "[E]" in prompt and not "Paint" in prompt and not "Rest" in prompt:
+	var prompt_matches_actor := "[E]" in prompt and not "Paint" in prompt \
+			and not "Rest" in prompt and _actor_prompt_matches(_goto_actor, node, prompt)
+	var wrong_interact_prompt := "[E]" in prompt and not "Paint" in prompt \
+			and not "Rest" in prompt and not prompt_matches_actor
+	if prompt_matches_actor:
 		_stop_goto()
 		return
 	var dist: float = _player.global_position.distance_to(node.global_position)
 	var err := _steer_toward(node.global_position)
 	# Stop when close and roughly facing — use GOTO_MOVE_CONE (35°) not AIM_DONE_RAD (3°)
 	# so the player doesn't overshoot trying to hit an impossibly precise angle.
-	if dist <= GOTO_ACTOR_STOP_DIST and absf(err) <= GOTO_MOVE_CONE:
+	if dist <= GOTO_ACTOR_STOP_DIST and absf(err) <= GOTO_MOVE_CONE \
+			and not wrong_interact_prompt:
 		_stop_goto()
 		return
 	# Don't walk forward once close — prevents oscillating past the target.
-	if dist <= GOTO_ACTOR_STOP_DIST:
+	if dist <= GOTO_ACTOR_STOP_DIST and (not wrong_interact_prompt \
+			or dist <= GOTO_ACTOR_HARD_STOP_DIST):
 		if _goto_moving:
 			Input.action_release("move_forward")
 			_goto_moving = false
@@ -590,7 +597,11 @@ func _collect_actor_nodes(node: Node, out: Array) -> void:
 func _node_actor_id(node: Node) -> String:
 	if "actor_id" in node:
 		return String(node.actor_id)
+	if "member_id" in node:
+		return "pickup_%s" % String(node.member_id)
 	if "data" in node and node.data is Dictionary:
+		if node.data.has("memberId"):
+			return String(node.data.get("memberId", ""))
 		return String(node.data.get("actorId", ""))
 	return ""
 
@@ -599,6 +610,49 @@ func _actor_node(actor_id: String) -> Node3D:
 		if _node_actor_id(node) == actor_id:
 			return node as Node3D
 	return null
+
+func _actor_prompt_matches(actor_id: String, node: Node, prompt: String) -> bool:
+	var low := prompt.to_lower()
+	if "pick up" in low and not ("member_id" in node):
+		return false
+	var candidates: Array = [actor_id, actor_id.replace("_", " ")]
+	if "data" in node and node.data is Dictionary:
+		var data: Dictionary = node.data
+		for key in ["name", "alias", "roleLabel", "role"]:
+			var value := String(data.get(key, ""))
+			if value != "":
+				candidates.append(value)
+	for candidate in candidates:
+		var needle := String(candidate).strip_edges().to_lower()
+		if needle != "" and needle in low:
+			return true
+	return false
+
+func _interact_objective_actor() -> bool:
+	var target := _objective_target(MissionManager.current_objective())
+	if String(target.get("type", "")) != "actor":
+		return false
+	var node := _actor_node(String(target.get("actorId", "")))
+	if node == null or not node.has_method("interact"):
+		return false
+	if not _objective_actor_in_range(node):
+		return false
+	_cancel_nav()
+	node.interact()
+	return true
+
+func _objective_actor_in_range(node: Node3D = null) -> bool:
+	if _player == null:
+		return false
+	var actor_node := node
+	if actor_node == null:
+		var target := _objective_target(MissionManager.current_objective())
+		if String(target.get("type", "")) != "actor":
+			return false
+		actor_node = _actor_node(String(target.get("actorId", "")))
+	if actor_node == null:
+		return false
+	return _player.global_position.distance_to(actor_node.global_position) <= INTERACT_RANGE
 
 func _objective_target(obj: Dictionary) -> Dictionary:
 	if obj.is_empty():
@@ -619,6 +673,12 @@ func _objective_target(obj: Dictionary) -> Dictionary:
 		var actor_id := String(obj.get("actorId", ""))
 		if actor_id != "":
 			return {"type": "actor", "actorId": actor_id}
+	if obj.has("memberId"):
+		var member_id := String(obj.get("memberId", ""))
+		if member_id != "":
+			if String(obj.get("stage", "")) == "item_recovered":
+				return {"type": "actor", "actorId": "pickup_%s" % member_id}
+			return {"type": "actor", "actorId": member_id}
 	return {}
 
 func _action_objective_target(data: Dictionary) -> Dictionary:
@@ -694,6 +754,8 @@ func _legal_actions() -> Array:
 	# Expose a generic interact for NPC / pickup prompts that aren't paint or rest.
 	if "[E]" in prompt and not "Paint" in prompt and not "Rest" in prompt:
 		actions.append("interact")
+	if not actions.has("interact") and _objective_actor_in_range():
+		actions.append("interact")
 	if "Paint" in prompt and fresh_focused_wall and GameState.selected_graffiti_type == "piece":
 		actions.append("freehand")
 	return actions
@@ -742,7 +804,8 @@ func _act_impl(data: Dictionary) -> Dictionary:
 		"rest":
 			_press("safehouse_rest")
 		"interact":
-			_press("interact")
+			if not _interact_objective_actor():
+				_press("interact")
 		"look":
 			_cancel_nav()
 			_look(float(data.get("dx", 0.0)), float(data.get("dy", 0.0)))
