@@ -613,6 +613,31 @@ def run(args) -> int:
                     flush=True,
                 )
 
+        # Close-wall aim: when model calls goto_wall during free-roam but the
+        # player is already within 4 m of an unowned wall and the camera is not
+        # on it, nav completes instantly (within GOTO_STOP_DIST=3 m) leaving
+        # focus=-.  Redirect to aim_at so the model can paint next turn.
+        if (not _has_specific_target and action.get("action") == "goto_wall"
+                and not obs.get("focused_wall") and not nav_active):
+            _walls_near = obs.get("nearby_walls") or []
+            _close_unowned = [
+                w for w in _walls_near
+                if not str(w.get("state", "")).startswith("player_")
+                and w["wallId"] not in all_painted_walls
+                and float(w.get("distance", 99.0)) <= 4.0
+            ]
+            if _close_unowned:
+                _aim_w = min(_close_unowned, key=lambda w: float(w.get("distance", 99.0)))
+                action = {
+                    "reason": (f"harness: already {_aim_w['distance']}m from unowned "
+                               f"{_aim_w['wallId']!r}; aiming instead of re-navigating"),
+                    "action": "aim_at",
+                    "wallId": _aim_w["wallId"],
+                    "_harness_fallback": True,
+                }
+                print(f"      !! harness: close-wall aim -> {_aim_w['wallId']!r} "
+                      f"({_aim_w['distance']}m)", flush=True)
+
         # Block repainting already-owned walls during free-roam paint objectives.
         # The model sometimes revisits player-owned walls visible in nearby_walls
         # instead of finding unowned ones. Redirect to the nearest unowned alt or stop.
