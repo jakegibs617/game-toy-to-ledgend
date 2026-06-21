@@ -200,7 +200,7 @@ class OllamaBrain:
             "stream": False,
             "options": {"temperature": 0.2},
         }
-        resp = _post(self.host + "/api/chat", payload, timeout=180.0)
+        resp = _post(self.host + "/api/chat", payload, timeout=300.0)
         content = resp.get("message", {}).get("content", "{}")
         try:
             action = _parse_action_content(content)
@@ -598,6 +598,42 @@ def run(args) -> int:
                     f"(skip: {sorted(influence_skip_walls)})",
                     flush=True,
                 )
+
+        # Block repainting already-owned walls during free-roam paint objectives.
+        # The model sometimes revisits player-owned walls visible in nearby_walls
+        # instead of finding unowned ones. Redirect to the nearest unowned alt or stop.
+        if not _has_specific_target and action.get("action") == "paint":
+            _fw = obs.get("focused_wall") or ""
+            if _fw:
+                _fw_state = next(
+                    (str(w.get("state", "")) for w in (obs.get("nearby_walls") or [])
+                     if w["wallId"] == _fw),
+                    "",
+                )
+                if _fw_state.startswith("player_"):
+                    _walls_near = obs.get("nearby_walls") or []
+                    _alt = next(
+                        (w["wallId"] for w in _walls_near
+                         if w["wallId"] not in influence_skip_walls
+                         and not str(w.get("state", "")).startswith("player_")),
+                        None,
+                    )
+                    action = (
+                        {"reason": f"harness: {_fw!r} already owned; goto {_alt!r}",
+                         "action": "goto_wall", "wallId": _alt, "_harness_fallback": True}
+                        if _alt else
+                        {"reason": f"harness: {_fw!r} already owned; no alt — stop",
+                         "action": "stop", "_harness_fallback": True}
+                    )
+                    print(f"      !! harness: repaint blocked on {_fw!r} "
+                          f"(state={_fw_state!r})", flush=True)
+
+        # Track painted walls in influence_skip_walls so the wall-skip and
+        # repaint-block won't target them again on free-roam objectives.
+        if not _has_specific_target and action.get("action") == "paint":
+            _fw = obs.get("focused_wall") or ""
+            if _fw:
+                influence_skip_walls.add(_fw)
 
         if (same_obj_streak >= 20 and nav_active and nav_stuck
                 and turn - last_forced_stop_turn >= 8):
