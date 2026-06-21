@@ -695,11 +695,14 @@ func _action_objective_target(data: Dictionary) -> Dictionary:
 
 ## Nearest wall not yet owned by the player, searching all of WallManager (not
 ## just nearby_walls) so the fallback can still find a target from far away.
+## Walls more than 5 m above the player (rooftop/elevated, unreachable without
+## climbing) are skipped so the fallback never sends the agent to a roof wall.
 func _nearest_unowned_wall() -> String:
 	if _player == null:
 		return ""
 	var best_id := ""
 	var best_dist := INF
+	var player_y: float = _player.global_position.y
 	for wall_id in WallManager.wall_nodes:
 		var state := ""
 		if WallManager.wall_states.has(wall_id):
@@ -708,6 +711,10 @@ func _nearest_unowned_wall() -> String:
 			continue
 		var node = WallManager.wall_nodes[wall_id]
 		if node == null:
+			continue
+		# Skip walls significantly above the player — they require climbing and
+		# the straight-line navigator cannot reach them from the ground.
+		if node.global_position.y - player_y > 5.0:
 			continue
 		var dist: float = _player.global_position.distance_to(node.global_position)
 		if dist < best_dist:
