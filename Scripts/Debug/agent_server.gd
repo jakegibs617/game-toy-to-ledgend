@@ -202,6 +202,13 @@ func _pursue_actor_goto() -> void:
 	if node == null:
 		_stop_goto()
 		return
+	# If a non-paint interact prompt appeared, we're already in the actor's
+	# interact range — stop nav and let the model press E instead of pressing
+	# deeper into counter/desk geometry trying to close the last 0.5 m.
+	var prompt := _hud_prompt()
+	if "[E]" in prompt and not "Paint" in prompt and not "Rest" in prompt:
+		_stop_goto()
+		return
 	var dist: float = _player.global_position.distance_to(node.global_position)
 	var err := _steer_toward(node.global_position)
 	# Stop when close and roughly facing — use GOTO_MOVE_CONE (35°) not AIM_DONE_RAD (3°)

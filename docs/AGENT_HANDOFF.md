@@ -138,26 +138,56 @@ Issues found and addressed:
 
 Current remaining problems:
 
-- **Reach-zone navigation blocked by geometry** (most impactful): the forward-walk nav
-  system (`_pursue_actor_goto`) can navigate around zero obstacles. When the reach zone
-  for "Go check on your first tag" is 16m+ away and the direct path is blocked by walls
-  or other geometry, the player walks 1-2m and then stops, indefinitely. Reproduced with
-  BOTH the heuristic brain and Ollama — this is a server-side nav limitation, not a model
-  issue. Proper pathfinding (NavMesh + waypoints, or explicit waypoint routing through the
-  district layout) would fix this.
+- **Geometry-blocked navigation may still stall on complex layouts**: the stuck-detection
+  side-step (1.5 s / 0.5 s left-right alternating) handles most single-blocker cases, but
+  a tight corridor or convex obstacle could produce a loop of same-side steps. If
+  `same_obj_streak` still reaches 20 the pilot force-stops nav and the model retries.
+  True fix remains NavMesh / waypoints for guaranteed pathfinding.
 
-- **Actor proximity blocked by counter geometry**: after the reach zone is entered and the
-  throwup is painted, `goto_objective` to Lupe stalls when the player is 2m from Lupe but
-  geometry blocks the final step. Fixed `GOTO_ACTOR_STOP_DIST` from 1.6m → 2.5m (wider
-  stop so the player stops before hitting the counter), and added `interact` action for
-  E-key NPC prompts. But this fix cannot be verified until the reach-zone nav is fixed too.
-
-- **`goto_wall` without wallId**: model (especially mistral:7b) frequently emits
-  `goto_wall` without a `wallId`; fallback recovers, but wastes turns.
+- **Lupe interaction depends on actor interact range**: actor nav now stops early if a
+  non-paint `[E]` prompt appears, which should handle the counter-geometry case. If
+  Lupe's interact range is smaller than 2.5 m (GOTO_ACTOR_STOP_DIST) AND geometry blocks
+  the last step, the player may stop without seeing a prompt. Untested until the nav
+  blocker above is cleared.
 
 - **mistral:7b instruction following**: does not reliably choose `goto_objective` over
-  `goto_wall`. Use `qwen3:14b` (slower, ~30s/turn) or add explicit nav override logic
-  in pilot.py for when `objective_target` is present and same_obj_streak is high.
+  `goto_wall`. Use `qwen3:14b` (slower, ~30s/turn). The `_opening_hint` now returns an
+  explicit `paint_objective` hint when the macro is available.
+
+## What Was Shipped in the Third Continuation Session (2026-06-20)
+
+7. **Stuck-detection side-step** (`Scripts/Debug/agent_server.gd`):
+   - After 90 frames (~1.5 s) of `move_forward` with < 0.3 m progress, fires a 0.5 s
+     side-step (alternating left/right each time). Handles both geometry corners and NPCs
+     standing in the path.
+   - Counter resets on `_stop_goto()` and pauses while a side-step `_holds` key is active.
+   - `_begin_nav_capture()` also calls `_reset_stuck()` so switching nav targets never
+     carries over a stale counter.
+   - Applied to both `_pursue_goto` (wall nav) and `_pursue_actor_goto` (actor nav).
+
+8. **Richer nav observe fields** (`Scripts/Debug/agent_server.gd`, `docs/AGENT_CHEATSHEET.md`):
+   - `nav.dist` — metres to the active goto target (-1 when idle).
+   - `nav.stuck_frames` — frames since last 0.3 m progress while walking forward.
+   - `nav.moving` — whether `move_forward` is currently held.
+   - `summarize()` in pilot.py now prints `nav_d=` and `stuck=` when non-trivial.
+
+9. **Pilot force-stop valve** (`agent/pilot.py`):
+   - When `same_obj_streak >= 20` AND nav is active AND `stuck_frames >= 60`, pilot
+     overrides the model's action with `stop` (once per 8 turns). Gives the model a
+     fresh observation to pick a different approach after server-side unstick failed.
+
+10. **`goto_wall` soft fallback** (`Scripts/Debug/agent_server.gd`):
+    - When no/unknown wallId: instead of returning an error, picks the nearest unowned
+      wall from all of WallManager. Saves ~2 turns each time model omits wallId.
+
+11. **`paint_objective` opening hint** (`agent/pilot.py`):
+    - `_opening_hint()` now returns an explicit "choose paint_objective" hint as the
+      first check when the macro is available, before the goto_objective hint.
+
+12. **Prompt-aware actor nav stop** (`Scripts/Debug/agent_server.gd`):
+    - `_pursue_actor_goto()` stops immediately when a non-paint, non-rest `[E]` prompt
+      appears — player is already in interact range, no need to press deeper into
+      counter/desk geometry.
 
 ## What Was Shipped in the Current Session (2026-06-20, continued)
 
