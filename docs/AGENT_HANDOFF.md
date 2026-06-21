@@ -4,40 +4,85 @@ Current date: 2026-06-21. Project: Toy to Legend, Godot graffiti RPG.
 
 ## Current Phase: Long-Loop Playtest
 
-**Latest run status (2026-06-21, commit `eee936b`):** the agent now clears
-the original 80% target and reaches the final Mill Yard influence grind.
-Verified in one continuous path: alias, first tag, safehouse return,
-remembered-wall check, throw-up, Lupe supplies, Moth/blackbook recruitment,
-3-wall Mill Yard paint objective, rival wall response, and crew-backed piece.
-Current blocker is the final **"Own the block"** influence objective, where
-`goto_wall` can wobble near wall/climb geometry around `nav_d` 6-8m.
+**Latest run status (2026-06-21, commit `2a91941`):** the opening chain now
+clears completely in ~41 turns.  Verified in every recent run:
 
-The harness is built. The goal now is to run it continuously, watch where
-the agent stalls, fix what blocks it, and rerun — until the agent can
-reliably reach **80% coverage** of the game's opening content in a single
-unassisted run.
-
-**What 80% coverage looks like** (milestone chain `mill_intro`):
-
-| # | Milestone | Agent action required |
+| Turn range | Milestone | Status |
 |---|---|---|
-| 1 | Confirm writer alias | `paint` on the alias modal |
-| 2 | Walk to a wall and tag it | `goto_wall` → `aim_at` / `paint_objective` |
-| 3 | Return to the safehouse | `goto_objective` / `goto_actor safehouse` |
-| 4 | Go check on your first tag (reach zone) | `goto_objective` — navigates to the remembered wall zone |
-| 5 | Paint a throw-up over it | `paint_objective` — selects can 2, navigates, paints |
-| 6 | Visit Lupe by the bodega | `goto_objective` → `interact` |
-| 7 | Buy supplies from Lupe | `interact` inside the shop modal |
-| 8 | Find a lookout | `goto_actor` for the lookout character |
-| 9 | Claim the block | paint enough walls to push district influence |
+| 1–2 | Choose alias / first tag | ✓ stable |
+| 3–5 | Return to safehouse | ✓ stable |
+| 6–8 | Check first tag / paint throw-up | ✓ stable (`paint_objective`) |
+| 9–12 | Visit Lupe, buy supplies, pick colour | ✓ stable |
+| 13–21 | Meet Moth / recover blackbook / return | ✓ stable |
+| 22–36 | Paint 3 different walls in the Mill Yard | ✓ stable |
+| 37 | A crew hit your wall — take it back | ✓ stable |
+| 38–41 | Put up a piece with your crew | ✓ stable |
+| 42+ | **Own the block — push influence past threshold** | ❌ **current blocker** |
 
-Steps 1-8 and the first half of step 9 are now verified. The remaining reach
-goal is reliably finishing the final block influence grind without stalls.
+The remaining blocker is the final **"Own the block"** influence grind.
+After painting all accessible Mill Yard walls (~5 walls), the agent has no
+unowned walls left to navigate to and loops on `goto_wall` until max-turns.
 
-Outside the mission chain, 80% also means the agent has:
-- tried `rest` at the safehouse at least once
-- seen `heat` rise and respond to it
-- explored the nearby street rather than waiting in one spot
+---
+
+## Current Blocker: "Own the block" — no unowned walls left
+
+### Symptoms (run 7 / `bu99ma6c2`, turns 42-93)
+
+```
+[042] obj='Own the block...'  rep=464  paint=29
+      -> goto_wall (aim_at with no wallId; go to unowned wall)
+[043] nav_d=5m  -> wait
+[044] rep=432  -> goto_wall   (no nav_d — nothing to navigate to)
+...
+[093] rep=432  -> goto_wall   (50 turns of this, rep unchanged)
+```
+
+- By turn 41 the player has painted: `wall_corner_01`, `wall_median_01`,
+  `wall_mill_02`, `wall_mill_glass_01` (plus `wall_median_01` from the
+  opening).
+- `_nearest_unowned_wall()` appears to return `""` — the server accepts
+  goto_wall but starts no navigation.
+- The only known remaining unowned wall, `wall_alley_n_02`, was tried in
+  earlier runs (nav_d=6m, stuck=23) but the force-stop fired before the
+  player could reach it.
+
+### What to inspect next
+
+1. **How many unowned walls remain** after the crew-piece step?
+   Run `/observe` at turn 42 and check `nearby_walls` + query
+   `WallManager.wall_states` for the full district — if only 1-2 walls
+   remain they may not be enough to cross the influence threshold.
+
+2. **What does the influence threshold actually require?**
+   Check the mission data (`/Data/missions.json`) for the `min_influence`
+   value on the `own_the_block` step.  If it requires >50% and the district
+   only has ~6 paintable walls, the math may not work.
+
+3. **Is `wall_alley_n_02` reachable?**
+   In run 5 it was tried once (nav_d=6m, stuck=23) then abandoned when the
+   force-stop fired.  It may be reachable with a longer approach.  Try
+   `goto_wall` with explicit `wallId: "wall_alley_n_02"` and let the nav run
+   for >90 frames to allow the side-step to trigger.
+
+4. **Godot crash at turn 93** (ConnectionRefused on /act). Godot closed
+   unexpectedly after ~3 hours of runtime.  Likely a memory/stability issue
+   with long sessions.
+
+### Fix directions (pick one)
+
+- **Game-level (likely required):** add 3-4 more paintable ground-level walls
+  to the Mill district, or lower the `min_influence` threshold so the
+  existing ~5 walls are sufficient.
+
+- **Agent-level:** when `_nearest_unowned_wall()` returns `""`, add `rest`
+  as the harness fallback instead of `goto_wall` — the safehouse is always
+  reachable via `goto_actor safehouse` and resting might trigger a game event
+  that advances the objective.
+
+- **Navigation improvement:** increase GOTO_STOP_DIST from 3m to 2m so the
+  player gets closer before stopping, and hold shift (run) during stuck
+  side-steps to punch through tight geometry.
 
 ---
 
@@ -82,7 +127,7 @@ Start-Process -FilePath $godot -ArgumentList "--path","." `
 Wait ~15 s for port 8088 to be LISTENING, then run the pilot:
 
 ```powershell
-python agent\pilot.py --brain ollama --model qwen3:14b --no-vision --max-turns 100 --delay 0.5 --notes agent\playtest_recommendations.jsonl
+python agent\pilot.py --brain ollama --model qwen3:14b --no-vision --max-turns 120 --delay 0.5 --notes agent\playtest_recommendations.jsonl
 ```
 
 Check for Godot parse errors after launch:
@@ -97,11 +142,14 @@ Get-Content "C:\Users\jakeg\AppData\Local\Temp\godot_agent_err.txt" | Select-Str
 
 | Model | Speed | Instruction following | Notes |
 |---|---|---|---|
-| `qwen3:14b` | ~30 s/turn | Good | **Default for playtest runs** |
+| `qwen3:14b` | ~30 s/turn (can spike to 5 min) | Good | **Default for playtest runs** |
 | `mistral:7b` | ~5 s/turn | Poor — ignores `goto_objective` | Use only for nav smoke tests |
 | `qwen3.5:latest` | ~15 s/turn | OK | Alternative if qwen3:14b too slow |
 
 No vision model is installed. Text-only (`--no-vision`) is the default.
+
+The pilot now retries Ollama up to 3× (5 s sleep) before failing, so
+transient slow inference no longer crashes a run.
 
 ---
 
@@ -141,6 +189,14 @@ No vision model is installed. Text-only (`--no-vision`) is the default.
   side-step (alternating L/R). Handles geometry corners and NPCs blocking the path.
 - Pilot force-stop: if `same_obj_streak >= 20` AND `nav.stuck_frames >= 60`, the
   pilot overrides the model with `stop` (once per 8 turns) so the model can retry.
+- Pilot wall-skip: if stuck navigating to a wall (stuck_frames >= 30, same_obj >= 10),
+  blacklists the stuck wall and redirects to a different nearby unowned wall.
+- Pilot bench-interact block: if `same_obj >= 15` and model calls `interact` with no
+  objective actor nearby, redirects to `goto_wall` or `stop`.
+- Height filter: walls >5 m above player are excluded from both `nearby_walls` and
+  `_nearest_unowned_wall()` so the agent never targets rooftop walls it cannot reach.
+- Repaint block: if model tries to paint an already player-owned wall during a free-roam
+  objective, the harness redirects to the nearest unowned alternative.
 
 **Current actor/pickup interaction caveat:** after `eee936b`, actor nav only
 treats a prompt as successful if it matches the target actor/pickup. Objective
@@ -149,70 +205,69 @@ the HUD ray is focused elsewhere.
 
 ---
 
+## Resolved Blockers (this session, 2026-06-21)
+
+### Resolved: goto_wall wobble / wall_roof_mill_01 targeting
+
+**Commits:** `20540eb`, `033b0e4`
+
+`_nearest_unowned_wall()` and `_nearby_walls()` both now skip walls more than
+5 m above the player.  `wall_roof_mill_01` (y=10.8 m) was the primary cause
+of the original Mill Yard stall — it appeared as "nearest" via 3-D Euclidean
+distance even though the straight-line nav cannot reach it from the ground.
+
+### Resolved: Model repainting owned walls
+
+**Commits:** `3295fe9`, `7e46274`
+
+Harness now blocks `paint` on player-owned walls and redirects to the nearest
+unowned alternative.  All painted walls are tracked in `all_painted_walls` (a
+set that never clears), so the wall-skip never navigates back to walls painted
+in earlier objectives.
+
+### Resolved: noop goto_wall restart loop
+
+**Commits:** `753abaf`, `8244d9b`
+
+`_is_noop_action()` catches `goto_wall` with no `wallId` while nav is active
+(server would restart to the same nearest wall — a no-op).
+
+### Resolved: Lupe shop / Moth / blackbook / 3-wall / rival response / crew piece
+
+Verified clean in run 5 (`bfapeloy0`) and run 7 (`bu99ma6c2`).
+
+---
+
 ## Known Remaining Blockers
 
-These are the issues most likely to prevent a full long-loop clear. Fix them in order.
+### 1. "Own the block" — insufficient unowned walls (current blocker)
 
-### 1. Final influence grind `goto_wall` wobble (current blocker)
+After painting ~5 accessible Mill Yard walls the district has no reachable
+unowned walls remaining.  `_nearest_unowned_wall()` returns `""` and the
+model loops on `goto_wall` with no navigation starting.
 
-The latest run reached **Own the block - push your influence past...** after
-clearing Lupe, Moth, blackbook, the 3-wall objective, rival wall response, and
-crew-backed piece. It then stalled while repeatedly choosing `goto_wall`.
+**Likely root cause:** the influence threshold requires more wall coverage than
+the current district geometry provides with ground-level accessible walls.
 
-**Symptoms in the turn log:**
-```
-obj='Own the block - push your influence past'
-nav_d=6m stuck=31 -> goto_wall
-nav_d=8m          -> goto_wall
-!! auto-rec: stall detected (same_obj=6)
-```
+**Next step:** check `min_influence` in `/Data/missions.json` and count total
+paintable ground-level walls in `walls.json` for the mill district.  If the
+math doesn't work (walls × influence_per_wall < threshold), this is a game
+design fix, not an agent fix.
 
-**What to inspect next:**
-- Live `/observe` at the stall: nearby walls, focused wall, prompt, `nav.goto_target`,
-  and whether `nav.dist` is decreasing.
-- Whether the selected target is behind climb/drainpipe geometry.
-- Whether `goto_wall` should prefer nearer visible unowned walls over globally nearest
-  unowned walls during influence-grind objectives.
+### 2. Godot long-session crash
 
-**Fix directions (pick one):**
-- Add wall scoring for broad paint/influence objectives: prefer unowned visible/nearby
-  walls with clear prompts, avoid recently failed targets.
-- Add waypoints around the drainpipe/climb area before steering to the target wall.
-- Add a pilot fallback: if `same_obj` rises on final influence and nav is flat, call
-  `stop`, then `goto_wall` with a different explicit wall id from `nearby_walls`.
+Godot crashed after ~3 hours runtime at turn 93 of run 7 (ConnectionRefused
+on /act).  Likely memory leak or OS resource exhaustion.  For now: restart
+Godot between runs.
 
-### 2. Complex geometry navigation (general risk)
+### 3. Complex geometry navigation (general risk)
 
 The stuck-detection side-step handles single-blocker cases well, but a tight
-corridor or a U-shaped obstacle can produce a loop of same-side steps. The pilot's
-force-stop after 20 turns helps but is a last resort.
+corridor or U-shaped obstacle can produce a loop of same-side steps.
 
-**Symptoms in the turn log:**
-```
-nav_d=16m stuck=87  (side-step fires)
-nav_d=15m stuck=91  (side-step fires again)
-same_obj=20 → !! harness: forced stop
-```
-
-**Fix directions (pick one):**
+**Fix directions (deferred):**
 - **Unstick with run**: hold shift during the side-step to break through tight spots.
-  Add `Input.action_press("run")` before `_move(side, ...)` in `_update_stuck()`.
-- **Waypoints**: hardcode 2–3 intermediate waypoints through the district geometry
-  in the mission data or agent_server.gd, steering to each in sequence.
-- **NavigationAgent3D**: add Godot's built-in nav agent to the player scene and steer
-  toward its `get_next_path_position()` output in `_pursue_goto`.
-
-### Resolved: Lupe shop interaction
-
-Verified in the latest run. The agent reaches Lupe, uses `interact`, buys supplies,
-and advances to the fill-color objective.
-
-### Resolved: Post-shop Moth objectives
-
-Verified through meeting Moth, navigating to Moth's blackbook, picking it up,
-returning it to Moth, painting 3 Mill Yard walls, handling the rival wall response,
-and painting the crew-backed piece. The remaining post-shop blocker is the final
-influence grind listed above.
+- **NavigationAgent3D**: add Godot's built-in nav agent to the player scene.
 
 ---
 
@@ -234,7 +289,11 @@ When `same_obj_streak` is rising and nothing is progressing, check these in orde
 4. **Is the server rejecting the action?** Look for `!! rejected:` lines. Then look
    at `_act_impl` in agent_server.gd and `_legal_actions()` to see why.
 
-5. **Is the HUD prompt missing?** If `prompt` is empty the model can't see what E
+5. **Is `goto_wall` firing with no nav starting?** `_nearest_unowned_wall()` returned
+   `""` — all accessible walls are player-owned.  Check wall counts and influence
+   threshold in the mission data.
+
+6. **Is the HUD prompt missing?** If `prompt` is empty the model can't see what E
    does. Check `_hud_prompt()` — it reads `_hud._prompt_label.text`. If the HUD
    structure changed, update this.
 
