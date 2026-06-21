@@ -538,6 +538,10 @@ func _nearby_walls() -> Array:
 		var node = WallManager.wall_nodes[wall_id]
 		if node == null:
 			continue
+		# Skip walls significantly above the player — they require climbing and
+		# the straight-line navigator cannot reach them from the ground.
+		if node.global_position.y - origin.y > 5.0:
+			continue
 		var to: Vector3 = node.global_position - origin
 		var dist := to.length()
 		if dist > NEARBY_RADIUS:
