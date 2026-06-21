@@ -638,6 +638,29 @@ def run(args) -> int:
                 print(f"      !! harness: close-wall aim -> {_aim_w['wallId']!r} "
                       f"({_aim_w['distance']}m)", flush=True)
 
+        # When paint is empty during a free-roam objective, navigate to the
+        # safehouse and rest to refill.  With 0 paint no wall can be painted;
+        # this is the only recovery path available mid-objective.
+        if (not _has_specific_target and int(obs.get("paint", 1)) == 0
+                and same_obj_streak >= 3):
+            _actors = obs.get("nearby_actors") or []
+            _at_safehouse = any(a.get("actorId") == "safehouse" for a in _actors)
+            if _at_safehouse and "rest" in (obs.get("legal_actions") or []):
+                action = {
+                    "reason": "harness: paint=0 and at safehouse; resting to refill",
+                    "action": "rest",
+                    "_harness_fallback": True,
+                }
+                print("      !! harness: paint=0; resting at safehouse", flush=True)
+            elif action.get("action") not in ("goto_actor", "rest"):
+                action = {
+                    "reason": "harness: paint=0; navigate to safehouse to rest",
+                    "action": "goto_actor",
+                    "actorId": "safehouse",
+                    "_harness_fallback": True,
+                }
+                print("      !! harness: paint=0; heading to safehouse", flush=True)
+
         # Block repainting already-owned walls during free-roam paint objectives.
         # The model sometimes revisits player-owned walls visible in nearby_walls
         # instead of finding unowned ones. Redirect to the nearest unowned alt or stop.
