@@ -4,6 +4,14 @@ Current date: 2026-06-21. Project: Toy to Legend, Godot graffiti RPG.
 
 ## Current Phase: Long-Loop Playtest
 
+**Latest run status (2026-06-21, commit `eee936b`):** the agent now clears
+the original 80% target and reaches the final Mill Yard influence grind.
+Verified in one continuous path: alias, first tag, safehouse return,
+remembered-wall check, throw-up, Lupe supplies, Moth/blackbook recruitment,
+3-wall Mill Yard paint objective, rival wall response, and crew-backed piece.
+Current blocker is the final **"Own the block"** influence objective, where
+`goto_wall` can wobble near wall/climb geometry around `nav_d` 6-8m.
+
 The harness is built. The goal now is to run it continuously, watch where
 the agent stalls, fix what blocks it, and rerun — until the agent can
 reliably reach **80% coverage** of the game's opening content in a single
@@ -23,7 +31,8 @@ unassisted run.
 | 8 | Find a lookout | `goto_actor` for the lookout character |
 | 9 | Claim the block | paint enough walls to push district influence |
 
-Steps 1–6 are the primary validation target. Steps 7–9 are reach goals.
+Steps 1-8 and the first half of step 9 are now verified. The remaining reach
+goal is reliably finishing the final block influence grind without stalls.
 
 Outside the mission chain, 80% also means the agent has:
 - tried `rest` at the safehouse at least once
@@ -73,7 +82,7 @@ Start-Process -FilePath $godot -ArgumentList "--path","." `
 Wait ~15 s for port 8088 to be LISTENING, then run the pilot:
 
 ```powershell
-python agent\pilot.py --brain ollama --model qwen3:14b --no-vision --max-turns 60 --delay 0.5 --notes agent\playtest_recommendations.jsonl
+python agent\pilot.py --brain ollama --model qwen3:14b --no-vision --max-turns 100 --delay 0.5 --notes agent\playtest_recommendations.jsonl
 ```
 
 Check for Godot parse errors after launch:
@@ -115,9 +124,9 @@ No vision model is installed. Text-only (`--no-vision`) is the default.
 | `paint_objective` | One-shot: selects can, navigates, aims, presses E on objective wall |
 | `goto_objective` | Navigate to mission target; accepts explicit `targetType`/`targetWallId`/`targetActorId` |
 | `goto_wall(wallId)` | Navigate to a wall; if wallId missing or unknown, picks nearest unowned wall |
-| `goto_actor(actorId)` | Navigate to an actor; stops early when non-paint `[E]` prompt appears |
+| `goto_actor(actorId)` | Navigate to an actor; ignores unrelated `[E]` prompts and stops only for the target actor prompt or close hard-stop |
 | `aim_at(wallId)` | Turn camera toward a wall |
-| `interact` | Press E for NPC/pickup/shop prompts (not paint, not rest) |
+| `interact` | Press E for generic prompts, or directly calls the current objective actor/pickup when it is in range |
 | `paint` | Press E to paint focused wall |
 | `select_can(slot)` | Choose can 1–6 |
 | `move(dir, seconds)` | Walk briefly in one direction |
@@ -132,16 +141,47 @@ No vision model is installed. Text-only (`--no-vision`) is the default.
   side-step (alternating L/R). Handles geometry corners and NPCs blocking the path.
 - Pilot force-stop: if `same_obj_streak >= 20` AND `nav.stuck_frames >= 60`, the
   pilot overrides the model with `stop` (once per 8 turns) so the model can retry.
-- Actor nav stops immediately when a non-paint `[E]` prompt appears (player is already
-  in interact range — no need to press into counter geometry).
+
+**Current actor/pickup interaction caveat:** after `eee936b`, actor nav only
+treats a prompt as successful if it matches the target actor/pickup. Objective
+actors and pickups can also be interacted with directly when in range, even if
+the HUD ray is focused elsewhere.
 
 ---
 
 ## Known Remaining Blockers
 
-These are the issues most likely to prevent 80% coverage. Fix them in order.
+These are the issues most likely to prevent a full long-loop clear. Fix them in order.
 
-### 1. Complex geometry navigation (highest risk)
+### 1. Final influence grind `goto_wall` wobble (current blocker)
+
+The latest run reached **Own the block - push your influence past...** after
+clearing Lupe, Moth, blackbook, the 3-wall objective, rival wall response, and
+crew-backed piece. It then stalled while repeatedly choosing `goto_wall`.
+
+**Symptoms in the turn log:**
+```
+obj='Own the block - push your influence past'
+nav_d=6m stuck=31 -> goto_wall
+nav_d=8m          -> goto_wall
+!! auto-rec: stall detected (same_obj=6)
+```
+
+**What to inspect next:**
+- Live `/observe` at the stall: nearby walls, focused wall, prompt, `nav.goto_target`,
+  and whether `nav.dist` is decreasing.
+- Whether the selected target is behind climb/drainpipe geometry.
+- Whether `goto_wall` should prefer nearer visible unowned walls over globally nearest
+  unowned walls during influence-grind objectives.
+
+**Fix directions (pick one):**
+- Add wall scoring for broad paint/influence objectives: prefer unowned visible/nearby
+  walls with clear prompts, avoid recently failed targets.
+- Add waypoints around the drainpipe/climb area before steering to the target wall.
+- Add a pilot fallback: if `same_obj` rises on final influence and nav is flat, call
+  `stop`, then `goto_wall` with a different explicit wall id from `nearby_walls`.
+
+### 2. Complex geometry navigation (general risk)
 
 The stuck-detection side-step handles single-blocker cases well, but a tight
 corridor or a U-shaped obstacle can produce a loop of same-side steps. The pilot's
@@ -162,26 +202,17 @@ same_obj=20 → !! harness: forced stop
 - **NavigationAgent3D**: add Godot's built-in nav agent to the player scene and steer
   toward its `get_next_path_position()` output in `_pursue_goto`.
 
-### 2. Lupe shop interaction (unverified)
+### Resolved: Lupe shop interaction
 
-The `interact` action and prompt-aware actor stop should work for talking to Lupe.
-Unverified because the geometry blocker (above) has prevented reaching the Lupe stage
-in a full run.
+Verified in the latest run. The agent reaches Lupe, uses `interact`, buys supplies,
+and advances to the fill-color objective.
 
-**What to look for when testing:**
-- After throwup painted, `goto_objective` targets `lupe` actor.
-- Player should stop when `[E] Talk to Lupe` appears in the HUD prompt.
-- Model should then choose `interact`.
-- If the shop modal opens, model should choose `interact` again per item or
-  use `select_can` if the shop uses slot keys.
+### Resolved: Post-shop Moth objectives
 
-**If the shop modal stalls:** inspect what legal_actions are exposed inside the
-modal and add any missing actions to `_legal_actions()` in agent_server.gd.
-
-### 3. Post-shop objectives (unexplored)
-
-Steps 8–9 (find lookout, claim block) have never been reached by the agent.
-No known blockers, but they will likely surface new stalls once Lupe is cleared.
+Verified through meeting Moth, navigating to Moth's blackbook, picking it up,
+returning it to Moth, painting 3 Mill Yard walls, handling the rival wall response,
+and painting the crew-backed piece. The remaining post-shop blocker is the final
+influence grind listed above.
 
 ---
 
