@@ -1,288 +1,213 @@
-# Agent Playtest Harness Handoff
+# Agent Playtest Harness — Handoff
 
-Current date: 2026-06-20. Project: Toy to Legend, Godot graffiti RPG.
+Current date: 2026-06-21. Project: Toy to Legend, Godot graffiti RPG.
 
-## Current Goal
+## Current Phase: Long-Loop Playtest
 
-Build a useful local agent playtest loop:
+The harness is built. The goal now is to run it continuously, watch where
+the agent stalls, fix what blocks it, and rerun — until the agent can
+reliably reach **80% coverage** of the game's opening content in a single
+unassisted run.
 
-1. Run the game windowed with `AGENT=1`.
-2. Let a local Ollama model play through real input via the Godot agent server.
-3. Watch the game and overlay as the agent explores.
-4. Capture model recommendations for game improvements.
-5. Use only the useful recommendations as triage input for future build work.
+**What 80% coverage looks like** (milestone chain `mill_intro`):
 
-The agent should act like a curious open-world game enthusiast and
-completionist. It should try to see systems, characters, options, districts, and
-mechanics, but 80% coverage is an acceptable playtest win. It is also asked to
-notice friction, confusion, delight, missing feedback, and build opportunities.
+| # | Milestone | Agent action required |
+|---|---|---|
+| 1 | Confirm writer alias | `paint` on the alias modal |
+| 2 | Walk to a wall and tag it | `goto_wall` → `aim_at` / `paint_objective` |
+| 3 | Return to the safehouse | `goto_objective` / `goto_actor safehouse` |
+| 4 | Go check on your first tag (reach zone) | `goto_objective` — navigates to the remembered wall zone |
+| 5 | Paint a throw-up over it | `paint_objective` — selects can 2, navigates, paints |
+| 6 | Visit Lupe by the bodega | `goto_objective` → `interact` |
+| 7 | Buy supplies from Lupe | `interact` inside the shop modal |
+| 8 | Find a lookout | `goto_actor` for the lookout character |
+| 9 | Claim the block | paint enough walls to push district influence |
 
-## Current Environment
+Steps 1–6 are the primary validation target. Steps 7–9 are reach goals.
 
-- Windows machine.
-- Godot Engine 4.7 stable installed through `winget`.
-- Local Ollama is available.
-- Local models currently observed:
-  - `qwen3:14b` (default)
-  - `qwen3.5:latest`
-  - `mistral:7b`
-- No vision model is installed yet. Current runs use text-only mode:
+Outside the mission chain, 80% also means the agent has:
+- tried `rest` at the safehouse at least once
+- seen `heat` rise and respond to it
+- explored the nearby street rather than waiting in one spot
 
-```powershell
-python agent\pilot.py --brain ollama --model qwen3:14b --no-vision --max-turns 20 --delay 0.5
-```
+---
 
-## How To Launch
+## The Run-Fix Cycle
 
-Start the game window with the agent server:
+1. **Launch the game** with `AGENT=1` (see Launch Commands below).
+2. **Run the pilot** — watch stdout for stalls (`same_obj`, `stuck`, `!! harness`).
+3. **Identify the blocker** — look at the turn log and `nav.stuck_frames` /
+   `objective_distance` in the observe output to understand _why_ the agent stopped
+   making progress.
+4. **Fix it** — almost all fixes go in one of three files:
+   - `Scripts/Debug/agent_server.gd` — nav logic, legal actions, observe fields
+   - `agent/pilot.py` — brain fallback, opening hint, force-stop valve
+   - `docs/AGENT_CHEATSHEET.md` — system prompt the model reads every turn
+5. **Verify** — always launch windowed after editing `agent_server.gd` (smoke test
+   does not catch parse errors there; see note below). Python syntax: `python -m py_compile agent\pilot.py`.
+6. **Commit** — one commit per fix, descriptive message. Then rerun from step 1.
 
-```powershell
-$env:AGENT = "1"
-Start-Process -FilePath "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7-stable_win64.exe" -ArgumentList "--path","." -WorkingDirectory "C:\Users\jakeg\OneDrive\Desktop\game-toy-to-ledgend"
-```
+---
 
-Then run the pilot:
+## Launch Commands
 
-```powershell
-python agent\pilot.py --brain ollama --model qwen3:14b --no-vision --max-turns 20 --delay 0.5 --notes agent\playtest_recommendations.jsonl
-```
-
-Stop stale processes before relaunching after code changes:
+Kill stale processes first:
 
 ```powershell
 Get-Process | Where-Object { $_.ProcessName -like "Godot_v4.7-stable_win64*" } | Stop-Process -Force
 Get-Process | Where-Object { $_.ProcessName -like "python*" } | Stop-Process -Force
 ```
 
-## What Exists Now
-
-- `Scripts/Debug/agent_server.gd`
-  - Runs a localhost HTTP server on `127.0.0.1:8088`.
-  - `GET /observe` returns player state, objective, prompt, focused wall,
-    nearby walls, nearby actors, nav state, legal actions, and optional
-    screenshot path.
-  - `GET /observe?shot=0` skips screenshots for text-only models.
-  - `POST /act` executes macro-actions through real Godot input, not by mutating
-    managers directly.
-  - Current actions include `goto_wall`, `goto_actor`, `goto_objective`,
-    `aim_at`, `paint`, `select_can`, `move`, `look`, `rest`, and `wait`.
-  - `objective_target` is now exposed. It resolves mission objectives to exact
-    actors or walls, including remembered mission refs such as the first tag
-    wall.
-  - Autonomous nav captures the mouse only while `aim_at`/`goto_*` is active,
-    then restores the previous mouse mode when nav becomes idle. This prevents
-    the agent from fighting modal/UI mouse state.
-  - `goto_objective` can carry an explicit `targetType` plus `targetWallId` or
-    `targetActorId`, so the pilot can act on the target it observed instead of
-    always re-resolving the current mission target at execution time.
-
-- `Scripts/UI/agent_overlay.gd`
-  - Shows what the agent sees and does.
-  - Displays latest action, reason, recent turn log, and latest recommendation
-    when the model emits one.
-
-- `agent/pilot.py`
-  - Has heuristic and Ollama brains.
-  - Uses `docs/AGENT_CHEATSHEET.md` as the Ollama system prompt.
-  - Handles `goto_objective`.
-  - Falls back to useful deterministic actions when model JSON is malformed.
-  - Treats repeated nav commands as no-ops only when the target is the same,
-    so the model can still course-correct to a different wall or actor.
-  - Writes model recommendations to `agent/playtest_recommendations.jsonl`.
-
-- `docs/AGENT_CHEATSHEET.md`
-  - Defines the agent as a curious completionist playtester.
-  - Instructs the model to emit optional structured recommendations:
-    `playtest_note`, `recommendation`, `recommendation_category`,
-    `recommendation_priority`.
-
-## Latest Run Results
-
-The agent loop was tried repeatedly with `qwen3.5` text-only.
-
-Progress achieved:
-
-- Confirmed writer alias.
-- Went to a wall.
-- Painted the first tag.
-- Returned to the safehouse with `goto_objective`.
-- Advanced to `Go check on your first tag`.
-- After adding `objective_target`, reached the remembered first-tag objective in
-  at least one run.
-- Advanced to the throw-up objective:
-  `Paint a throw-up over it - press 2, then E`.
-- Selected the throw-up can via fallback.
-
-Issues found and addressed:
-
-- `qwen3.5` frequently emits malformed/non-JSON output despite structured
-  schema instructions.
-- Fallback now recovers from malformed output by using objective targets,
-  selecting required cans, painting focused walls, or waiting while navigation is
-  already active.
-- `goto_objective` originally reset navigation every malformed turn; fixed by
-  treating same-target navigation actions as no-ops while nav is active, while
-  still allowing course corrections to different targets.
-- For `reach_wall`, objective target now prefers the spawned `reach_<wall>` zone
-  actor instead of only the wall.
-- Wall navigation now switches into aim mode after arriving within stop
-  distance.
-- Actor navigation now keeps steering until the actor is both close and roughly
-  centered, instead of stopping while still looking away.
-- Agent steering now captures mouse at nav start and restores it when idle,
-  rather than re-capturing every `_look()` call.
-- `goto_actor` is only exposed as a general legal action when actors are nearby;
-  objective navigation can still target mission actors outside the nearby list.
-- Recommendation logging now warns and continues if the notes file cannot be
-  created or written.
-
-Current remaining problems:
-
-- **Geometry-blocked navigation may still stall on complex layouts**: the stuck-detection
-  side-step (1.5 s / 0.5 s left-right alternating) handles most single-blocker cases, but
-  a tight corridor or convex obstacle could produce a loop of same-side steps. If
-  `same_obj_streak` still reaches 20 the pilot force-stops nav and the model retries.
-  True fix remains NavMesh / waypoints for guaranteed pathfinding.
-
-- **Lupe interaction depends on actor interact range**: actor nav now stops early if a
-  non-paint `[E]` prompt appears, which should handle the counter-geometry case. If
-  Lupe's interact range is smaller than 2.5 m (GOTO_ACTOR_STOP_DIST) AND geometry blocks
-  the last step, the player may stop without seeing a prompt. Untested until the nav
-  blocker above is cleared.
-
-- **mistral:7b instruction following**: does not reliably choose `goto_objective` over
-  `goto_wall`. Use `qwen3:14b` (slower, ~30s/turn). The `_opening_hint` now returns an
-  explicit `paint_objective` hint when the macro is available.
-
-## What Was Shipped in the Third Continuation Session (2026-06-20)
-
-7. **Stuck-detection side-step** (`Scripts/Debug/agent_server.gd`):
-   - After 90 frames (~1.5 s) of `move_forward` with < 0.3 m progress, fires a 0.5 s
-     side-step (alternating left/right each time). Handles both geometry corners and NPCs
-     standing in the path.
-   - Counter resets on `_stop_goto()` and pauses while a side-step `_holds` key is active.
-   - `_begin_nav_capture()` also calls `_reset_stuck()` so switching nav targets never
-     carries over a stale counter.
-   - Applied to both `_pursue_goto` (wall nav) and `_pursue_actor_goto` (actor nav).
-
-8. **Richer nav observe fields** (`Scripts/Debug/agent_server.gd`, `docs/AGENT_CHEATSHEET.md`):
-   - `nav.dist` — metres to the active goto target (-1 when idle).
-   - `nav.stuck_frames` — frames since last 0.3 m progress while walking forward.
-   - `nav.moving` — whether `move_forward` is currently held.
-   - `summarize()` in pilot.py now prints `nav_d=` and `stuck=` when non-trivial.
-
-9. **Pilot force-stop valve** (`agent/pilot.py`):
-   - When `same_obj_streak >= 20` AND nav is active AND `stuck_frames >= 60`, pilot
-     overrides the model's action with `stop` (once per 8 turns). Gives the model a
-     fresh observation to pick a different approach after server-side unstick failed.
-
-10. **`goto_wall` soft fallback** (`Scripts/Debug/agent_server.gd`):
-    - When no/unknown wallId: instead of returning an error, picks the nearest unowned
-      wall from all of WallManager. Saves ~2 turns each time model omits wallId.
-
-11. **`paint_objective` opening hint** (`agent/pilot.py`):
-    - `_opening_hint()` now returns an explicit "choose paint_objective" hint as the
-      first check when the macro is available, before the goto_objective hint.
-
-12. **Prompt-aware actor nav stop** (`Scripts/Debug/agent_server.gd`):
-    - `_pursue_actor_goto()` stops immediately when a non-paint, non-rest `[E]` prompt
-      appears — player is already in interact range, no need to press deeper into
-      counter/desk geometry.
-
-## What Was Shipped in the Current Session (2026-06-20, continued)
-
-5. **`paint_objective` Phase 3b yaw-based fix — CONFIRMED WORKING** (`Scripts/Debug/agent_server.gd`):
-   - Root cause of the original stall: `direct_space_state.intersect_ray()` called
-     from `_process` reflects the PREVIOUS physics step's geometry — same stale-frame
-     lag as `RayCast3D`. Phase 3b was guarded by `_camera_sees_wall()` which always
-     returned false for this reason.
-   - Fix: replaced the physics raycast guard with a rotation-based check —
-     `absf(wrapf(desired_yaw - _player.rotation.y, -PI, PI)) <= AIM_DONE_RAD * 4.0`
-     (12°). After aim exits, `_player.rotation.y` is immediately current (mouse
-     events processed synchronously), so this fires correctly in the same frame aim
-     completes.
-   - Force-sets `_player._focused = wall_node`, emits `focus_changed`, then presses
-     interact. Bypasses the physics focus lag entirely.
-   - **Verified**: rep 26 → 141 in one turn (throwup painted), mission advanced to
-     next objective. Previously stalled at focus=- for 30+ turns.
-   - **Note**: the headless smoke test does NOT catch parse errors in agent_server.gd
-     because (a) `SMOKE_TEST=1` disables the agent server, and (b) the headless runner
-     uses cached `.gdc` bytecode from a prior compile. Always launch windowed after
-     editing agent_server.gd to confirm the script parses.
-
-6. **Actor proximity stall fix + `interact` action** (`Scripts/Debug/agent_server.gd`,
-   `agent/pilot.py`, `docs/AGENT_CHEATSHEET.md`):
-   - `GOTO_ACTOR_STOP_DIST` widened from 1.6m → 2.5m so the player stops before
-     hitting bodega/NPC geometry instead of pressing into a wall forever.
-   - New `interact` action added: exposed in `legal_actions` whenever prompt contains
-     `[E]` but is not a paint or rest. Presses E on the focused NPC/object. This lets
-     the agent talk to Lupe and other characters without needing a dedicated action per
-     NPC type.
-   - Fallback in `_compute_fallback` prefers `interact` when it is legal and prompt
-     has `[E]`.
-   - `ACTION_SCHEMA` enum and `AGENT_CHEATSHEET.md` updated to document the action.
-
-## What Was Shipped in the Last Session (2026-06-20)
-
-All four originally-recommended next fixes were implemented:
-
-1. **`paint_objective` macro** (`Scripts/Debug/agent_server.gd`):
-   - New action exposed in `legal_actions` whenever the current objective is a
-     paint task with a specific wall.
-   - Stateful server-side loop: selects the required can, starts `goto_wall`
-     navigation, transitions to `aim_at`, then fires `interact` once the wall
-     is focused and `[E] Paint` is in the prompt.
-   - Cancels cleanly via `_cancel_nav` / `stop` actions.
-   - Fallback in `_compute_fallback` also prefers `paint_objective` when it is legal.
-
-2. **Observe fields for paint objectives** (`Scripts/Debug/agent_server.gd`):
-   - `objective_required_can` — e.g. `”throwup”`
-   - `objective_can_slot` — slot number (1–6), 0 if not applicable
-   - `objective_ready_to_interact` — true when focused, correct can active, prompt ready
-   - `objective_distance` — metres to the objective target; -1 if none
-
-3. **Malformed output handling** (`agent/pilot.py`):
-   - `OllamaBrain` now accepts `notes_path` and tracks a per-instance turn counter.
-   - On `JSONDecodeError`, logs a compact `parse_failure` row to the JSONL file,
-     then retries once with a zero-temperature repair prompt.
-   - If repair also fails, falls through to the deterministic fallback.
-
-4. **Automatic harness recommendations** (`agent/pilot.py`):
-   - `run()` tracks `fallback_streak` and `same_obj_streak` across turns.
-   - When ≥3 consecutive fallbacks or ≥6 turns on the same objective, a
-     `auto_recommendation` entry is written to the notes file (5-turn cooldown
-     to avoid spam).
-   - Printed to stdout as `!! auto-rec:` so the operator sees it immediately.
-
-Default model updated to `qwen3:14b`.
-
-## Recommended Next Fixes
-
-1. **Obstacle-avoiding navigation** (most impactful — blocks the full mission chain):
-   The current forward-walk nav can't route around geometry. Options in increasing
-   complexity:
-   - **Waypoint routing**: hardcode 2-3 waypoints through the district so the nav
-     controller steers to each in sequence before approaching the final target.
-   - **NavMesh agent**: add a Godot NavigationAgent3D to the player and steer toward
-     its desired velocity instead of directly toward the goal.
-   - Short-term workaround: detect when `d` hasn't decreased in 5+ turns and issue a
-     `move` side-step to try to unstick the player.
-
-2. Install and test a vision model:
+Start the game (use the console build so stderr is capturable):
 
 ```powershell
-ollama pull llama3.2-vision
-python agent\pilot.py --brain ollama --model llama3.2-vision --max-turns 20
+$env:AGENT = "1"
+$godot = "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7-stable_win64_console.exe"
+Start-Process -FilePath $godot -ArgumentList "--path","." `
+    -WorkingDirectory "C:\Users\jakeg\OneDrive\Desktop\game-toy-to-ledgend" `
+    -RedirectStandardError "C:\Users\jakeg\AppData\Local\Temp\godot_agent_err.txt" `
+    -RedirectStandardOutput "C:\Users\jakeg\AppData\Local\Temp\godot_agent_out.txt" `
+    -NoNewWindow
 ```
 
-Vision is not required for the harness fixes above, but it may improve
-playtester-style observations.
+Wait ~15 s for port 8088 to be LISTENING, then run the pilot:
 
-3. Investigate whether `qwen3:14b` reliably picks `paint_objective` from
-   `legal_actions` when it is present, or whether the fallback (`_compute_fallback`)
-   is carrying most of that load. If fallback_streak stays near 0 during paint
-   objectives, the model is cooperating; if it's frequently high, consider tightening
-   the system prompt wording or switching to a more instruction-following model.
+```powershell
+python agent\pilot.py --brain ollama --model qwen3:14b --no-vision --max-turns 60 --delay 0.5 --notes agent\playtest_recommendations.jsonl
+```
+
+Check for Godot parse errors after launch:
+
+```powershell
+Get-Content "C:\Users\jakeg\AppData\Local\Temp\godot_agent_err.txt" | Select-String "ERROR|Parse"
+```
+
+---
+
+## Installed Models
+
+| Model | Speed | Instruction following | Notes |
+|---|---|---|---|
+| `qwen3:14b` | ~30 s/turn | Good | **Default for playtest runs** |
+| `mistral:7b` | ~5 s/turn | Poor — ignores `goto_objective` | Use only for nav smoke tests |
+| `qwen3.5:latest` | ~15 s/turn | OK | Alternative if qwen3:14b too slow |
+
+No vision model is installed. Text-only (`--no-vision`) is the default.
+
+---
+
+## What the Harness Can Do (current server capabilities)
+
+**`GET /observe`** returns:
+
+- Player state: alias, paint, cash, rep, rank, heat, district, selected can
+- Objective: text, `objective_target` (resolved wall/actor), `objective_distance`,
+  `objective_required_can`, `objective_can_slot`, `objective_ready_to_interact`
+- HUD: prompt text, focused wall id
+- World: `nearby_walls` (id, dist, bearing, state), `nearby_actors` (id, dist, bearing, prompt)
+- Nav: `aim_target`, `goto_target`, `goto_actor`, `moving`, `dist`, `stuck_frames`
+- `legal_actions`: the actions the server will accept this turn
+
+**`POST /act`** macro-actions:
+
+| Action | What it does |
+|---|---|
+| `paint_objective` | One-shot: selects can, navigates, aims, presses E on objective wall |
+| `goto_objective` | Navigate to mission target; accepts explicit `targetType`/`targetWallId`/`targetActorId` |
+| `goto_wall(wallId)` | Navigate to a wall; if wallId missing or unknown, picks nearest unowned wall |
+| `goto_actor(actorId)` | Navigate to an actor; stops early when non-paint `[E]` prompt appears |
+| `aim_at(wallId)` | Turn camera toward a wall |
+| `interact` | Press E for NPC/pickup/shop prompts (not paint, not rest) |
+| `paint` | Press E to paint focused wall |
+| `select_can(slot)` | Choose can 1–6 |
+| `move(dir, seconds)` | Walk briefly in one direction |
+| `look(dx, dy)` | Nudge camera |
+| `rest` | Press R at safehouse |
+| `stop` | Cancel all nav |
+| `wait` | Do nothing |
+
+**Navigation safety features:**
+
+- Stuck-detection: after 90 frames (~1.5 s) with < 0.3 m progress, fires a 0.5 s
+  side-step (alternating L/R). Handles geometry corners and NPCs blocking the path.
+- Pilot force-stop: if `same_obj_streak >= 20` AND `nav.stuck_frames >= 60`, the
+  pilot overrides the model with `stop` (once per 8 turns) so the model can retry.
+- Actor nav stops immediately when a non-paint `[E]` prompt appears (player is already
+  in interact range — no need to press into counter geometry).
+
+---
+
+## Known Remaining Blockers
+
+These are the issues most likely to prevent 80% coverage. Fix them in order.
+
+### 1. Complex geometry navigation (highest risk)
+
+The stuck-detection side-step handles single-blocker cases well, but a tight
+corridor or a U-shaped obstacle can produce a loop of same-side steps. The pilot's
+force-stop after 20 turns helps but is a last resort.
+
+**Symptoms in the turn log:**
+```
+nav_d=16m stuck=87  (side-step fires)
+nav_d=15m stuck=91  (side-step fires again)
+same_obj=20 → !! harness: forced stop
+```
+
+**Fix directions (pick one):**
+- **Unstick with run**: hold shift during the side-step to break through tight spots.
+  Add `Input.action_press("run")` before `_move(side, ...)` in `_update_stuck()`.
+- **Waypoints**: hardcode 2–3 intermediate waypoints through the district geometry
+  in the mission data or agent_server.gd, steering to each in sequence.
+- **NavigationAgent3D**: add Godot's built-in nav agent to the player scene and steer
+  toward its `get_next_path_position()` output in `_pursue_goto`.
+
+### 2. Lupe shop interaction (unverified)
+
+The `interact` action and prompt-aware actor stop should work for talking to Lupe.
+Unverified because the geometry blocker (above) has prevented reaching the Lupe stage
+in a full run.
+
+**What to look for when testing:**
+- After throwup painted, `goto_objective` targets `lupe` actor.
+- Player should stop when `[E] Talk to Lupe` appears in the HUD prompt.
+- Model should then choose `interact`.
+- If the shop modal opens, model should choose `interact` again per item or
+  use `select_can` if the shop uses slot keys.
+
+**If the shop modal stalls:** inspect what legal_actions are exposed inside the
+modal and add any missing actions to `_legal_actions()` in agent_server.gd.
+
+### 3. Post-shop objectives (unexplored)
+
+Steps 8–9 (find lookout, claim block) have never been reached by the agent.
+No known blockers, but they will likely surface new stalls once Lupe is cleared.
+
+---
+
+## Diagnosing a Stall
+
+When `same_obj_streak` is rising and nothing is progressing, check these in order:
+
+1. **Is nav active?** `nav.goto_target` or `nav.goto_actor` non-empty → server is
+   driving the player. Check `nav.dist` — is it decreasing? If not, stuck-detection
+   should fire. If it never fires, check whether `_goto_moving` is true.
+
+2. **Is the model choosing wait?** The pilot returns `wait` whenever nav is active.
+   If nav never finishes, the model waits forever. Force-stop fires at 20 turns.
+
+3. **Is the model choosing the wrong action?** Look at the `-> action (reason)` line.
+   If it's choosing `goto_wall` instead of `goto_objective` when `objective_target` is
+   set, the `_opening_hint` should have caught it. Check the hint wording in pilot.py.
+
+4. **Is the server rejecting the action?** Look for `!! rejected:` lines. Then look
+   at `_act_impl` in agent_server.gd and `_legal_actions()` to see why.
+
+5. **Is the HUD prompt missing?** If `prompt` is empty the model can't see what E
+   does. Check `_hud_prompt()` — it reads `_hud._prompt_label.text`. If the HUD
+   structure changed, update this.
+
+---
 
 ## Verification Commands
 
@@ -292,23 +217,25 @@ Python syntax:
 python -m py_compile agent\pilot.py
 ```
 
-Godot smoke:
+Godot smoke (**does NOT verify `agent_server.gd` — always launch windowed too**):
 
 ```powershell
 $env:SMOKE_TEST = "1"
 & "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7-stable_win64_console.exe" --headless --path .
 ```
 
-Latest checks passed with `SMOKE: OK`.
+Smoke test false-positive note: `SMOKE_TEST=1` calls `set_process(false)` in
+agent_server.gd's `_ready()`, so parse errors there are never triggered. The headless
+runner may also use cached `.gdc` bytecode. Always verify agent_server.gd edits by
+launching windowed and checking the captured stderr for `ERROR` or `Parse`.
+
+---
 
 ## Repo Notes
 
-- Godot 4.7 first import changed many tracked `.import` files and created a few
-  `.gd.uid` files. Review generated import churn before committing if the repo
-  remains targeted at Godot 4.6.
-- PR #66 contains the current agent harness work. After merge, continue from
-  `main`.
-- `docs/PLATFORM_READINESS.md` was added to document Windows/Mac platform setup.
-- `README.md` was updated with Windows run/smoke commands.
-- `agent/playtest_recommendations.jsonl` may not exist yet if the model has not
-  emitted recommendations.
+- All agent harness code lives on `main` (merged from branch `agent-playtest-loop`).
+- `agent/playtest_recommendations.jsonl` is gitignored; accumulates across runs.
+- Godot 4.7 import churn (`Assets/**/*.import`, `**/*.gd.uid`) — do not commit
+  these unless specifically needed; they conflict with any Mac/Godot-4.6 build.
+- `docs/AGENT_CHEATSHEET.md` is the Ollama system prompt — changes there take
+  effect immediately on the next pilot run (no rebuild needed).
