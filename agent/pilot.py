@@ -550,6 +550,7 @@ def run(args) -> int:
     last_auto_rec_turn = -99  # ensures first eligible stall can fire immediately
     last_forced_stop_turn = -99
     influence_skip_walls: set = set()  # walls to avoid during influence-grind stalls
+    all_painted_walls: set = set()    # every wall ever painted this session; never cleared
     last_wall_skip_turn: int = -99
 
     for turn in range(1, args.max_turns + 1):
@@ -582,6 +583,7 @@ def run(args) -> int:
             _alt_wall = next(
                 (w["wallId"] for w in _walls_near
                  if w["wallId"] not in influence_skip_walls
+                 and w["wallId"] not in all_painted_walls
                  and not str(w.get("state", "")).startswith("player_")),
                 None
             )
@@ -628,12 +630,41 @@ def run(args) -> int:
                     print(f"      !! harness: repaint blocked on {_fw!r} "
                           f"(state={_fw_state!r})", flush=True)
 
-        # Track painted walls in influence_skip_walls so the wall-skip and
-        # repaint-block won't target them again on free-roam objectives.
-        if not _has_specific_target and action.get("action") == "paint":
+        # Track painted walls so neither the wall-skip nor the repaint-block
+        # targets them again. influence_skip_walls is cleared on objective change;
+        # all_painted_walls persists for the whole session and covers walls painted
+        # in earlier objectives (e.g. wall_mill_glass_01 painted during "Put up a piece"
+        # should stay off-limits when "Own the block" begins).
+        if action.get("action") == "paint":
             _fw = obs.get("focused_wall") or ""
             if _fw:
-                influence_skip_walls.add(_fw)
+                if not _has_specific_target:
+                    influence_skip_walls.add(_fw)
+                all_painted_walls.add(_fw)
+
+        # Block secondary-object interact (bench, decoration) during free-roam
+        # objectives when the model is clearly stalled. If there is no objective
+        # actor nearby and same_obj is high, a non-paint interact is wasted time.
+        # Redirect to the nearest unowned wall, or stop to let the model rethink.
+        if (not _has_specific_target and action.get("action") == "interact"
+                and same_obj_streak >= 15 and not _objective_actor_nearby(obs)):
+            _walls_near = obs.get("nearby_walls") or []
+            _alt = next(
+                (w["wallId"] for w in _walls_near
+                 if w["wallId"] not in influence_skip_walls
+                 and w["wallId"] not in all_painted_walls
+                 and not str(w.get("state", "")).startswith("player_")),
+                None,
+            )
+            action = (
+                {"reason": f"harness: bench-interact blocked; goto unowned {_alt!r}",
+                 "action": "goto_wall", "wallId": _alt, "_harness_fallback": True}
+                if _alt else
+                {"reason": "harness: bench-interact blocked; no unowned wall visible",
+                 "action": "stop", "_harness_fallback": True}
+            )
+            print(f"      !! harness: bench-interact blocked "
+                  f"(same_obj={same_obj_streak})", flush=True)
 
         if (same_obj_streak >= 20 and nav_active and nav_stuck
                 and turn - last_forced_stop_turn >= 8):
