@@ -402,7 +402,12 @@ def _is_noop_action(obs: dict, action: dict) -> bool:
     nav = obs.get("nav") or {}
     chosen = action.get("action")
     if chosen == "goto_wall":
-        return bool(nav.get("goto_target")) and nav.get("goto_target") == action.get("wallId")
+        wall_id = (action.get("wallId") or "").strip()
+        current_target = (nav.get("goto_target") or "").strip()
+        # No wallId while nav is already running → server restarts to same nearest wall → noop.
+        if not wall_id and current_target:
+            return True
+        return bool(current_target) and current_target == wall_id
     if chosen == "goto_actor":
         return bool(nav.get("goto_actor")) and nav.get("goto_actor") == action.get("actorId")
     if chosen == "aim_at":
@@ -544,6 +549,8 @@ def run(args) -> int:
     prev_objective = ""
     last_auto_rec_turn = -99  # ensures first eligible stall can fire immediately
     last_forced_stop_turn = -99
+    influence_skip_walls: set = set()  # walls to avoid during influence-grind stalls
+    last_wall_skip_turn: int = -99
 
     for turn in range(1, args.max_turns + 1):
         obs = game.observe(want_shot)
@@ -555,6 +562,37 @@ def run(args) -> int:
         nav = obs.get("nav") or {}
         nav_active = bool(nav.get("goto_target") or nav.get("goto_actor"))
         nav_stuck = int(nav.get("stuck_frames", 0)) >= 60
+
+        # Influence-grind wall-skip: when stuck on a specific wall during "Own the block",
+        # blacklist it and steer to a different nearby unowned wall instead.
+        _obj_lower = (obs.get("objective") or "").lower()
+        if (("own the block" in _obj_lower or "push your influence" in _obj_lower)
+                and nav_active and nav_stuck and same_obj_streak >= 6
+                and turn - last_wall_skip_turn >= 4):
+            _stuck_wall = (nav.get("goto_target") or "").strip()
+            if _stuck_wall:
+                influence_skip_walls.add(_stuck_wall)
+            _walls_near = obs.get("nearby_walls") or []
+            _alt_wall = next(
+                (w["wallId"] for w in _walls_near
+                 if w["wallId"] not in influence_skip_walls
+                 and not str(w.get("state", "")).startswith("player_")),
+                None
+            )
+            if _alt_wall:
+                action = {
+                    "reason": f"harness: wall {_stuck_wall!r} blocked; trying {_alt_wall!r}",
+                    "action": "goto_wall",
+                    "wallId": _alt_wall,
+                    "_harness_fallback": True,
+                }
+                last_wall_skip_turn = turn
+                print(
+                    f"      !! harness: influence wall-skip → {_alt_wall!r} "
+                    f"(skip: {sorted(influence_skip_walls)})",
+                    flush=True,
+                )
+
         if (same_obj_streak >= 20 and nav_active and nav_stuck
                 and turn - last_forced_stop_turn >= 8):
             action = {"reason": "harness: nav blocked too long — stopping to retry",
@@ -585,6 +623,7 @@ def run(args) -> int:
             prev_objective = obj_text
             fallback_streak = 0
             rejected_streak = 0
+            influence_skip_walls.clear()
         fallback_streak = fallback_streak + 1 if is_fallback else 0
         rejected_streak = rejected_streak + 1 if is_rejected else 0
 

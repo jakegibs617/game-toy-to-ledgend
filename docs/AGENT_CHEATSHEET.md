@@ -146,7 +146,11 @@ are populated in every observation:
 6. Read `nearby_actors`: if the objective names an actor/place, use
    `goto_actor` when available.
 7. Else use `nearby_walls` (id, distance, bearing) to pick a useful target and
-   `goto_wall`/`aim_at`/`move` toward it.
+   `goto_wall`/`aim_at`/`move` toward it. Always supply an explicit `wallId` from
+   `nearby_walls` — do not omit it, or the server restarts to the same nearest wall.
+   During an **influence grind** (no specific wall in the objective), if
+   `nav.stuck_frames` is above 60, call `stop` then `goto_wall` with a *different*
+   `wallId`.
 8. Keep `paint > 0` and `heat` manageable; `rest` when low on paint or hot.
 9. When several actions seem useful, choose the one that reveals a new mechanic,
    area, character, can, tool, or menu instead of repeating something already
