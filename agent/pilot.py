@@ -594,7 +594,7 @@ def run(args) -> int:
                 }
                 last_wall_skip_turn = turn
                 print(
-                    f"      !! harness: influence wall-skip → {_alt_wall!r} "
+                    f"      !! harness: influence wall-skip -> {_alt_wall!r} "
                     f"(skip: {sorted(influence_skip_walls)})",
                     flush=True,
                 )
