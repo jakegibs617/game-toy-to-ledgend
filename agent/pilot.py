@@ -564,9 +564,15 @@ def run(args) -> int:
     influence_skip_walls: set = set()  # walls to avoid during influence-grind stalls
     all_painted_walls: set = set()    # every wall ever painted this session; never cleared
     last_wall_skip_turn: int = -99
+    _aim_redir_count: dict = {}  # wall_id -> consecutive aim-redirects without focus; reset on focus
+    _AIM_REDIR_MAX: int = 4
 
     for turn in range(1, args.max_turns + 1):
         obs = game.observe(want_shot)
+        # Reset aim-redirect counter for any wall now in focus (aim succeeded).
+        _focused_now = obs.get("focused_wall") or ""
+        if _focused_now:
+            _aim_redir_count.pop(_focused_now, None)
         action = brain(obs)
 
         # Safety valve: if same objective for 20+ turns AND nav is stuck
@@ -595,7 +601,7 @@ def run(args) -> int:
             _alt_wall = next(
                 (w["wallId"] for w in _walls_near
                  if w["wallId"] not in influence_skip_walls
-                 and w["wallId"] not in all_painted_walls
+                 and not w.get("territory_neutral", False)
                  and not str(w.get("state", "")).startswith("player_")),
                 None
             )
@@ -617,17 +623,22 @@ def run(args) -> int:
         # player is already within 4 m of an unowned wall and the camera is not
         # on it, nav completes instantly (within GOTO_STOP_DIST=3 m) leaving
         # focus=-.  Redirect to aim_at so the model can paint next turn.
+        # After _AIM_REDIR_MAX consecutive failures for the same wall without achieving
+        # focus, stop redirecting so the model can navigate to a better angle.
         if (not _has_specific_target and action.get("action") == "goto_wall"
                 and not obs.get("focused_wall") and not nav_active):
             _walls_near = obs.get("nearby_walls") or []
             _close_unowned = [
                 w for w in _walls_near
                 if not str(w.get("state", "")).startswith("player_")
-                and w["wallId"] not in all_painted_walls
+                and not w.get("territory_neutral", False)
                 and float(w.get("distance", 99.0)) <= 4.0
+                and _aim_redir_count.get(w["wallId"], 0) < _AIM_REDIR_MAX
             ]
             if _close_unowned:
                 _aim_w = min(_close_unowned, key=lambda w: float(w.get("distance", 99.0)))
+                _cnt = _aim_redir_count.get(_aim_w["wallId"], 0) + 1
+                _aim_redir_count[_aim_w["wallId"]] = _cnt
                 action = {
                     "reason": (f"harness: already {_aim_w['distance']}m from unowned "
                                f"{_aim_w['wallId']!r}; aiming instead of re-navigating"),
@@ -636,7 +647,7 @@ def run(args) -> int:
                     "_harness_fallback": True,
                 }
                 print(f"      !! harness: close-wall aim -> {_aim_w['wallId']!r} "
-                      f"({_aim_w['distance']}m)", flush=True)
+                      f"({_aim_w['distance']}m) [{_cnt}/{_AIM_REDIR_MAX}]", flush=True)
 
         # When paint is empty during a free-roam objective, navigate to the
         # safehouse and rest to refill.  With 0 paint no wall can be painted;
@@ -677,6 +688,7 @@ def run(args) -> int:
                     _alt = next(
                         (w["wallId"] for w in _walls_near
                          if w["wallId"] not in influence_skip_walls
+                         and not w.get("territory_neutral", False)
                          and not str(w.get("state", "")).startswith("player_")),
                         None,
                     )
@@ -712,7 +724,7 @@ def run(args) -> int:
             _alt = next(
                 (w["wallId"] for w in _walls_near
                  if w["wallId"] not in influence_skip_walls
-                 and w["wallId"] not in all_painted_walls
+                 and not w.get("territory_neutral", False)
                  and not str(w.get("state", "")).startswith("player_")),
                 None,
             )
@@ -757,6 +769,7 @@ def run(args) -> int:
             fallback_streak = 0
             rejected_streak = 0
             influence_skip_walls.clear()
+            _aim_redir_count.clear()
         fallback_streak = fallback_streak + 1 if is_fallback else 0
         rejected_streak = rejected_streak + 1 if is_rejected else 0
 

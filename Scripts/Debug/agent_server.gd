@@ -529,6 +529,12 @@ func _focused_wall_id() -> String:
 			return String(wall_id)
 	return ""
 
+func _is_neutral(wall_id: String) -> bool:
+	for def in WallManager.wall_defs:
+		if String(def.get("wallId", "")) == wall_id:
+			return bool(def.get("territoryNeutral", false))
+	return false
+
 func _nearby_walls() -> Array:
 	var out: Array = []
 	if _player == null:
@@ -554,6 +560,7 @@ func _nearby_walls() -> Array:
 			"distance": snappedf(dist, 0.1),
 			"bearing": int(round(rad_to_deg(atan2(to.x, -to.z)))),
 			"state": state,
+			"territory_neutral": _is_neutral(String(wall_id)),
 		})
 	out.sort_custom(func(a, b): return a["distance"] < b["distance"])
 	return out
@@ -712,6 +719,10 @@ func _nearest_unowned_wall() -> String:
 		if WallManager.wall_states.has(wall_id):
 			state = String(WallManager.wall_states[wall_id].get("state", ""))
 		if state.begins_with("player_"):
+			continue
+		# Territory-neutral walls (e.g. glass) don't count toward district influence —
+		# skip them so the agent targets walls that actually advance claim_district objectives.
+		if _is_neutral(String(wall_id)):
 			continue
 		var node = WallManager.wall_nodes[wall_id]
 		if node == null:
