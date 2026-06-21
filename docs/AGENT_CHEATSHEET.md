@@ -106,6 +106,21 @@ The harness exposes intents (not raw keys); it executes each via real input.
 | `rest` | rest at the safehouse |
 | `wait` | do nothing, let the world advance |
 
+## Navigation observe fields
+
+The `nav` object is present in every observation:
+
+| Field | Meaning |
+|---|---|
+| `nav.goto_target` | wallId being navigated to (empty when idle) |
+| `nav.goto_actor` | actorId being navigated to (empty when idle) |
+| `nav.aim_target` | wallId being aimed at (empty when idle) |
+| `nav.moving` | `true` when `move_forward` is currently held |
+| `nav.dist` | metres to the active goto target; `-1` when nav is idle |
+| `nav.stuck_frames` | frames elapsed without 0.3 m progress — the server auto side-steps at 90; if still rising above 60 over many turns, the path may be permanently blocked |
+
+When `nav.goto_target` or `nav.goto_actor` is non-empty, the server is already steering the player — choose `wait` to let it finish. Issue `stop` only if the approach is wrong and you need to start over.
+
 ## Paint-objective observe fields
 
 When the current objective requires painting a specific wall, these extra fields

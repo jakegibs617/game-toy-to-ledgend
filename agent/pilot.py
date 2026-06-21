@@ -289,8 +289,12 @@ def _compute_fallback(obs: dict, reason: str) -> dict:
 def _opening_hint(obs: dict) -> str:
     if not obs.get("alias_chosen", True):
         return "Choose paint to confirm the alias modal."
-    objective = (obs.get("objective") or "").lower()
     legal = obs.get("legal_actions") or []
+    if "paint_objective" in legal and obs.get("objective_required_can"):
+        req = obs.get("objective_required_can", "")
+        return (f"paint_objective is available — it selects the {req} can, navigates to "
+                f"the wall, and paints it automatically. Choose paint_objective now.")
+    objective = (obs.get("objective") or "").lower()
     prompt = obs.get("prompt") or ""
     focused = obs.get("focused_wall") or ""
     walls = obs.get("nearby_walls") or []

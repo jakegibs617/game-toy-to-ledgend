@@ -626,6 +626,28 @@ func _action_objective_target(data: Dictionary) -> Dictionary:
 				return {"type": "actor", "actorId": actor_id}
 	return {}
 
+## Nearest wall not yet owned by the player, searching all of WallManager (not
+## just nearby_walls) so the fallback can still find a target from far away.
+func _nearest_unowned_wall() -> String:
+	if _player == null:
+		return ""
+	var best_id := ""
+	var best_dist := INF
+	for wall_id in WallManager.wall_nodes:
+		var state := ""
+		if WallManager.wall_states.has(wall_id):
+			state = String(WallManager.wall_states[wall_id].get("state", ""))
+		if state.begins_with("player_"):
+			continue
+		var node = WallManager.wall_nodes[wall_id]
+		if node == null:
+			continue
+		var dist: float = _player.global_position.distance_to(node.global_position)
+		if dist < best_dist:
+			best_dist = dist
+			best_id = String(wall_id)
+	return best_id
+
 func _resolve_mission_wall(ref: String) -> String:
 	if ref == "":
 		return ""
@@ -731,7 +753,10 @@ func _act_impl(data: Dictionary) -> Dictionary:
 		"goto_wall":
 			var wall := String(data.get("wallId", ""))
 			if not WallManager.wall_nodes.has(wall):
-				return {"ok": false, "error": "unknown wallId: %s" % wall}
+				# Soft fallback: no valid wallId supplied — pick the nearest unowned wall.
+				wall = _nearest_unowned_wall()
+				if wall == "":
+					return {"ok": false, "error": "goto_wall: no wallId and no reachable wall found"}
 			_clear_holds()
 			_aim_target = ""
 			_goto_actor = ""
