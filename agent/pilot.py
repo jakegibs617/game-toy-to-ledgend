@@ -562,13 +562,19 @@ def run(args) -> int:
         nav = obs.get("nav") or {}
         nav_active = bool(nav.get("goto_target") or nav.get("goto_actor"))
         nav_stuck = int(nav.get("stuck_frames", 0)) >= 60
+        nav_stuck_light = int(nav.get("stuck_frames", 0)) >= 30  # softer threshold
 
-        # Influence-grind wall-skip: when stuck on a specific wall during "Own the block",
-        # blacklist it and steer to a different nearby unowned wall instead.
-        _obj_lower = (obs.get("objective") or "").lower()
-        if (("own the block" in _obj_lower or "push your influence" in _obj_lower)
-                and nav_active and nav_stuck and same_obj_streak >= 6
-                and turn - last_wall_skip_turn >= 4):
+        # Wall-skip for free-roam paint stalls: when stuck navigating to a wall and
+        # there is no specific objective target (any unowned wall works), blacklist
+        # the stuck wall and steer to a different nearby unowned wall instead.
+        # Covers both "Own the block" influence grind and "Paint X walls" objectives.
+        # Uses a soft stuck threshold (>=30) because the counter oscillates when
+        # side-steps keep firing without making net progress.
+        _goto_wall_active = bool(nav.get("goto_target")) and not nav.get("goto_actor")
+        _has_specific_target = bool(obs.get("objective_target"))
+        if (_goto_wall_active and not _has_specific_target
+                and nav_active and nav_stuck_light and same_obj_streak >= 10
+                and turn - last_wall_skip_turn >= 6):
             _stuck_wall = (nav.get("goto_target") or "").strip()
             if _stuck_wall:
                 influence_skip_walls.add(_stuck_wall)
