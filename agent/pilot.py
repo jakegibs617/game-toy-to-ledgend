@@ -229,9 +229,14 @@ class OllamaBrain:
 def summarize(obs: dict) -> str:
     dist = obs.get("objective_distance", -1.0)
     dist_str = f" d={dist:.0f}m" if dist >= 0 else ""
+    nav = obs.get("nav") or {}
+    stuck = int(nav.get("stuck_frames", 0))
+    nav_dist = nav.get("dist", -1.0)
+    stuck_str = f" stuck={stuck}" if stuck > 10 else ""
+    nav_dist_str = f" nav_d={nav_dist:.0f}m" if nav_dist >= 0 else ""
     return (f"rep={obs.get('reputation')} paint={obs.get('paint')} "
             f"heat={obs.get('heat')} can={obs.get('selected_can')} "
-            f"focus={obs.get('focused_wall') or '-'}{dist_str} "
+            f"focus={obs.get('focused_wall') or '-'}{dist_str}{nav_dist_str}{stuck_str} "
             f"obj={(obs.get('objective') or '')[:40]!r}")
 
 
@@ -490,10 +495,26 @@ def run(args) -> int:
     rejected_streak = 0
     prev_objective = ""
     last_auto_rec_turn = -99  # ensures first eligible stall can fire immediately
+    last_forced_stop_turn = -99
 
     for turn in range(1, args.max_turns + 1):
         obs = game.observe(want_shot)
         action = brain(obs)
+
+        # Safety valve: if same objective for 20+ turns AND nav is stuck
+        # (server already tried side-steps but can't make progress), force
+        # a stop so the model can choose a different approach next turn.
+        nav = obs.get("nav") or {}
+        nav_active = bool(nav.get("goto_target") or nav.get("goto_actor"))
+        nav_stuck = int(nav.get("stuck_frames", 0)) >= 60
+        if (same_obj_streak >= 20 and nav_active and nav_stuck
+                and turn - last_forced_stop_turn >= 8):
+            action = {"reason": "harness: nav blocked too long — stopping to retry",
+                      "action": "stop", "_harness_fallback": True}
+            last_forced_stop_turn = turn
+            print(f"      !! harness: forced stop (same_obj={same_obj_streak} "
+                  f"stuck_frames={nav.get('stuck_frames')})", flush=True)
+
         reason = action.get("reason", "")
         print(f"[{turn:03d}] {summarize(obs)}", flush=True)
         print(f"      -> {action.get('action')} {('('+reason+')') if reason else ''}", flush=True)

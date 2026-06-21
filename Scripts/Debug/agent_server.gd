@@ -319,6 +319,7 @@ func _pursue_paint_obj() -> void:
 				_player._pivot.rotation.x, desired_pitch, 0.3)
 
 func _begin_nav_capture() -> void:
+	_reset_stuck()
 	if _nav_mouse_mode_before == -1:
 		_nav_mouse_mode_before = int(Input.get_mouse_mode())
 	if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED:
@@ -406,6 +407,28 @@ func _respond(payload: Dictionary) -> void:
 
 # --- observation ------------------------------------------------------------
 
+## Current nav state for the observe payload: targets, live distance to the
+## active target, whether move_forward is pressed, and the stuck-frame counter.
+func _nav_state() -> Dictionary:
+	var dist := -1.0
+	if _player != null:
+		if _goto_target != "":
+			var wnode = WallManager.wall_nodes.get(_goto_target, null)
+			if wnode != null:
+				dist = snappedf(_player.global_position.distance_to(wnode.global_position), 0.1)
+		elif _goto_actor != "":
+			var anode := _actor_node(_goto_actor)
+			if anode != null:
+				dist = snappedf(_player.global_position.distance_to(anode.global_position), 0.1)
+	return {
+		"aim_target": _aim_target,
+		"goto_target": _goto_target,
+		"goto_actor": _goto_actor,
+		"moving": _goto_moving,
+		"dist": dist,
+		"stuck_frames": _stuck_frames,
+	}
+
 func _observe(want_shot := true) -> Dictionary:
 	var obj: Dictionary = MissionManager.current_objective()
 	var paint_fields := _paint_objective_fields(obj)
@@ -430,11 +453,7 @@ func _observe(want_shot := true) -> Dictionary:
 		"focused_wall": _focused_wall_id(),
 		"nearby_walls": _nearby_walls(),
 		"nearby_actors": _nearby_actors(),
-		"nav": {
-			"aim_target": _aim_target,
-			"goto_target": _goto_target,
-			"goto_actor": _goto_actor,
-		},
+		"nav": _nav_state(),
 		"legal_actions": _legal_actions(),
 		"screenshot": _capture_screenshot() if want_shot else "",
 	}
