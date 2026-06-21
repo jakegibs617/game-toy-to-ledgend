@@ -200,7 +200,19 @@ class OllamaBrain:
             "stream": False,
             "options": {"temperature": 0.2},
         }
-        resp = _post(self.host + "/api/chat", payload, timeout=300.0)
+        # Retry up to 3 times on timeout; qwen3:14b can be slow under memory pressure.
+        _last_exc: Exception | None = None
+        for _attempt in range(3):
+            try:
+                resp = _post(self.host + "/api/chat", payload, timeout=300.0)
+                break
+            except (TimeoutError, OSError) as exc:
+                _last_exc = exc
+                print(f"      !! Ollama timeout (attempt {_attempt+1}/3); retrying...",
+                      flush=True)
+                time.sleep(5)
+        else:
+            raise RuntimeError("Ollama failed after 3 attempts") from _last_exc
         content = resp.get("message", {}).get("content", "{}")
         try:
             action = _parse_action_content(content)
