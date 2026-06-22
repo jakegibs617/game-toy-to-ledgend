@@ -731,6 +731,20 @@ def run(args) -> int:
             }
             print("      !! harness: free-roam goto_wall redirect", flush=True)
 
+        # During "Own the block", strip explicit wallIds from goto_wall so the
+        # server always calls _nearest_unowned_wall() which picks by highest
+        # visibility. Without this, the model picks nearby low-value walls
+        # (e.g. wall_corner_01 vis=2) instead of landmark_01 (vis=5).
+        if (not _has_specific_target
+                and "own the block" in (obs.get("objective") or "").lower()
+                and action.get("action") == "goto_wall"
+                and action.get("wallId")
+                and not nav_active):
+            _stripped = action.pop("wallId")
+            action["reason"] = f"harness: stripped wallId={_stripped!r}; server picks highest-vis unowned wall"
+            action["_harness_fallback"] = True
+            print(f"      !! harness: influence wallId strip ({_stripped!r} -> server highest-vis picker)", flush=True)
+
         if (not _has_specific_target and not nav_active
                 and "own the block" in (obs.get("objective") or "").lower()
                 and action.get("action") == "interact"
