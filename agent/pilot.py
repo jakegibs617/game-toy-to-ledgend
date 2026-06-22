@@ -690,6 +690,13 @@ def run(args) -> int:
                     "action": "rest",
                     "_harness_fallback": True,
                 }
+                # Clear the skip list on rest so the next push cycle can target
+                # any wall — walls in skip during influence grind are usually
+                # player-owned (paint blocked → stuck nav → skip), not geometry
+                # failures, and become valid targets again after cleanup wipes them.
+                if influence_skip_walls:
+                    print(f"      !! harness: rest — clearing influence_skip_walls {sorted(influence_skip_walls)}", flush=True)
+                    influence_skip_walls.clear()
                 print("      !! harness: paint=0; resting at safehouse", flush=True)
             elif action.get("action") not in ("goto_actor", "rest"):
                 action = {
