@@ -583,6 +583,18 @@ def run(args) -> int:
         nav_stuck = int(nav.get("stuck_frames", 0)) >= 60
         nav_stuck_light = int(nav.get("stuck_frames", 0)) >= 30  # softer threshold
 
+        # Let active server navigation finish. Raw move/look or fresh nav actions
+        # cancel/restart the controller and can strand the agent just outside
+        # focus range while the objective itself has not changed.
+        if nav_active and action.get("action") in (
+                "move", "look", "aim_at", "goto_wall", "goto_actor",
+                "goto_objective"):
+            action = {
+                "reason": f"model chose {action.get('action')} during active nav; wait",
+                "action": "wait",
+                "_harness_fallback": True,
+            }
+
         # Wall-skip for free-roam paint stalls: when stuck navigating to a wall and
         # there is no specific objective target (any unowned wall works), blacklist
         # the stuck wall and steer to a different nearby unowned wall instead.
@@ -671,6 +683,26 @@ def run(args) -> int:
                     "_harness_fallback": True,
                 }
                 print("      !! harness: paint=0; heading to safehouse", flush=True)
+
+        # If the model keeps nudging around a player-owned focused wall during a
+        # free-roam paint objective, ask the server to pick the nearest valid
+        # unowned wall globally. Nearby_walls can contain only the owned wall,
+        # so choosing from the local list would strand the agent in place.
+        if (not _has_specific_target and not nav_active and same_obj_streak >= 6
+                and action.get("action") in ("move", "look", "wait", "interact")):
+            _fw = obs.get("focused_wall") or ""
+            _fw_state = next(
+                (str(w.get("state", "")) for w in (obs.get("nearby_walls") or [])
+                 if w["wallId"] == _fw),
+                "",
+            )
+            if _fw and _fw_state.startswith("player_") and "goto_wall" in (obs.get("legal_actions") or []):
+                action = {
+                    "reason": f"harness: {_fw!r} already owned; find another wall",
+                    "action": "goto_wall",
+                    "_harness_fallback": True,
+                }
+                print(f"      !! harness: owned-wall roam redirect from {_fw!r}", flush=True)
 
         # Block repainting already-owned walls during free-roam paint objectives.
         # The model sometimes revisits player-owned walls visible in nearby_walls
