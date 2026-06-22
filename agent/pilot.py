@@ -743,6 +743,28 @@ def run(args) -> int:
             }
             print("      !! harness: influence interact blocked", flush=True)
 
+        if (not _has_specific_target and action.get("action") == "paint"
+                and "select_can" in (obs.get("legal_actions") or [])):
+            _cost_by_can = {"tag": 1, "throwup": 3, "piece": 5, "stencil": 2, "roller": 4, "mural": 8}
+            _paint_left = int(obs.get("paint", 0))
+            _selected = str(obs.get("selected_can", ""))
+            _focused = obs.get("focused_wall") or ""
+            _focused_state = next(
+                (str(w.get("state", "")) for w in (obs.get("nearby_walls") or [])
+                 if w["wallId"] == _focused),
+                "",
+            )
+            if (_focused and not _focused_state.startswith("player_")
+                    and _paint_left < _cost_by_can.get(_selected, 999)
+                    and _paint_left >= 1):
+                action = {
+                    "reason": "harness: selected can costs too much; switch to tag",
+                    "action": "select_can",
+                    "slot": 1,
+                    "_harness_fallback": True,
+                }
+                print("      !! harness: low-paint can switch -> tag", flush=True)
+
         # Block repainting already-owned walls and neutral walls during free-roam
         # paint objectives. The model sometimes revisits player-owned walls, or
         # paints glass/neutral walls that spend paint but add no influence.
