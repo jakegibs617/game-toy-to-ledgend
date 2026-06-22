@@ -307,14 +307,33 @@ Three interlinked fixes for the "Own the block" phase:
 
 ## Known Remaining Blockers
 
-### 1. "Own the block" — pending verification (run 10)
+### 1. "Own the block" — two root-cause fixes applied (run 11)
 
-Run 10 tests the three fixes above.  Expected behaviour: agent paints
-landmark_01 (vis=5) + bodega_01 (vis=4) + median_01 (vis=4) + mill_01 (vis=3) =
-17/31 = 54.8% influence → objective clears around turns 42–80.
+**Run 10 result (2026-06-22):** Stalled at turn 97/150 with `same_obj=56`.
+Objective never cleared.  Two root causes identified and fixed in commit
+`93097d9`:
 
-**Next step:** read run 10 output.  If objective clears, mark this resolved.
-If still blocked, compare turn log to expected behaviour above.
+**Fix A — visibility-first wall targeting (`Scripts/Debug/agent_server.gd`):**
+`_nearest_unowned_wall()` previously picked by nearest Euclidean distance.
+`wall_median_01` (vis=4, ~1m from spawn) was always chosen over
+`wall_landmark_01` (vis=5, ~18m away).  Changed to sort by highest visibility
+first, distance only as tiebreaker.  Agent now targets landmark_01 first,
+which contributes 5/31 influence — the single most impactful wall.
+
+**Fix B — proactive can switch (`agent/pilot.py`):**
+Existing low-paint switch only fired when model explicitly chose `paint`.
+If the model saw `paint=1, can=throwup (cost 3)` it would reason "can't paint,
+go rest" and choose `goto_actor`.  New check fires on any non-paint action when
+there's a focused unowned wall and `paint >= 1 but < can_cost[selected]`.
+Converts action to `select_can slot=1` so the very next turn can paint.
+
+**Run 11 started (2026-06-22):** Opening chain running.  Watch for
+`wall_landmark_01` appearing as the first `goto_wall` target during the
+influence grind (turn 42+).
+
+Expected success path: landmark_01 (5) + bodega_01 (4) + median_01 (4) +
+loading_01 (3) = 16/31 = 51.6% influence → objective clears.  All four walls
+painted in one rest cycle (4 tag costs = 4 paint = 1 rest).
 
 ### 2. Godot long-session crash
 
