@@ -859,9 +859,15 @@ func _act_impl(data: Dictionary) -> Dictionary:
 			_press("cycle_cap")
 		"paint":
 			var paint_focus := _focused_wall_id()
-			if paint_focus != "":
+			if GameState.alias_chosen and paint_focus != "" and WallManager.wall_nodes.has(paint_focus):
 				_force_wall_focus(paint_focus)
-			_press("interact")
+				var paint_node = WallManager.wall_nodes[paint_focus]
+				if paint_node is PaintableWall:
+					var paint_result: Dictionary = WallManager.paint_wall(
+						paint_node, GameState.selected_graffiti_type)
+					_player.painted.emit(paint_result)
+			else:
+				_press("interact")
 		"freehand":
 			_press("freehand_paint")
 		"rest":

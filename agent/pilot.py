@@ -619,7 +619,8 @@ def run(args) -> int:
         _goto_wall_active = bool(nav.get("goto_target")) and not nav.get("goto_actor")
         _has_specific_target = bool(obs.get("objective_target"))
         if (_goto_wall_active and not _has_specific_target
-                and nav_active and nav_stuck_light and same_obj_streak >= 10
+                and nav_active and (nav_stuck_light or same_obj_streak >= 12)
+                and same_obj_streak >= 10
                 and turn - last_wall_skip_turn >= 6):
             _stuck_wall = (nav.get("goto_target") or "").strip()
             if _stuck_wall:
@@ -730,6 +731,18 @@ def run(args) -> int:
             }
             print("      !! harness: free-roam goto_wall redirect", flush=True)
 
+        if (not _has_specific_target and not nav_active
+                and "own the block" in (obs.get("objective") or "").lower()
+                and action.get("action") == "interact"
+                and not _objective_actor_nearby(obs)
+                and "goto_wall" in (obs.get("legal_actions") or [])):
+            action = {
+                "reason": "harness: influence objective; skip non-objective interact",
+                "action": "goto_wall",
+                "_harness_fallback": True,
+            }
+            print("      !! harness: influence interact blocked", flush=True)
+
         # Block repainting already-owned walls and neutral walls during free-roam
         # paint objectives. The model sometimes revisits player-owned walls, or
         # paints glass/neutral walls that spend paint but add no influence.
@@ -744,7 +757,8 @@ def run(args) -> int:
                 )
                 _fw_state = str(_fw_wall.get("state", ""))
                 _fw_neutral = bool(_fw_wall.get("territory_neutral", False))
-                if _fw_state.startswith("player_") or _fw_neutral:
+                _influence_objective = "own the block" in (obs.get("objective") or "").lower()
+                if _fw_state.startswith("player_") or (_fw_neutral and _influence_objective):
                     _walls_near = obs.get("nearby_walls") or []
                     _alt = next(
                         (w["wallId"] for w in _walls_near
