@@ -770,8 +770,13 @@ func _nearest_unowned_wall() -> String:
 		# the straight-line navigator cannot reach them from the ground.
 		if node.global_position.y - player_y > 5.0:
 			continue
+		var def := WallManager.wall_def(String(wall_id))
+		# Skip walls outside the player's current district — a global vis-first
+		# search otherwise crosses block boundaries (e.g. canal_06 at 103 m).
+		if String(def.get("districtId", "")) != GameState.current_district_id:
+			continue
 		var dist: float = _player.global_position.distance_to(node.global_position)
-		var vis: int = int(WallManager.wall_def(String(wall_id)).get("visibility", 1))
+		var vis: int = int(def.get("visibility", 1))
 		# Prefer highest visibility; use distance as tiebreaker within same visibility.
 		if vis > best_vis or (vis == best_vis and dist < best_dist):
 			best_vis = vis
