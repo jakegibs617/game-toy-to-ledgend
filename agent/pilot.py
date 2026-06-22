@@ -697,6 +697,11 @@ def run(args) -> int:
                 if influence_skip_walls:
                     print(f"      !! harness: rest — clearing influence_skip_walls {sorted(influence_skip_walls)}", flush=True)
                     influence_skip_walls.clear()
+                # Reset skip-cooldown so the next-cycle nav attempt doesn't
+                # immediately re-trigger the skip (same_obj_streak is still high
+                # after rest; resetting last_wall_skip_turn forces a 6-turn grace
+                # period before any wall can be added to skip again).
+                last_wall_skip_turn = turn
                 print("      !! harness: paint=0; resting at safehouse", flush=True)
             elif action.get("action") not in ("goto_actor", "rest"):
                 action = {
