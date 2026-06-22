@@ -327,13 +327,22 @@ go rest" and choose `goto_actor`.  New check fires on any non-paint action when
 there's a focused unowned wall and `paint >= 1 but < can_cost[selected]`.
 Converts action to `select_can slot=1` so the very next turn can paint.
 
-**Run 11 started (2026-06-22):** Opening chain running.  Watch for
-`wall_landmark_01` appearing as the first `goto_wall` target during the
-influence grind (turn 42+).
+**Run 11 result (2026-06-22):** Killed at turn 25 after discovering Fix A was
+incomplete: model sent `goto_wall` with explicit `wallId="wall_corner_01"` at
+turn 22, bypassing `_nearest_unowned_wall()`.  Third fix added (commit `47e9f2d`):
+
+**Fix C — wallId strip during influence grind (`agent/pilot.py`):**
+When objective is "own the block" and model sends `goto_wall` with an explicit
+`wallId` while nav is not active, the harness strips the wallId so the server
+always calls `_nearest_unowned_wall()` → picks landmark_01 (vis=5) first.
+
+**Run 12 started (2026-06-22):** All three fixes active.  Watch for:
+- `!! harness: influence wallId strip` appearing at turn 42+ → Fix C firing
+- `wall_landmark_01` as the nav target when Fix C strips the wallId
+- Objective changing away from "Own the block" → SUCCESS
 
 Expected success path: landmark_01 (5) + bodega_01 (4) + median_01 (4) +
-loading_01 (3) = 16/31 = 51.6% influence → objective clears.  All four walls
-painted in one rest cycle (4 tag costs = 4 paint = 1 rest).
+loading_01 (3) = 16/31 = 51.6% influence → objective clears around turn 42–60.
 
 ### 2. Godot long-session crash
 
