@@ -1,23 +1,27 @@
 # Agent Playtest Harness — Handoff
 
-Current date: 2026-06-21. Project: Toy to Legend, Godot graffiti RPG.
+Current date: 2026-06-22. Project: Toy to Legend, Godot graffiti RPG.
 
 ## Current Phase: Long-Loop Playtest
 
-**Latest continuation (2026-06-21, commits `46ce222`, `d27f0cc`,
-`9bba5bb`, `7bfbf36`, `9e35ec7`):** the run now reaches `Own the block`
-again and successfully paints multiple non-neutral influence walls after
-avoiding the glass/neutral wall and bench interactions.  The original
-close-wall/climb wobble is much improved by stopping wall nav at interaction
-range and forcing wall focus for agent paint actions.
+**Latest continuation (2026-06-22, commits `ace86bd`, `e278892`, `3397405`,
+`f16d6ac`, `f59fa65`):** fixes D–H applied this session.  Run 17 (PID 1012)
+is live with all fixes.  Watch for objective clearing during the influence
+grind (turn 42+).
 
-Current verification point: rerun from a fresh save after `9e35ec7`.  The last
-observed run reached low-paint influence grind, rested at the safehouse, and
-then needed the newly committed low-paint can switch (`piece` -> `tag`) to spend
-the final paint efficiently.  Watch whether the post-rest influence phase now
-clears or whether the model detours to actors after refilling.
+**Active fixes this session:**
+- **Fix D** (`ace86bd`): district filter in `_nearest_unowned_wall()` — prevents cross-district nav (canal_06 at 103m was the old bug).
+- **Fix E** (`3397405`): painted walls no longer added to `influence_skip_walls` — only geometry stalls go into skip.
+- **Fix F** (`e278892`): `"think": False` in Ollama options — restores ~13s/turn (vs 6min/turn with thinking mode).
+- **Fix G** (`f16d6ac`): `influence_skip_walls` cleared on safehouse rest.
+- **Fix H** (`f59fa65`): `last_wall_skip_turn = turn` reset on rest — prevents immediate re-skip after clearing (same_obj_streak remains high post-rest, was triggering skip within 1 turn of the new cycle).
 
-**Latest run status (2026-06-21, commit `320a6ef`):** the opening chain now
+**Current status:** run 17 in progress.  Verify in the log:
+1. `!! harness: rest — clearing influence_skip_walls` fires when paint=0 at safehouse.
+2. No `!! harness: influence wall-skip` line appears within 6 turns of a rest.
+3. Objective changes away from "Own the block" → SUCCESS.
+
+**Latest run status (2026-06-22, commit `f59fa65`):** the opening chain now
 clears completely in ~41 turns.  Verified in every recent run:
 
 | Turn range | Milestone | Status |
@@ -302,6 +306,42 @@ Three interlinked fixes for the "Own the block" phase:
    neutral walls; harness redirects filter by neutral instead of `all_painted_walls`.
 3. Removed `all_painted_walls` from harness redirect filters so stolen-back walls
    can be re-targeted by the harness.
+
+---
+
+## Resolved Blockers (session 2026-06-22, runs 12–17)
+
+### Fix D — Cross-district navigation (`agent_server.gd`, `ace86bd`)
+
+`_nearest_unowned_wall()` (visibility-first) had no district boundary.  After
+painting `wall_landmark_01` (Mill Yard), it picked `wall_canal_06` (Canal Side,
+vis=5) at 103 m.  Added `districtId != GameState.current_district_id` filter.
+Confirmed in run 14 (nav_d=6m at same point).
+
+### Fix E — Painted walls permanently in skip (`pilot.py`, `3397405`)
+
+`influence_skip_walls.add(_fw)` was called on every successful paint, blocking
+cleanup-reclaimed high-value walls forever.  Removed that line; `influence_skip_walls`
+now only receives geometry-stalled walls from the stuck-nav path.
+
+### Fix F — Thinking mode slow inference (`pilot.py`, `e278892`)
+
+`qwen3:14b` with extended thinking enabled was taking 6+ min/turn.  Added
+`"think": False` to Ollama options.  Restores ~13s/turn.
+
+### Fix G — Skip list not cleared on safehouse rest (`pilot.py`, `f16d6ac`)
+
+After cleanup wiped player-owned landmark_01/bodega_01, they remained in
+`influence_skip_walls` for the rest of the session.  Added `influence_skip_walls.clear()`
+inside the rest harness block.
+
+### Fix H — Skip fires immediately after rest clears it (`pilot.py`, `f59fa65`)
+
+`same_obj_streak` doesn't reset on rest (objective stays the same).  After Fix G
+cleared the skip set, the wall-skip trigger (which fires when `same_obj_streak >= 12`)
+re-added the first nav target within 1 turn of the new push cycle.  Fix: reset
+`last_wall_skip_turn = turn` inside the rest block, enforcing the existing 6-turn
+cooldown before any wall can be added to skip.
 
 ---
 
