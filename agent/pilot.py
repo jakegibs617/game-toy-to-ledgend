@@ -843,16 +843,16 @@ def run(args) -> int:
                     print(f"      !! harness: paint blocked on {_fw!r} "
                           f"(state={_fw_state!r} neutral={_fw_neutral})", flush=True)
 
-        # Track painted walls so neither the wall-skip nor the repaint-block
-        # targets them again. influence_skip_walls is cleared on objective change;
-        # all_painted_walls persists for the whole session and covers walls painted
-        # in earlier objectives (e.g. wall_mill_glass_01 painted during "Put up a piece"
-        # should stay off-limits when "Own the block" begins).
+        # Track painted walls in all_painted_walls (session-level, never cleared) so
+        # the repaint-block can exclude walls painted in earlier objectives
+        # (e.g. wall_mill_glass_01 painted during "Put up a piece" stays off-limits).
+        # influence_skip_walls is NOT updated here — it only contains walls where
+        # navigation genuinely failed (geometry blocks, line above). Adding painted
+        # walls to the skip list caused cleanup-reclaimed high-value walls to be
+        # permanently blocked during "Own the block".
         if action.get("action") == "paint":
             _fw = obs.get("focused_wall") or ""
             if _fw:
-                if not _has_specific_target:
-                    influence_skip_walls.add(_fw)
                 all_painted_walls.add(_fw)
 
         # Block secondary-object interact (bench, decoration) during free-roam
