@@ -4,6 +4,19 @@ Current date: 2026-06-21. Project: Toy to Legend, Godot graffiti RPG.
 
 ## Current Phase: Long-Loop Playtest
 
+**Latest continuation (2026-06-21, commits `46ce222`, `d27f0cc`,
+`9bba5bb`, `7bfbf36`, `9e35ec7`):** the run now reaches `Own the block`
+again and successfully paints multiple non-neutral influence walls after
+avoiding the glass/neutral wall and bench interactions.  The original
+close-wall/climb wobble is much improved by stopping wall nav at interaction
+range and forcing wall focus for agent paint actions.
+
+Current verification point: rerun from a fresh save after `9e35ec7`.  The last
+observed run reached low-paint influence grind, rested at the safehouse, and
+then needed the newly committed low-paint can switch (`piece` -> `tag`) to spend
+the final paint efficiently.  Watch whether the post-rest influence phase now
+clears or whether the model detours to actors after refilling.
+
 **Latest run status (2026-06-21, commit `320a6ef`):** the opening chain now
 clears completely in ~41 turns.  Verified in every recent run:
 
