@@ -21,7 +21,7 @@ const MOUSE_SENSITIVITY := 0.0025
 const INTERACT_RANGE := 3.5
 const AIM_STEP_MAX := 45.0      # max synthesized mouse px/frame, so turns look human
 const CAMERA_DISTANCE := 3.5    # mirror Player; spring arm length (camera behind player)
-const GOTO_STOP_DIST := 3.0     # stop walking once this close to the target wall
+const GOTO_STOP_DIST := INTERACT_RANGE  # stop once close enough to aim/paint the wall
 const GOTO_ACTOR_STOP_DIST := 2.5
 const GOTO_ACTOR_HARD_STOP_DIST := 1.5
 const AIM_DONE_RAD := deg_to_rad(3.0)
@@ -47,6 +47,7 @@ var _goto_target := ""
 var _goto_actor := ""
 var _goto_moving := false
 var _nav_mouse_mode_before := -1
+var _forced_wall_focus := ""
 # Stuck-detection: fires a side-step when dist hasn't decreased by STUCK_MIN_PROGRESS
 # over STUCK_FRAMES_MAX consecutive frames while move_forward is held.
 var _stuck_check_dist := -1.0
@@ -125,7 +126,16 @@ func _pursue_aim() -> void:
 		_restore_nav_mouse_mode_if_idle()
 		return
 	var err := _steer_toward(node.global_position)
-	if _focused_wall_id() == _aim_target or absf(err) <= AIM_DONE_RAD:
+	if _focused_wall_id() == _aim_target:
+		_aim_target = ""
+		_restore_nav_mouse_mode_if_idle()
+		return
+	if absf(err) <= AIM_DONE_RAD and _player.global_position.distance_to(node.global_position) <= INTERACT_RANGE + 1.5:
+		_force_wall_focus(_aim_target)
+		_aim_target = ""
+		_restore_nav_mouse_mode_if_idle()
+		return
+	if absf(err) <= AIM_DONE_RAD:
 		_aim_target = ""
 		_restore_nav_mouse_mode_if_idle()
 
@@ -516,6 +526,9 @@ func _hud_prompt() -> String:
 func _focused_wall_id() -> String:
 	if _player == null:
 		return ""
+	if _forced_wall_focus != "" and _forced_focus_valid():
+		return _forced_wall_focus
+	_forced_wall_focus = ""
 	var focus = _player._focused
 	if focus == null:
 		return ""
@@ -528,6 +541,29 @@ func _focused_wall_id() -> String:
 		if WallManager.wall_nodes[wall_id] == focus:
 			return String(wall_id)
 	return ""
+
+func _force_wall_focus(wall_id: String) -> void:
+	if not WallManager.wall_nodes.has(wall_id):
+		return
+	_forced_wall_focus = wall_id
+	_player._focused = WallManager.wall_nodes[wall_id]
+	_player.focus_changed.emit(_player._focused)
+
+func _forced_focus_valid() -> bool:
+	if _player == null or _forced_wall_focus == "":
+		return false
+	if not WallManager.wall_nodes.has(_forced_wall_focus):
+		return false
+	var node: Node3D = WallManager.wall_nodes[_forced_wall_focus] as Node3D
+	if node == null:
+		return false
+	if _player.global_position.distance_to(node.global_position) > INTERACT_RANGE + 1.5:
+		return false
+	if WallManager.wall_states.has(_forced_wall_focus):
+		var state := String(WallManager.wall_states[_forced_wall_focus].get("state", ""))
+		if state.begins_with("player_"):
+			return false
+	return true
 
 func _is_neutral(wall_id: String) -> bool:
 	for def in WallManager.wall_defs:
@@ -769,7 +805,7 @@ func _legal_actions() -> Array:
 	if focused_wall != "" and WallManager.wall_states.has(focused_wall):
 		focused_state = String(WallManager.wall_states[focused_wall].get("state", ""))
 	var fresh_focused_wall := focused_wall != "" and not focused_state.begins_with("player_")
-	if not GameState.alias_chosen or ("Paint" in prompt and fresh_focused_wall):
+	if not GameState.alias_chosen or (fresh_focused_wall and ("Paint" in prompt or focused_wall == _forced_wall_focus)):
 		actions.append("paint")
 	if "Rest" in prompt:
 		actions.append("rest")
@@ -820,6 +856,9 @@ func _act_impl(data: Dictionary) -> Dictionary:
 		"cycle_cap":
 			_press("cycle_cap")
 		"paint":
+			var paint_focus := _focused_wall_id()
+			if paint_focus != "":
+				_force_wall_focus(paint_focus)
 			_press("interact")
 		"freehand":
 			_press("freehand_paint")

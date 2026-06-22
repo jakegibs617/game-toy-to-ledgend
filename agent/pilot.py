@@ -233,6 +233,8 @@ class OllamaBrain:
             return _fallback_action(obs, f"model chose unavailable {action.get('action')}")
         if action.get("action") == "goto_wall" and _focused_wall_ready_to_paint(obs):
             return _fallback_action(obs, "focused wall is ready to paint")
+        if action.get("action") == "interact" and _focused_wall_ready_to_paint(obs):
+            return _fallback_action(obs, "focused wall is ready to paint")
         if (action.get("action") in ("goto_actor", "goto_objective")
                 and _objective_actor_nearby(obs)
                 and "interact" in legal):
@@ -288,11 +290,11 @@ def _compute_fallback(obs: dict, reason: str) -> dict:
         slot_to_can = {1: "tag", 2: "throwup", 3: "piece", 4: "stencil", 5: "roller", 6: "mural"}
         if obs.get("selected_can") != slot_to_can.get(slot):
             return {"reason": reason + "; select objective can", "action": "select_can", "slot": slot}
+    if focused and not str(states.get(focused, "")).startswith("player_") and "paint" in legal:
+        return {"reason": reason + "; paint focused wall", "action": "paint"}
     if "interact" in legal and "[E]" in prompt and "Paint" not in prompt \
             and not obs.get("objective_target"):
         return {"reason": reason + "; interact with focused object", "action": "interact"}
-    if focused and not str(states.get(focused, "")).startswith("player_") and "paint" in legal and "Paint" in prompt:
-        return {"reason": reason + "; paint focused wall", "action": "paint"}
     if obs.get("objective_target") and "goto_objective" in legal:
         return _goto_objective_action(obs.get("objective_target") or {},
                                       reason + "; go to objective target")
@@ -382,8 +384,6 @@ def _focused_wall_ready_to_paint(obs: dict) -> bool:
     if not focused or "paint" not in (obs.get("legal_actions") or []):
         return False
     prompt = obs.get("prompt") or ""
-    if "Paint" not in prompt:
-        return False
     states = {w["wallId"]: w.get("state") for w in (obs.get("nearby_walls") or [])}
     return not str(states.get(focused, "")).startswith("player_")
 
@@ -583,14 +583,29 @@ def run(args) -> int:
         nav_stuck = int(nav.get("stuck_frames", 0)) >= 60
         nav_stuck_light = int(nav.get("stuck_frames", 0)) >= 30  # softer threshold
 
+        if "fill color" in (obs.get("objective") or "").lower() \
+                and action.get("action") != "cycle_color" \
+                and "cycle_color" in (obs.get("legal_actions") or []):
+            action = {
+                "reason": "harness: choose-color objective requires cycle_color",
+                "action": "cycle_color",
+                "_harness_fallback": True,
+            }
+
         # Let active server navigation finish. Raw move/look or fresh nav actions
         # cancel/restart the controller and can strand the agent just outside
         # focus range while the objective itself has not changed.
         if nav_active and action.get("action") in (
                 "move", "look", "aim_at", "goto_wall", "goto_actor",
-                "goto_objective"):
+                "goto_objective", "stop"):
             action = {
                 "reason": f"model chose {action.get('action')} during active nav; wait",
+                "action": "wait",
+                "_harness_fallback": True,
+            }
+        if nav_active and action.get("action") == "interact" and not _objective_actor_nearby(obs):
+            action = {
+                "reason": "model chose non-objective interact during active nav; wait",
                 "action": "wait",
                 "_harness_fallback": True,
             }
@@ -704,18 +719,21 @@ def run(args) -> int:
                 }
                 print(f"      !! harness: owned-wall roam redirect from {_fw!r}", flush=True)
 
-        # Block repainting already-owned walls during free-roam paint objectives.
-        # The model sometimes revisits player-owned walls visible in nearby_walls
-        # instead of finding unowned ones. Redirect to the nearest unowned alt or stop.
+        # Block repainting already-owned walls and neutral walls during free-roam
+        # paint objectives. The model sometimes revisits player-owned walls, or
+        # paints glass/neutral walls that spend paint but add no influence.
+        # Redirect to the nearest non-neutral unowned alt or ask the server to
+        # pick one globally.
         if not _has_specific_target and action.get("action") == "paint":
             _fw = obs.get("focused_wall") or ""
             if _fw:
-                _fw_state = next(
-                    (str(w.get("state", "")) for w in (obs.get("nearby_walls") or [])
-                     if w["wallId"] == _fw),
-                    "",
+                _fw_wall = next(
+                    (w for w in (obs.get("nearby_walls") or []) if w["wallId"] == _fw),
+                    {},
                 )
-                if _fw_state.startswith("player_"):
+                _fw_state = str(_fw_wall.get("state", ""))
+                _fw_neutral = bool(_fw_wall.get("territory_neutral", False))
+                if _fw_state.startswith("player_") or _fw_neutral:
                     _walls_near = obs.get("nearby_walls") or []
                     _alt = next(
                         (w["wallId"] for w in _walls_near
@@ -729,10 +747,10 @@ def run(args) -> int:
                          "action": "goto_wall", "wallId": _alt, "_harness_fallback": True}
                         if _alt else
                         {"reason": f"harness: {_fw!r} already owned; no alt — stop",
-                         "action": "stop", "_harness_fallback": True}
+                         "action": "goto_wall", "_harness_fallback": True}
                     )
-                    print(f"      !! harness: repaint blocked on {_fw!r} "
-                          f"(state={_fw_state!r})", flush=True)
+                    print(f"      !! harness: paint blocked on {_fw!r} "
+                          f"(state={_fw_state!r} neutral={_fw_neutral})", flush=True)
 
         # Track painted walls so neither the wall-skip nor the repaint-block
         # targets them again. influence_skip_walls is cleared on objective change;
