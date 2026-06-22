@@ -765,6 +765,36 @@ def run(args) -> int:
                 }
                 print("      !! harness: low-paint can switch -> tag", flush=True)
 
+        # Proactive can switch: model chose something other than paint/select_can/rest
+        # but there is a focused unowned wall and the selected can costs more paint
+        # than is available. Pre-switch to tag so the very next turn can paint.
+        if (not _has_specific_target
+                and action.get("action") not in ("paint", "select_can", "rest")
+                and "select_can" in (obs.get("legal_actions") or [])
+                and "paint" in (obs.get("legal_actions") or [])):
+            _pc_cost = {"tag": 1, "throwup": 3, "piece": 5, "stencil": 2, "roller": 4, "mural": 8}
+            _pc_paint = int(obs.get("paint", 0))
+            _pc_can = str(obs.get("selected_can", ""))
+            _pc_focus = obs.get("focused_wall") or ""
+            if _pc_focus and _pc_paint >= 1 and _pc_paint < _pc_cost.get(_pc_can, 999):
+                _pc_state = next(
+                    (str(w.get("state", "")) for w in (obs.get("nearby_walls") or [])
+                     if w["wallId"] == _pc_focus),
+                    "",
+                )
+                if not _pc_state.startswith("player_") and not next(
+                    (True for w in (obs.get("nearby_walls") or [])
+                     if w["wallId"] == _pc_focus and w.get("territory_neutral")),
+                    False,
+                ):
+                    action = {
+                        "reason": f"harness: {_pc_can!r} too expensive ({_pc_paint} paint); switch to tag before wasting turn",
+                        "action": "select_can",
+                        "slot": 1,
+                        "_harness_fallback": True,
+                    }
+                    print(f"      !! harness: proactive can switch -> tag ({_pc_paint} paint, {_pc_focus!r} focused)", flush=True)
+
         # Block repainting already-owned walls and neutral walls during free-roam
         # paint objectives. The model sometimes revisits player-owned walls, or
         # paints glass/neutral walls that spend paint but add no influence.

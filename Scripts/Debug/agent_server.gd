@@ -740,14 +740,17 @@ func _action_objective_target(data: Dictionary) -> Dictionary:
 				return {"type": "actor", "actorId": actor_id}
 	return {}
 
-## Nearest wall not yet owned by the player, searching all of WallManager (not
+## Highest-visibility unowned wall, searching all of WallManager (not
 ## just nearby_walls) so the fallback can still find a target from far away.
+## Picks the wall with the most visibility (territory weight) so the agent
+## targets high-value walls first instead of always the nearest one.
 ## Walls more than 5 m above the player (rooftop/elevated, unreachable without
 ## climbing) are skipped so the fallback never sends the agent to a roof wall.
 func _nearest_unowned_wall() -> String:
 	if _player == null:
 		return ""
 	var best_id := ""
+	var best_vis := -1
 	var best_dist := INF
 	var player_y: float = _player.global_position.y
 	for wall_id in WallManager.wall_nodes:
@@ -768,7 +771,10 @@ func _nearest_unowned_wall() -> String:
 		if node.global_position.y - player_y > 5.0:
 			continue
 		var dist: float = _player.global_position.distance_to(node.global_position)
-		if dist < best_dist:
+		var vis: int = int(WallManager.wall_def(String(wall_id)).get("visibility", 1))
+		# Prefer highest visibility; use distance as tiebreaker within same visibility.
+		if vis > best_vis or (vis == best_vis and dist < best_dist):
+			best_vis = vis
 			best_dist = dist
 			best_id = String(wall_id)
 	return best_id
