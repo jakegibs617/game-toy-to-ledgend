@@ -198,7 +198,7 @@ class OllamaBrain:
             "messages": [{"role": "system", "content": self.system}, message],
             "format": ACTION_SCHEMA,
             "stream": False,
-            "options": {"temperature": 0.2},
+            "options": {"temperature": 0.2, "think": False},
         }
         # Retry up to 3 times on timeout; qwen3:14b can be slow under memory pressure.
         _last_exc: Exception | None = None
