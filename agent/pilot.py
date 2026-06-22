@@ -719,6 +719,17 @@ def run(args) -> int:
                 }
                 print(f"      !! harness: owned-wall roam redirect from {_fw!r}", flush=True)
 
+        if (not _has_specific_target and not nav_active and same_obj_streak >= 6
+                and not obs.get("focused_wall")
+                and action.get("action") in ("move", "look", "wait")
+                and "goto_wall" in (obs.get("legal_actions") or [])):
+            action = {
+                "reason": "harness: free-roam paint stall; find another wall",
+                "action": "goto_wall",
+                "_harness_fallback": True,
+            }
+            print("      !! harness: free-roam goto_wall redirect", flush=True)
+
         # Block repainting already-owned walls and neutral walls during free-roam
         # paint objectives. The model sometimes revisits player-owned walls, or
         # paints glass/neutral walls that spend paint but add no influence.

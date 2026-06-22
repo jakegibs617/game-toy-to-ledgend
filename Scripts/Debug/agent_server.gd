@@ -787,8 +787,10 @@ func _legal_actions() -> Array:
 		"select_can", "cycle_color", "cycle_cap", "look", "move",
 		"stop", "wait",
 	]
-	if not _nearby_walls().is_empty():
+	var nearby_walls := _nearby_walls()
+	if not nearby_walls.is_empty():
 		actions.append("aim_at")
+	if not nearby_walls.is_empty() or _nearest_unowned_wall() != "":
 		actions.append("goto_wall")
 	if not _nearby_actors().is_empty():
 		actions.append("goto_actor")
