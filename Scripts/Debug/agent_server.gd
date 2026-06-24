@@ -39,6 +39,9 @@ var _player = null
 var _hud = null
 # Watchable on-screen overlay (Scripts/UI/agent_overlay.gd); only under AGENT=1.
 var _overlay = null
+# Optional deterministic mode for long LLM playtests: freeze the world between
+# observe and act so model latency does not advance heat/cleanup timers.
+var _freeze_during_agent_think := false
 # action -> physics frames remaining, so timed holds (movement) release later.
 var _holds: Dictionary = {}
 # Persistent navigation targets, pursued each frame in _update_nav.
@@ -53,6 +56,7 @@ var _forced_wall_focus := ""
 var _stuck_check_dist := -1.0
 var _stuck_frames := 0
 var _stuck_side := 1   # +1 = right next, -1 = left next (alternates each unstick)
+var _stuck_escape_count := 0
 # paint_objective macro: navigate → aim → press paint once focused on the target wall.
 var _paint_obj_wall := ""
 var _paint_obj_can_slot := 0       # 0 = no can swap needed
@@ -69,6 +73,8 @@ func _ready() -> void:
 	if OS.get_environment("AGENT") != "1" or OS.get_environment("SMOKE_TEST") == "1":
 		set_process(false)
 		return
+	_freeze_during_agent_think = OS.get_environment("AGENT_FREEZE_THINK") == "1"
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	if DisplayServer.get_name() == "headless":
 		push_warning("AGENT server: headless has no renderer — screenshots will be empty.")
 	_server = TCPServer.new()
@@ -83,6 +89,9 @@ func _ready() -> void:
 	add_child(_overlay)
 
 func _process(_delta: float) -> void:
+	if get_tree().paused:
+		_pump_server()
+		return
 	_tick_holds()
 	_update_nav()
 	_pump_server()
@@ -178,6 +187,7 @@ func _stop_goto(restore_mouse := true) -> void:
 func _reset_stuck() -> void:
 	_stuck_check_dist = -1.0
 	_stuck_frames = 0
+	_stuck_escape_count = 0
 
 ## Call once per frame while move_forward is held. If dist hasn't decreased by
 ## STUCK_MIN_PROGRESS over STUCK_FRAMES_MAX frames, side-steps to get around
@@ -185,7 +195,7 @@ func _reset_stuck() -> void:
 func _update_stuck(dist: float) -> void:
 	# Pause counting during an active side-step so the counter doesn't re-fire
 	# before the player has had time to move clear of the blocker.
-	if _holds.has("move_left") or _holds.has("move_right"):
+	if _holds.has("move_left") or _holds.has("move_right") or _holds.has("move_back"):
 		_stuck_check_dist = dist
 		return
 	if _stuck_check_dist < 0.0:
@@ -194,14 +204,37 @@ func _update_stuck(dist: float) -> void:
 	if _stuck_check_dist - dist >= STUCK_MIN_PROGRESS:
 		_stuck_check_dist = dist
 		_stuck_frames = 0
+		_stuck_escape_count = 0
 		return
 	_stuck_frames += 1
 	if _stuck_frames >= STUCK_FRAMES_MAX:
 		_stuck_frames = 0
 		_stuck_check_dist = -1.0
-		var side := "right" if _stuck_side > 0 else "left"
-		_stuck_side *= -1
+		_stuck_escape_count += 1
+		_unstick_escape()
+
+func _unstick_escape() -> void:
+	if _goto_moving:
+		Input.action_release("move_forward")
+		_goto_moving = false
+	var side := "right" if _stuck_side > 0 else "left"
+	_stuck_side *= -1
+	var escape_phase := (_stuck_escape_count - 1) % 3
+	if escape_phase == 0:
 		_move(side, STUCK_SIDESTEP_DUR)
+	elif escape_phase == 1:
+		_move("back", 0.45)
+		_move(side, 0.75)
+	else:
+		if InputMap.has_action("run"):
+			Input.action_press("run")
+			_holds["run"] = 45
+		_move("back", 0.65)
+		_move(side, 0.85)
+	# brief jump to clear low obstacles or geometry lips, and to hop away from
+	# an NPC/corner contact when the sidestep alone cannot create separation.
+	Input.action_press("jump")
+	_holds["jump"] = 8  # ~0.13 s
 
 func _cancel_nav() -> void:
 	_aim_target = ""
@@ -408,14 +441,25 @@ func _route(_method: String, path: String, body: String) -> Dictionary:
 			# Skip the screenshot when the client opts out (?shot=0) — heuristic
 			# and text-only pilots never read it, so don't pay the PNG write.
 			var want_shot := not (parts.size() > 1 and "shot=0" in parts[1])
-			return _observe(want_shot)
+			var view := _observe(want_shot)
+			_pause_world_for_agent_think()
+			return view
 		"/act":
+			_resume_world_for_agent_action()
 			var parsed = JSON.parse_string(body)
 			if parsed is Dictionary:
 				return _act(parsed)
 			return {"ok": false, "error": "body must be a JSON object"}
 		_:
 			return {"error": "unknown path", "path": clean}
+
+func _pause_world_for_agent_think() -> void:
+	if _freeze_during_agent_think and not get_tree().paused:
+		get_tree().paused = true
+
+func _resume_world_for_agent_action() -> void:
+	if _freeze_during_agent_think and get_tree().paused:
+		get_tree().paused = false
 
 func _respond(payload: Dictionary) -> void:
 	if _conn == null:
@@ -589,14 +633,27 @@ func _nearby_walls() -> Array:
 		if dist > NEARBY_RADIUS:
 			continue
 		var state := ""
+		var owner := "open"
 		if WallManager.wall_states.has(wall_id):
-			state = String(WallManager.wall_states[wall_id].get("state", ""))
+			var ws: Dictionary = WallManager.wall_states[wall_id]
+			state = String(ws.get("state", ""))
+			var owner_id := String(ws.get("ownerCrewId", "none"))
+			if state.begins_with("player_"):
+				owner = "player"
+			elif owner_id == "city" or state == "buffed":
+				owner = "city"
+			elif owner_id != "none" and owner_id != "":
+				owner = "rival"
+		var def: Dictionary = WallManager.wall_def(String(wall_id))
+		var category := String(def.get("wallCategory", ""))
 		out.append({
 			"wallId": wall_id,
 			"distance": snappedf(dist, 0.1),
 			"bearing": int(round(rad_to_deg(atan2(to.x, -to.z)))),
 			"state": state,
 			"territory_neutral": _is_neutral(String(wall_id)),
+			"wallCategory": category,
+			"owner": owner,
 		})
 	out.sort_custom(func(a, b): return a["distance"] < b["distance"])
 	return out
@@ -773,7 +830,9 @@ func _nearest_unowned_wall() -> String:
 		var def := WallManager.wall_def(String(wall_id))
 		# Skip walls outside the player's current district — a global vis-first
 		# search otherwise crosses block boundaries (e.g. canal_06 at 103 m).
-		if String(def.get("districtId", "")) != GameState.current_district_id:
+		# When current_district_id is "" (between districts), allow any district so
+		# the fallback can guide the agent back to the nearest reachable wall.
+		if GameState.current_district_id != "" and String(def.get("districtId", "")) != GameState.current_district_id:
 			continue
 		var dist: float = _player.global_position.distance_to(node.global_position)
 		var vis: int = int(def.get("visibility", 1))
@@ -865,7 +924,7 @@ func _act_impl(data: Dictionary) -> Dictionary:
 		"select_can":
 			_press("slot_%d" % clampi(int(data.get("slot", 1)), 1, GameState.SLOT_COUNT))
 		"cycle_color":
-			_press("cycle_color")
+			GameState.cycle_fill_color()
 		"cycle_cap":
 			_press("cycle_cap")
 		"paint":

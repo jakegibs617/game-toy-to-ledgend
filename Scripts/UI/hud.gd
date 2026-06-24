@@ -31,6 +31,7 @@ var _crew_rep_label: Label
 var _paint_label: Label
 var _cash_label: Label
 var _heat_label: Label
+var _influence_label: Label
 var _type_label: Label
 var _shop_panel: PanelContainer
 var _shop_label: Label
@@ -57,6 +58,7 @@ var _freehand_wall: PaintableWall = null
 ## (Milestone 21) — commit routes to GalleryManager, not WallManager.
 var _freehand_gallery := false
 var _focused: Node3D = null
+var _focused_wall_prev_state: String = ""
 var _rank_index := 0
 ## The modal registry (Plan_v2.md §3.1): one entry per modal, in input
 ## priority order. The first open modal owns input; opening any modal
@@ -84,6 +86,7 @@ func _ready() -> void:
 	_paint_label = UiKit.make_label(stats, 18)
 	_cash_label = UiKit.make_label(stats, 18)
 	_heat_label = UiKit.make_label(stats, 18)
+	_influence_label = UiKit.make_label(stats, 18)
 	_type_label = UiKit.make_label(stats, 18)
 
 	_mission_panel = UiKit.make_panel(ACCENT)
@@ -226,6 +229,9 @@ func _ready() -> void:
 	TerritoryManager.district_claimed.connect(_on_district_claimed)
 	TerritoryManager.territory_event.connect(func(message: String) -> void:
 		_show_message(message, 4.0))
+	TerritoryManager.territory_changed.connect(func(district_id: String) -> void:
+		if district_id == GameState.current_district_id:
+			_refresh_influence())
 	StatsManager.perk_point_earned.connect(func(points: int) -> void:
 		_show_message("PERK POINT EARNED — press P to choose. (%d unspent)" % points, 5.0))
 	StatsManager.stat_changed.connect(func(stat: String, new_level: int) -> void:
@@ -430,6 +436,25 @@ func _refresh_stats() -> void:
 	_cash_label.text = "Cash: $%d" % GameState.cash
 	_on_heat_changed(HeatManager.heat, 0.0)
 	_on_type_changed(GameState.selected_graffiti_type)
+	_refresh_influence()
+
+func _refresh_influence() -> void:
+	var district_id := GameState.current_district_id
+	if district_id == "":
+		_influence_label.text = ""
+		return
+	if TerritoryManager.is_claimed(district_id):
+		_influence_label.text = "Influence: CLAIMED"
+		_influence_label.label_settings.font_color = ACCENT
+		return
+	var shares := TerritoryManager.influence(district_id)
+	var player_share := float(shares.get("player", 0.0))
+	if player_share <= 0.0:
+		_influence_label.text = ""
+		return
+	var threshold := float(TerritoryManager.districts.get(district_id, {}).get("claimThreshold", 0.5))
+	_influence_label.text = "Influence: %d%%" % roundi(player_share * 100)
+	_influence_label.label_settings.font_color = ACCENT if player_share >= threshold else Color.WHITE
 
 func _handle_alias_input(event: InputEvent) -> bool:
 	if event.is_action_pressed("interact"):
@@ -590,6 +615,11 @@ func _on_type_changed(type: String) -> void:
 
 func _on_focus_changed(node: Node3D) -> void:
 	_focused = node
+	if node is PaintableWall:
+		var st: Dictionary = WallManager.wall_states.get(String(node.def["wallId"]), {})
+		_focused_wall_prev_state = String(st.get("state", "blank"))
+	else:
+		_focused_wall_prev_state = ""
 	_refresh_prompt()
 
 ## Milestone 14: F at a wall opens the freehand canvas. The paint check
@@ -691,11 +721,56 @@ func _close_nightclub() -> void:
 
 func _on_painted(result: Dictionary) -> void:
 	if result.get("ok", false):
-		_show_message("Painted!  +%d rep" % int(result["rep"]))
+		var msg := "Painted!  +%d rep" % int(result["rep"])
+		var graffiti: Dictionary = result.get("graffiti", {})
+		var wall_id := String(graffiti.get("wallId", ""))
+		if wall_id != "":
+			var def := WallManager.wall_def(wall_id)
+			if not def.is_empty() and not bool(def.get("territoryNeutral", false)):
+				var weight := int(def.get("visibility", 1))
+				if _focused_wall_prev_state == "buffed":
+					msg += "  (+%d influence back)" % weight
+				elif _focused_wall_prev_state.begins_with("rival_"):
+					msg += "  (+%d influence taken)" % weight
+		_show_message(msg)
+		_queue_culture_feedback(result)
 	else:
 		Sfx.play("denied")
 		_show_message(String(result.get("reason", "Can't paint here.")))
+	_focused_wall_prev_state = ""
 	_refresh_prompt()
+
+func _queue_culture_feedback(result: Dictionary) -> void:
+	var graffiti: Dictionary = result.get("graffiti", {})
+	if graffiti.is_empty():
+		return
+	var wall_id := String(graffiti.get("wallId", ""))
+	var paint_type := String(graffiti.get("type", ""))
+	var def: Dictionary = WallManager.wall_def(wall_id)
+	if def.is_empty():
+		return
+	var category: String = String(def.get("wallCategory", ""))
+	var was_buffed: bool = _focused_wall_prev_state == "buffed"
+	var feedback := ""
+	if was_buffed and category != "community_wall":
+		feedback = "That's how you answer a buff."
+	elif category == "community_wall":
+		feedback = "Community wall — locals remember who paints here."
+	elif category == "respected_piece" and paint_type == "tag":
+		feedback = "A tag on a landmark spot. Strong writers use the right tool for the right wall."
+	elif category == "respected_piece" and paint_type in ["piece", "wildstyle"]:
+		feedback = "That's how you build a name on a landmark."
+	elif category == "respected_piece":
+		feedback = "Landmark spot — make sure the work is worth it."
+	elif category == "open_wall":
+		feedback = "That spot makes sense."
+	elif category == "danger_wall":
+		feedback = "High-exposure spot — rep and heat both moved. Worth it?"
+	if feedback == "":
+		return
+	await get_tree().create_timer(2.8).timeout
+	if is_instance_valid(self):
+		_show_message(feedback, 4.0)
 
 func _refresh_prompt() -> void:
 	if _focused == null:
@@ -724,15 +799,63 @@ func _refresh_prompt() -> void:
 		var cap_hint := ""
 		if SupplyManager.owned_caps.size() > 1:
 			cap_hint = "   [K] Tool: %s" % String(SupplyManager.equipped_cap_def().get("name", "Stock"))
-		_prompt_label.text = "%s  |  Owner: %s  |  Risk %d  |  Visibility %d  |  Surface: %s\n[E] Paint %s (%d paint)   %s%s%s%s" % [
-			_focused.display_name(), owner_id,
+		var owner_label := TerritoryManager.owner_label(owner_id)
+		var territory_hint := _wall_territory_hint(def, state)
+		_prompt_label.text = "%s  |  Owner: %s  |  Risk %d  |  Visibility %d  |  Surface: %s\n%s\n[E] Paint %s (%d paint)   %s%s%s%s" % [
+			_focused.display_name(), owner_label,
 			int(def.get("risk", 1)), int(def.get("visibility", 1)),
 			String(def.get("surfaceType", "plain")),
+			territory_hint,
 			style.get("label", "?"), SupplyManager.paint_cost(style),
 			"  ".join(cans), cap_hint, freehand_hint, block_text,
 		]
 	elif _focused.has_method("prompt_text"):
 		_prompt_label.text = _focused.prompt_text()
+
+func _wall_territory_hint(def: Dictionary, state: Dictionary) -> String:
+	if bool(def.get("territoryNeutral", false)):
+		var culture := _wall_culture_hint(def, state)
+		return "Neutral surface: good for style, but it will not move territory control." \
+			+ ("\n" + culture if culture != "" else "")
+	var owner_id := String(state.get("ownerCrewId", "none"))
+	var wall_state := String(state.get("state", "blank"))
+	var weight := int(def.get("visibility", 1))
+	var territory_line: String
+	if owner_id == "player" and wall_state.begins_with("player_"):
+		territory_line = "Already yours: find another wall to grow your influence."
+	elif owner_id != "none" and owner_id != "city" and owner_id != "player":
+		territory_line = "Rival-held: painting here takes back %d influence weight." % weight
+	elif owner_id == "city" or wall_state == "buffed":
+		territory_line = "Buffed by cleanup: repainting restores %d influence weight." % weight
+	else:
+		territory_line = "Open wall: painting here adds %d influence weight." % weight
+	var culture := _wall_culture_hint(def, state)
+	return territory_line + ("\n" + culture if culture != "" else "")
+
+func _wall_culture_hint(def: Dictionary, state: Dictionary) -> String:
+	var category := String(def.get("wallCategory", ""))
+	var owner_id := String(state.get("ownerCrewId", "none"))
+	var wall_state := String(state.get("state", "blank"))
+	match category:
+		"community_wall":
+			if owner_id == "player":
+				return "Community wall — locals notice who tags here."
+			return "Community wall — painting here may cost local respect."
+		"open_wall":
+			if wall_state == "buffed" or owner_id == "city":
+				return "Fresh buff — reclaiming this earns writer respect."
+			if owner_id != "none" and owner_id != "city" and owner_id != "player":
+				return "Rival mark — covering it may start beef."
+			return "Open wall — this is the kind of spot where writers start."
+		"respected_piece":
+			if owner_id == "player":
+				return "Landmark claimed. A strong piece here builds your name."
+			if owner_id != "none" and owner_id != "city" and owner_id != "player":
+				return "Rival-held landmark. Taking it back makes a statement."
+			return "Writers watch what goes on a landmark. Make it count."
+		"danger_wall":
+			return "Exposed spot — high visibility, but you will be seen. Worth the risk?"
+	return ""
 
 func _on_heat_changed(new_heat: float, _gained: float) -> void:
 	var level := HeatManager.level_name()
@@ -741,9 +864,27 @@ func _on_heat_changed(new_heat: float, _gained: float) -> void:
 
 func _on_heat_level_changed(level: String, rising: bool) -> void:
 	if rising:
-		_show_message("HEAT RISING — the block is %s now. Risky spots pay more." % level.to_upper(), 4.0)
+		match level:
+			"Low":
+				_show_message("You've been seen. Heat building — keep moving.", 3.5)
+			"Watched":
+				_show_message("Patrols are clocking you. Stay sharp or lay low.", 4.0)
+			"Hot":
+				_show_message("TOO HOT — finish up and ghost before you get caught.", 4.5)
+			"Blazing":
+				_show_message("BLAZING — get somewhere safe. This heat costs rep.", 5.0)
+			_:
+				_show_message("Heat rising — %s out here." % level.to_upper(), 4.0)
 	else:
-		_show_message("Cooling off — heat is down to %s." % level, 3.0)
+		match level:
+			"Watched":
+				_show_message("Heat easing. A little more room to work.", 3.0)
+			"Low":
+				_show_message("Cooling off. Good window to push.", 3.0)
+			"Cold":
+				_show_message("Block is cold — nobody watching. Go make some noise.", 3.5)
+			_:
+				_show_message("Cooling off — heat is down to %s." % level, 3.0)
 
 ## City cleanup just erased somebody's work (Plan.md section 33).
 func _on_cleanup_event(message: String, _wall_id: String) -> void:
@@ -762,6 +903,7 @@ func _on_rival_event(message: String, _wall_id: String) -> void:
 
 ## Claiming a block is the Milestone 6 payoff — make it land.
 func _on_district_claimed(_district_id: String, district: Dictionary) -> void:
+	_refresh_influence()
 	_show_message("BLOCK CLAIMED — %s is yours!  +%d rep" % [
 		String(district.get("name", "The district")),
 		int(district.get("claimRepBonus", 0))], 6.0)

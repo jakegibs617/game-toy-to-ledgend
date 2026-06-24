@@ -1,5 +1,192 @@
 # Changelog
 
+## Iteration 5: Culture / Narrative Clarity
+
+### Goal
+Improve feedback clarity for the three mechanics the playtest noted as weakest:
+wall-state context, rival reaction messaging, and the rep/heat tension.
+
+### Changes Made
+- `Scripts/UI/hud.gd`: added live `Influence: N%` label to the stats panel.
+  Updates on every wall change via `TerritoryManager.territory_changed`; switches
+  to `Influence: CLAIMED` (gold) when the district is held. Hidden until the player
+  has any stake in the current district.
+- `Scripts/UI/hud.gd`: paint feedback message now appends `(+N influence back)`
+  when repainting a city-buffed wall, or `(+N influence taken)` when covering a
+  rival wall. Uses `_focused_wall_prev_state` captured before the paint clears it.
+- `Scripts/UI/hud.gd`: `_on_heat_level_changed()` replaced with per-level cultural
+  voice lines: "Patrols are clocking you. Stay sharp or lay low." / "TOO HOT —
+  finish up and ghost." / "BLAZING — get somewhere safe." / "Block is cold —
+  nobody watching. Go make some noise."
+- `Scripts/UI/hud.gd`: danger-wall culture feedback updated to tie rep and heat
+  together: "High-exposure spot — rep and heat both moved. Worth it?"
+- `Scripts/Rivals/rival_manager.gd`: rival attack messages now include `(-N
+  influence)` so the player immediately sees what was lost. Wall duel won message
+  now includes `(+N influence back)`.
+
+### Verification
+- Headless smoke: `SMOKE: OK`; rival event line in smoke output confirms the new
+  `(-3 influence)` suffix.
+- Windowed AGENT=1 launch: zero parse errors in captured stderr.
+
+## Iteration 4
+
+### Goal
+Continue the 70-turn `Own the block` verification while watching for hardware
+pressure, then separate actual gameplay/harness blockers from machine stalls.
+
+### Changes Made
+- `Scripts/Debug/agent_server.gd`: world-freeze between `/observe` and `/act` is
+  now opt-in via `AGENT_FREEZE_THINK=1`; normal `AGENT=1` play no longer freezes
+  while the model thinks.
+- `Scripts/Debug/agent_server.gd`: `cycle_color` now directly calls
+  `GameState.cycle_fill_color()` so the choose-color objective is deterministic
+  through the agent server.
+- `Scripts/Debug/agent_server.gd`: `_nearest_unowned_wall()` now skips the
+  district filter when `GameState.current_district_id` is `""` (Fix I).  When the
+  player is between districts the function previously returned `""` for every wall
+  (the comparison `"district_mill_yard" != ""` was always true), making `goto_wall`
+  disappear from `legal_actions` and freezing the harness free-roam redirect for
+  46+ turns.
+- `agent/pilot.py`: safehouse objectives redirect visible safehouse `interact`
+  loops to `rest`.
+- `agent/pilot.py`: `Own the block` switches to tag can before painting, because
+  territory influence is ownership/visibility based and pieces were generating
+  unnecessary heat/paint pressure.
+- `agent/pilot.py`: close-wall aim skips walls already counted for `Paint 3
+  different walls`, even if cleanup has buffed them back to city-owned.
+- `agent/pilot.py`: influence wall-skip now requires actual nav-stuck evidence
+  instead of firing from same-object duration alone. This keeps cleanup-reopened
+  high-value walls such as `wall_landmark_01` and `wall_bodega_01` eligible during
+  the `Own the block` cleanup race, while preserving the duration-based recovery
+  for non-influence free-roam stalls.
+
+### Verification
+- `python -m py_compile agent\pilot.py`: pass.
+- Windowed AGENT=1 launch: port 8088 listening; no script parse errors.
+- Monitored 70-turn run before the tag-can fix: no hardware saturation observed
+  (Godot ~920-931 MB, Python ~24 MB, Ollama resident process ~70-75 MB in
+  sampled process tables), but `Own the block` did not claim before cleanup
+  re-buffed useful walls.
+- Monitored run after the tag-can fix reached `Paint 3 different walls` but was
+  stopped at turn 30 when cleanup-buffed `wall_corner_01` was re-aimed despite
+  already counting for the distinct-wall objective; close-wall aim was patched
+  afterward.
+- Run 18 (70 turns, task bwq9o67v5): opening chain through wall_corner_01 (1/3)
+  cleared, close-wall aim patch confirmed (no re-aim at counted wall), but agent
+  stalled on `move` for turns 25–70 due to Fix I bug above.  Fix I applied this
+  session; next run should verify 2/3 and 3/3 walls complete.
+- Run 19 (fresh 80 turns): Fix I verified. After `wall_corner_01` painted at turn
+  24, `goto_wall` stayed legal and the free-roam redirect fired at turn 29. The
+  run painted wall 2/3 at turn 31 and wall 3/3 at turn 34, cleared rival retake
+  at turn 36, painted the crew piece at turn 45, and reached `Own the block` at
+  turn 46. Hardware stayed stable (Godot ~926 MB WS near turn 28 and ~932 MB WS
+  near turn 57; Ollama ~72 MB WS; Python ~24 MB WS).
+- Run 19 also exposed the influence skip-list blocker fixed above: high-value
+  walls were added to `influence_skip_walls` from same-object duration during
+  cleanup churn, so the fresh run ended at turn 80 still on `Own the block`.
+- Post-fix continuation from the run 19 blocker state cleared `Own the block`:
+  bodega painted on continuation turn 1, landmark on turn 4, median on turn 8,
+  and objective text became empty on turn 9.
+
+### Known Issues
+- A fully fresh 70-80 turn transcript with Fix J active from turn 1 would be nice
+  final proof, but the targeted continuation verified the run 19 blocker fix.
+- Crew-piece can still spend several turns aiming before painting; run 19 recovered
+  naturally and painted on turn 45.
+
+## Iteration 3
+
+### Goal
+Fix the renewed free-roam navigation stall where the player was physically
+blocked near `wall_corner_01` by an NPC/local obstacle after painting the first
+wall, leaving the pilot focused on the owned wall and repeatedly retrying far
+`goto_wall` targets.
+
+### Changes Made
+- `Scripts/Debug/agent_server.gd`: stuck recovery now escalates across repeated
+  failures instead of repeating the same side-step forever. It releases
+  `move_forward`, then cycles side-step, back+side dodge, and run+back+side+jump
+  escapes so NPC/contact blocks can create real separation.
+
+### Verification
+- AGENT=1 launch: pass, no parse errors in captured stderr.
+- Interrupted 70-turn Ollama run: reproduced the local blocker during "Paint 3
+  different walls" (turns 29-39), with the player pinned near `wall_corner_01`.
+- Fresh 45-turn Ollama verification: cleared "Paint 3 different walls" by turn
+  35, cleared rival retake turn 36, cleared crew-piece turn 38, reached "Own the
+  block" turn 39, painted `wall_landmark_01` turn 41 and `wall_median_01` turn 44.
+
+### Known Issues
+- The 45-turn verification ended before the influence objective completed. A
+  60-70 turn run is still needed to prove full block-claim completion.
+- The model still recommends wider/pre-focus wall visibility; it used the
+  territory-neutral `wall_mill_glass_01` as one of the three different walls,
+  which counts for that objective but does not help later influence.
+
+## Iteration 2
+
+### Goal
+Fix the "Paint 3 different walls" stall: after painting the first wall the agent
+had no data to choose the next, latched onto a non-objective actor, and the harness
+had no recovery for this objective type.
+
+### Changes Made
+- `Scripts/Debug/agent_server.gd`: `_nearby_walls()` now exposes `wallCategory`
+  (open_wall / community_wall / respected_piece / danger_wall) and `owner` (player /
+  rival / city / open) for every nearby wall, so the Ollama model can filter by
+  eligibility without focusing each wall first.
+- `Scripts/Debug/agent_server.gd`: stuck-sidestep now presses `jump` briefly in
+  addition to the side-step, helping escape low geometry lips and obstacles.
+- `agent/pilot.py`: free-roam actor-nav-stop extended from "own the block" only to
+  all free-roam objectives (fires at same_obj >= 5 if dist <= 2.5 OR same_obj >= 12);
+  comment updated to document the wider scope.
+- `docs/AGENT_CHEATSHEET.md`: step 7 documents the new `wallCategory` and `owner`
+  fields with decision guidance ("prefer open/rival/city, avoid player").
+
+### Verification
+- python compile: pass
+- Godot smoke: pass (SMOKE: OK)
+- AGENT=1 launch: pass (post-fix run)
+- Ollama playtest: see Playtest Iteration 2 results
+
+### Playtest Result
+Baseline (50 turns): opening chain clean through turn 21, then "Paint 3 different
+walls" stalled at turn 29 for 20+ turns — model chose `goto_actor` with no recovery.
+Confirmed the exact gap addressed by the three fixes.
+
+### Follow-up Tasks
+- Verify the post-fix run reaches "rival retake" and "crew-piece" objectives.
+- Add in-world wall-state indicators (floating labels above blank/rival/owned walls).
+- Improve objective-target markers for NPCs and pickups when off-screen.
+
+### Known Issues
+- `nearby_walls` NEARBY_RADIUS is 14m; the model may not see useful walls when
+  exploring if none are within that range. Consider increasing to 18–20m.
+- In-world wall indicators (visual highlights, floating labels) still not implemented.
+
+## Iteration 1
+
+### Goal
+Improve wall/objective clarity after an Ollama diagnostic playtest showed repeated confusion around which walls count for multi-wall, rival-retake, crew-piece, and territory-control objectives.
+
+### Changes Made
+- Added focused-wall HUD guidance for territory impact: open walls, already-owned walls, rival-held walls, cleanup-buffed walls, and territory-neutral surfaces now explain what painting will do.
+- Added Ollama pilot planning metadata (`planning_style`, `planning_reason`, `plan`) and prints it in turn logs so future playtests capture 3-move vs 1-move decision style.
+- Renamed the generic free-roam wall-stall recovery log from `influence wall-skip` to `free-roam wall-skip` so playtest triage does not misclassify crew-piece stalls as influence-only problems.
+
+### Playtest Result
+Diagnostic run reached the crew-piece step but stalled around free-roam wall selection and repeatedly recommended clearer wall-state/paintability indicators. Post-fix run reached the crew-piece step by turn 38 and painted a piece by turn 40; the model still recommended spatial wall highlights and objective-target indicators.
+
+### Follow-up Tasks
+- Add lightweight in-world indicators for nearby paintable wall state: open, already yours, rival-held, neutral.
+- Add clearer mission/objective markers for NPCs and pickups when they are not in view.
+- Tighten the playtester prompt/schema so `one_move` plans contain one step consistently.
+
+### Known Issues
+- The agent still sometimes restarts `goto_wall` before focus is acquired on open multi-wall objectives.
+- The HUD text clarifies focused walls, but unfocused walls still rely on geometry/map visibility rather than in-world eligibility cues.
+
 ## Unreleased — Agent play harness (Phase 1–4)
 
 Lets an external pilot (a local Ollama model, or a rule-based baseline) play the
