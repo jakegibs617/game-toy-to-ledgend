@@ -145,10 +145,22 @@ are populated in every observation:
    already focused on the needed interaction.
 6. Read `nearby_actors`: if the objective names an actor/place, use
    `goto_actor` when available.
-7. Else use `nearby_walls` (id, distance, bearing) to pick a useful target and
-   `goto_wall`/`aim_at`/`move` toward it. Always supply an explicit `wallId` from
-   `nearby_walls` — do not omit it, or the server restarts to the same nearest wall.
-   During an **influence grind** (no specific wall in the objective), if
+7. Else use `nearby_walls` to pick a useful target and `goto_wall`/`aim_at`/`move`
+   toward it. Always supply an explicit `wallId` from `nearby_walls` — do not omit
+   it, or the server restarts to the same nearest wall.
+
+   Each `nearby_walls` entry now includes:
+   - `wallId`, `distance`, `bearing` — navigation basics
+   - `state` — raw state string (e.g. `"blank"`, `"player_throwup"`, `"rival_tag"`)
+   - `territory_neutral` — if `true`, painting here does **not** affect influence
+   - `wallCategory` — `"open_wall"` (starter spots), `"community_wall"` (costs respect),
+     `"respected_piece"` (landmark, use a piece), `"danger_wall"` (high heat), or `""` (uncategorised)
+   - `owner` — `"player"` (already yours — skip unless retaking), `"rival"` (cover for territory),
+     `"city"` (buffed — reclaim for bonus rep), or `"open"` (blank, good target)
+
+   **Prefer walls where `owner` is `"open"`, `"rival"`, or `"city"` and
+   `territory_neutral` is `false`.  Avoid `owner: "player"` walls during free-roam.**
+   During a **free-roam paint objective** (no specific wall in the objective), if
    `nav.stuck_frames` is above 60, call `stop` then `goto_wall` with a *different*
    `wallId`.
 8. Keep `paint > 0` and `heat` manageable; `rest` when low on paint or hot.

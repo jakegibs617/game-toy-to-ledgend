@@ -1,8 +1,221 @@
 # Agent Playtest Harness — Handoff
 
-Current date: 2026-06-22. Project: Toy to Legend, Godot graffiti RPG.
+Current date: 2026-06-24. Project: Toy to Legend, Godot graffiti RPG.
 
-## Current Phase: Long-Loop Playtest
+## Current Phase: Iteration 5 Complete (Culture / Narrative Clarity)
+
+**Latest (2026-06-24):** product-clarity pass on three areas flagged in Iteration 2
+playtest notes. No harness changes. Files changed:
+`Scripts/UI/hud.gd`, `Scripts/Rivals/rival_manager.gd`, `CHANGELOG.md`.
+
+**What shipped:**
+- Live `Influence: N%` label in the stats panel (auto-updates on every wall change,
+  hides when player has no stake, turns gold at CLAIMED).
+- Paint message now appends `(+N influence back)` or `(+N influence taken)` when
+  painting a buffed or rival wall.
+- Heat level messages now have cultural voice per level instead of one generic line.
+- Danger-wall culture feedback explicitly links rep and heat.
+- Rival attack and wall-duel-won messages include the influence weight delta.
+
+**Verification:** headless smoke pass (`SMOKE: OK`); rival event suffix `-3 influence`
+visible in smoke output; windowed boot clean (zero stderr errors).
+
+**Current top issues for next iteration:**
+1. **Medium:** Run a fresh 70-80 turn pass to get a clean single-transcript
+   end-to-end proof with Fix I + Fix J both active from turn 1 (run 19 fresh pass
+   ended at turn 80 before Fix J existed; continuation verified the blocker fix).
+2. **Low:** Crew-piece `aim_at` noise — turns 40–44 repeated aim at
+   `wall_mill_glass_01` before painting; acceptable but noisy.
+3. **Low:** `NEARBY_RADIUS=14m` — model still recommends widening; distant walls
+   require empty `goto_wall` calls when nothing is within 14 m after a paint.
+
+---
+
+## Historical Phase: Iteration 4 Complete
+
+**Latest (2026-06-23, run 19 + continuation):** ran a fresh monitored 80-turn
+Ollama pass with Fix I active. Fix I is verified: after `wall_corner_01` was
+painted, `goto_wall` remained legal and the harness free-roam redirect fired on
+turn 29 instead of disappearing as in run 18. The opening chain then reached all
+four verification beats. A new `Own the block` skip-list blocker appeared during
+cleanup churn, was patched narrowly in `agent/pilot.py`, and a short continuation
+cleared the territory objective.
+
+**Run 19 turn milestones:**
+
+| Turn range | Milestone | Status |
+|---|---|---|
+| 1-3 | Alias + first tag | pass |
+| 4-5 | Return to safehouse | pass |
+| 6-8 | Check tag / throw-up | pass |
+| 9-11 | Visit Lupe, restock (paint to 46) | pass |
+| 12 | Pick fill color (`cycle_color`) | pass |
+| 13-15 | Meet Moth | pass |
+| 16-18 | Recover blackbook | pass |
+| 19-21 | Return blackbook to Moth | pass |
+| 22-24 | `wall_corner_01` painted for "Paint 3 different walls" (1/3) | pass |
+| 25-29 | Fix I verification window | pass: turn 29 `!! harness: free-roam goto_wall redirect` |
+| 31 | `wall_landmark_01` painted (2/3) | pass |
+| 34 | `wall_loading_01` painted (3/3) | pass |
+| 35-36 | Rival retake | pass |
+| 36-45 | Crew-piece objective | pass; piece painted on `wall_mill_glass_01` |
+| 46 | `Own the block` starts; influence tag-can switch fires | pass |
+| 49, 52, 55, 58, 62, 64, 68, 73, 79 | Influence repaint attempts under cleanup pressure | progress, but not complete by turn 80 |
+| 80 | Fresh run ends | still on `Own the block`; new blocker diagnosed |
+
+**Fix I verification result:** confirmed working. In run 18, turns 25-70 lost
+`goto_wall` after the player drifted between districts. In run 19, turn 27 could
+choose `goto_wall`, and turn 29 printed `!! harness: free-roam goto_wall redirect`
+followed by `-> goto_wall (harness: free-roam paint stall; find another wall)`.
+The objective then painted wall 2/3 at turn 31 and wall 3/3 at turn 34.
+
+**Run 19 hardware:** stable. Sample near turn 28: Godot ~926 MB WS, Ollama ~72 MB
+WS, Python ~24 MB WS. Sample near turn 57: Godot ~932 MB WS, Ollama ~72 MB WS,
+Python ~24 MB WS.
+
+**New blocker found in run 19 (Fix J):** during `Own the block`, the generic
+free-roam wall-skip used `same_obj_streak >= 12` as a skip trigger even when
+navigation was not actually stuck. Cleanup repeatedly re-opened high-value walls,
+so long same-object time was normal. The skip list added `wall_landmark_01` and
+`wall_bodega_01`, pushing the harness away from the 5- and 4-weight walls before
+the claim could stabilize.
+
+**Fix J (`agent/pilot.py`):** influence-grind wall-skip now requires real
+`nav_stuck_light` evidence. The `same_obj_streak >= 12` soft trigger still applies
+to non-influence free-roam objectives where it helps recover generic stalls.
+
+**Fix J continuation verification:** without deleting state, continued from the
+run 19 blocker state for 25 max turns. The patched pilot painted `wall_bodega_01`
+on continuation turn 1, `wall_landmark_01` on turn 4, and `wall_median_01` on
+turn 8. On turn 9 the objective text became empty and reputation jumped to 1002,
+confirming `Own the block` cleared.
+
+**Verification completed this session:**
+- Killed stale Godot/Python processes before the fresh run.
+- Deleted both Godot save files before the fresh run.
+- Launched Godot with `AGENT=1` only; `AGENT_FREEZE_THINK` unset.
+- Confirmed port 8088 LISTENING and Godot stderr had no `ERROR`/`Parse` lines.
+- Ran `python agent\pilot.py --brain ollama --model qwen3:14b --no-vision --max-turns 80 --delay 0.5 --notes agent\playtest_recommendations.jsonl`.
+- Ran `python -m py_compile agent\pilot.py` after Fix J: pass.
+- Short continuation after Fix J cleared `Own the block`.
+
+**Current top issues for next iteration:**
+1. **Medium:** run one fresh 70-80 turn pass with Fix J from turn 1 if you want
+   fully clean end-to-end proof in a single transcript. The continuation proves the
+   blocker fix, but the full fresh run ended at turn 80 before Fix J existed.
+2. **Low:** crew-piece spent turns 40-44 repeatedly `aim_at` on
+   `wall_mill_glass_01` before painting on turn 45; acceptable but still noisy.
+3. **Product focus:** shift next iteration toward culture/narrative clarity from
+   the Iteration 2 notes: clearer wall-state indicators, rival reaction feedback,
+   and respect-vs-heat messaging.
+
+**Repo hygiene:** the working tree already contains Godot import churn under
+`Assets/**/*.import` plus several `.uid` files. Do not revert or commit those
+unless explicitly requested; the intentional files for Iteration 4 are
+`Scripts/Debug/agent_server.gd`, `agent/pilot.py`, `CHANGELOG.md`, and this
+handoff.
+
+---
+
+## Historical Phase: Iteration 2 Complete
+
+**Latest (2026-06-23, Iteration 2):** three targeted fixes after the Iteration 2
+baseline playtest confirmed the "Paint 3 different walls" stall.
+
+**Iteration 2 goal:** resolve the free-roam wall-selection stall where the model
+chose `goto_actor` after painting the first wall, trapping nav for 20+ turns.
+
+**Files intentionally changed this iteration:**
+- `Scripts/Debug/agent_server.gd`: `_nearby_walls()` now exposes `wallCategory`
+  and `owner` per wall entry; `_update_stuck` adds a brief `jump` press alongside
+  the existing side-step to help clear low geometry lips.
+- `agent/pilot.py`: free-roam actor-nav-stop extended from "own the block" only
+  to all free-roam objectives (fires when `not _has_specific_target` and
+  `same_obj >= 5`, `dist <= 2.5` or `same_obj >= 12`).
+- `docs/AGENT_CHEATSHEET.md`: step 7 now documents `wallCategory` and `owner`
+  with decision guidance: "prefer open/rival/city, avoid player."
+- `docs/PLAYTEST_ITERATION_2026-06-23b.md`: added Iteration 2 baseline + post-fix
+  summary.
+- `CHANGELOG.md`: added Iteration 2 entry.
+
+**Verification completed:**
+- `python -m py_compile agent\pilot.py`: pass
+- Godot headless smoke (`SMOKE_TEST=1`): `SMOKE: OK`
+- Windowed launch + stderr check: no parse errors
+- Baseline Ollama playtest: 50 turns, stall confirmed (1/3 walls, turns 29–50)
+- Post-fix Ollama playtest: 50 turns, crew-piece reached by turn 48
+
+**Post-fix playtest result:**
+- Opening chain: clean turns 1–21 (identical to prior iteration)
+- Paint 3 different walls: ✓ complete by turn 33
+- Rival retake: ✓ complete turn 34
+- Crew-piece objective: ✓ complete turn 48
+- Own the block: started turn 49; max turns reached
+
+**What the new `owner`/`wallCategory` fields unlocked:**
+The model began chain-planning using actual wall metadata from turn 23 onward:
+"prefer 'city' or 'rival' owned walls with territory_neutral: false." It correctly
+identified wall_landmark_01, wall_loading_01, and wall_alley_n_01 as targets by
+category and ownership before focusing them. The owned-wall redirect fired at
+turn 28 (vs baseline's force-stop at turn 46).
+
+**Current top issues for next iteration:**
+1. **Medium:** crew-piece phase stuck at wall_alley_n_01 for ~12 turns (turns
+   38–47). Same geometry-stall pattern. Jump-in-sidestep should help but wall-skip
+   recovered it acceptably (piece painted at turn 48).
+2. **Medium:** influence grind ("Own the block") not tested — needs a 60–70 turn
+   run to verify the fix-D through fix-H chain still works.
+3. **Low:** NEARBY_RADIUS=14m still causes 34m dead-reckoning goto_wall calls when
+   no wall is within 14m after a paint; model recommends widening the radius.
+
+**Recommended next focused update:** run a 60–70 turn post-fix playtest to verify
+the influence grind completes. If it stalls, diagnose and fix (same cycle as
+previous influence-grind work). If it completes, the full opening-to-influence-claim
+loop is stable and the next feature focus can shift to culture/narrative clarity
+(wall category text, rival reaction feedback, respect vs heat messaging).
+
+---
+
+## Historical Phase: Iteration 1 Complete
+
+**Latest continuation (2026-06-23, local working tree):** completed the first
+diagnostic playtest -> focused update -> post-fix playtest loop requested in the
+Graffiti RPG playtest prompt.
+
+**Iteration 1 goal:** improve wall/objective clarity after the diagnostic
+Ollama playtest showed repeated confusion around which walls count for
+multi-wall, rival-retake, crew-piece, and territory-control objectives.
+
+**Files intentionally changed this iteration:**
+- `Scripts/UI/hud.gd`: focused wall prompts now translate wall state into
+  action language: open wall, already yours, rival-held, cleanup-buffed, and
+  territory-neutral.
+- `agent/pilot.py`: Ollama actions now include `planning_style`,
+  `planning_reason`, and `plan`; turn logs print `plan[three_move]` /
+  `plan[one_move]`; generic wall-stall recovery now logs as
+  `free-roam wall-skip` instead of `influence wall-skip`.
+- `CHANGELOG.md`: added required `Iteration 1` entry.
+- `docs/PLAYTEST_ITERATION_2026-06-23.md`: added structured feedback summary
+  and development task list.
+
+**Verification completed:**
+- `python -m py_compile agent\pilot.py`
+- Godot headless smoke with `SMOKE_TEST=1`: completed with `SMOKE: OK`.
+- Fresh diagnostic Ollama playtest with `qwen3:14b`, text-only, 60 turns.
+- Fresh post-fix Ollama playtest with `qwen3:14b`, text-only, 40 turns.
+
+**Latest playtest result (Iteration 1):**
+- Diagnostic run reached the crew-piece step but stalled around free-roam wall
+  selection; recommendations repeatedly asked for clearer wall-state and
+  paintability indicators.
+- Post-fix run reached the crew-piece objective by turn 38 and painted a piece
+  by turn 40.
+- The core opening chain, rival retake, and crew-piece beat are playable through
+  real input.
+
+---
+
+## Historical Phase: Long-Loop Playtest Notes
 
 **Latest continuation (2026-06-22, commits `ace86bd`, `e278892`, `3397405`,
 `f16d6ac`, `f59fa65`):** fixes D–H applied this session.  Run 17 (PID 1012)
@@ -342,6 +555,58 @@ cleared the skip set, the wall-skip trigger (which fires when `same_obj_streak >
 re-added the first nav target within 1 turn of the new push cycle.  Fix: reset
 `last_wall_skip_turn = turn` inside the rest block, enforcing the existing 6-turn
 cooldown before any wall can be added to skip.
+
+---
+
+## Resolved Blockers (session 2026-06-23, run 18)
+
+### Fix I — `_nearest_unowned_wall()` returns "" when player is between districts (`agent_server.gd`)
+
+**Symptom:** After painting the first wall of "Paint 3 different walls", the agent
+stalled on `move` for 46 turns (same_obj_streak = 46+).  `nearby_walls` was
+consistently empty, and `goto_wall` was absent from `legal_actions`.
+
+**Root cause:** Fix D (2026-06-22) added a district filter to `_nearest_unowned_wall()`
+to prevent cross-block nav (canal_06 at 103 m).  When the player crossed the
+`district_mill_yard` boundary, `GameState.current_district_id` became `""`.  The
+comparison `"district_mill_yard" != ""` is true for every wall, so the loop skipped
+every wall and returned `""`.  Without a return value, `goto_wall` disappeared from
+`legal_actions`, and the harness free-roam redirect (pilot.py:826) never fired.
+
+**Fix:** One-line guard in `_nearest_unowned_wall()` — the district filter is now
+skipped when `current_district_id` is `""`:
+
+```gdscript
+if GameState.current_district_id != "" and String(def.get("districtId", "")) != GameState.current_district_id:
+    continue
+```
+
+When the player is between districts, all non-neutral / non-player-owned /
+non-elevated walls are considered, and the nearest mill-yard wall is returned.
+The existing pilot.py redirect at line 826 then fires: `!! harness: free-roam
+paint stall; find another wall`.
+
+### Fix J — influence wall-skip over-skips high-value cleanup targets (`pilot.py`)
+
+**Symptom:** Run 19 verified Fix I and reached `Own the block`, but did not clear
+the influence objective by turn 80. The harness was still painting high-value
+walls, but `free-roam wall-skip` added `wall_landmark_01` and `wall_bodega_01`
+to `influence_skip_walls` during cleanup churn.
+
+**Root cause:** The generic wall-skip condition fired on either actual
+`nav_stuck_light` or `same_obj_streak >= 12`. During `Own the block`, long
+same-object time is expected because cleanup can reopen high-value walls while
+the objective remains unchanged. Treating duration alone as a geometry failure
+made the harness avoid the exact walls needed to cross 50% influence.
+
+**Fix:** For influence objectives, wall-skip now requires actual `nav_stuck_light`.
+The `same_obj_streak >= 12` fallback still applies to non-influence free-roam
+objectives.
+
+**Verification:** A short continuation from the run 19 blocker state painted
+`wall_bodega_01` (continuation turn 1), `wall_landmark_01` (turn 4), and
+`wall_median_01` (turn 8). On continuation turn 9 the objective cleared
+(`obj=''`, rep 1002).
 
 ---
 

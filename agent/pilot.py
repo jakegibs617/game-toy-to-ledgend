@@ -38,6 +38,14 @@ ACTION_SCHEMA = {
     "type": "object",
     "properties": {
         "reason": {"type": "string"},
+        "planning_style": {"type": "string", "enum": ["three_move", "one_move"]},
+        "planning_reason": {"type": "string"},
+        "plan": {
+            "type": "array",
+            "items": {"type": "string"},
+            "minItems": 1,
+            "maxItems": 3,
+        },
         "action": {
             "type": "string",
             "enum": [
@@ -184,6 +192,10 @@ class OllamaBrain:
             "If the objective says to return to the safehouse but no safehouse action is available, "
             "choose goto_actor with actorId safehouse when available. "
             "Avoid no-op actions, such as selecting the can that is already selected. "
+            "For every turn, include planning_style, planning_reason, and plan. Use planning_style "
+            "three_move with exactly 3 plan entries when the objective is clear, stable, and strategic. "
+            "Use planning_style one_move with exactly 1 plan entry when the UI is unclear, you are "
+            "stuck, reacting to heat or danger, inspecting a new prompt, or suspecting a bug. "
             "Respond only as a JSON action object."
         )
         message = {"role": "user", "content": user}
@@ -283,6 +295,10 @@ def _compute_fallback(obs: dict, reason: str) -> dict:
     # Use paint_objective macro when available (Fix 1).
     if "paint_objective" in legal and obs.get("objective_required_can"):
         return {"reason": reason + "; use paint_objective macro", "action": "paint_objective"}
+    objective = (obs.get("objective") or "").lower()
+    if ("safehouse" in objective and "rest" in legal
+            and "Rest" in (obs.get("prompt") or "")):
+        return {"reason": reason + "; rest at safehouse", "action": "rest"}
     if _objective_actor_nearby(obs) and "interact" in legal:
         return {"reason": reason + "; interact with objective actor", "action": "interact"}
     slot = _required_slot_for_objective(obs)
@@ -298,7 +314,6 @@ def _compute_fallback(obs: dict, reason: str) -> dict:
     if obs.get("objective_target") and "goto_objective" in legal:
         return _goto_objective_action(obs.get("objective_target") or {},
                                       reason + "; go to objective target")
-    objective = (obs.get("objective") or "").lower()
     actors = obs.get("nearby_actors") or []
     if "safehouse" in objective and "goto_actor" in legal:
         if any(a.get("actorId") == "safehouse" for a in actors):
@@ -321,6 +336,8 @@ def _opening_hint(obs: dict) -> str:
     if _objective_actor_nearby(obs) and "interact" in legal:
         target = obs.get("objective_target") or {}
         aid = target.get("actorId", "the objective actor")
+        if aid == "safehouse" and "rest" in legal and "Rest" in (obs.get("prompt") or ""):
+            return "The safehouse prompt is visible; choose rest to complete the safehouse objective."
         return f"{aid} is already close enough; choose interact now."
     if "paint_objective" in legal and obs.get("objective_required_can"):
         req = obs.get("objective_required_can", "")
@@ -351,6 +368,8 @@ def _opening_hint(obs: dict) -> str:
     if "safehouse" in objective and "goto_actor" in legal:
         actors = obs.get("nearby_actors") or []
         if any(a.get("actorId") == "safehouse" for a in actors):
+            if "rest" in legal and "Rest" in prompt:
+                return "Choose rest at the safehouse."
             return "Choose goto_actor with actorId safehouse."
     return ""
 
@@ -592,6 +611,34 @@ def run(args) -> int:
                 "_harness_fallback": True,
             }
 
+        if ("safehouse" in _objective_text
+                and action.get("action") == "interact"
+                and "rest" in (obs.get("legal_actions") or [])
+                and "Rest" in (obs.get("prompt") or "")):
+            action = {
+                "reason": "harness: safehouse objective; rest instead of opening crew board",
+                "action": "rest",
+                "_harness_fallback": True,
+            }
+            print("      !! harness: safehouse rest redirect", flush=True)
+
+        # Territory influence is ownership/visibility based, not can-size based.
+        # After the crew-piece objective the model often keeps using Piece during
+        # "Own the block", which burns paint and heat fast enough for cleanup to
+        # erase high-value walls before the claim threshold is reached.
+        if (_influence_objective
+                and not nav_active
+                and int(obs.get("paint", 0)) > 0
+                and obs.get("selected_can") != "tag"
+                and "select_can" in (obs.get("legal_actions") or [])):
+            action = {
+                "reason": "harness: influence objective uses cheap tags to claim more walls before cleanup",
+                "action": "select_can",
+                "slot": 1,
+                "_harness_fallback": True,
+            }
+            print("      !! harness: influence can switch -> tag", flush=True)
+
         # Let active server navigation finish. Raw move/look or fresh nav actions
         # cancel/restart the controller and can strand the agent just outside
         # focus range while the objective itself has not changed.
@@ -613,13 +660,31 @@ def run(args) -> int:
         # Wall-skip for free-roam paint stalls: when stuck navigating to a wall and
         # there is no specific objective target (any unowned wall works), blacklist
         # the stuck wall and steer to a different nearby unowned wall instead.
-        # Covers both "Own the block" influence grind and "Paint X walls" objectives.
+        # Covers "Own the block", "Paint X walls", and crew-piece free-roam beats.
         # Uses a soft stuck threshold (>=30) because the counter oscillates when
-        # side-steps keep firing without making net progress.
+        # side-steps keep firing without making net progress. During influence
+        # grinds, only skip on actual nav-stuck evidence; long same-object time
+        # can also mean cleanup keeps reopening the highest-value walls.
         _goto_wall_active = bool(nav.get("goto_target")) and not nav.get("goto_actor")
         _has_specific_target = bool(obs.get("objective_target"))
+        _wall_skip_due = nav_stuck_light or (same_obj_streak >= 12 and not _influence_objective)
+        # For any free-roam objective (influence grind, "Paint X walls",
+        # crew-piece), if the model starts walking to an actor while no
+        # objective actor is nearby, cancel the actor nav so the next turn
+        # can resume wall targeting.
+        if (not _has_specific_target
+                and nav.get("goto_actor") and not _objective_actor_nearby(obs)
+                and same_obj_streak >= 5):
+            _nav_dist = float(nav.get("dist", -1.0))
+            if _nav_dist <= 2.5 or not bool(nav.get("moving")) or same_obj_streak >= 12:
+                action = {
+                    "reason": f"harness: free-roam objective; cancel non-objective actor nav {nav.get('goto_actor')!r}",
+                    "action": "stop",
+                    "_harness_fallback": True,
+                }
+                print(f"      !! harness: free-roam actor-nav stop ({nav.get('goto_actor')!r})", flush=True)
         if (_goto_wall_active and not _has_specific_target
-                and nav_active and (nav_stuck_light or same_obj_streak >= 12)
+                and nav_active and _wall_skip_due
                 and same_obj_streak >= 10
                 and turn - last_wall_skip_turn >= 6):
             _stuck_wall = (nav.get("goto_target") or "").strip()
@@ -642,7 +707,7 @@ def run(args) -> int:
                 }
                 last_wall_skip_turn = turn
                 print(
-                    f"      !! harness: influence wall-skip -> {_alt_wall!r} "
+                    f"      !! harness: free-roam wall-skip -> {_alt_wall!r} "
                     f"(skip: {sorted(influence_skip_walls)})",
                     flush=True,
                 )
@@ -660,6 +725,7 @@ def run(args) -> int:
                 w for w in _walls_near
                 if not str(w.get("state", "")).startswith("player_")
                 and not w.get("territory_neutral", False)
+                and not (_different_walls_objective and w["wallId"] in all_painted_walls)
                 and float(w.get("distance", 99.0)) <= 4.0
                 and _aim_redir_count.get(w["wallId"], 0) < _AIM_REDIR_MAX
             ]
@@ -902,6 +968,17 @@ def run(args) -> int:
         reason = action.get("reason", "")
         print(f"[{turn:03d}] {summarize(obs)}", flush=True)
         print(f"      -> {action.get('action')} {('('+reason+')') if reason else ''}", flush=True)
+        if action.get("planning_style"):
+            _plan = action.get("plan") or []
+            if isinstance(_plan, list):
+                _plan_text = " / ".join(str(p) for p in _plan[:3])
+            else:
+                _plan_text = str(_plan)
+            print(
+                f"      plan[{action.get('planning_style')}]: "
+                f"{action.get('planning_reason', '')} :: {_plan_text}",
+                flush=True,
+            )
         result = game.act(action)
         _record_recommendation(args.notes, turn, obs, action, result)
         if not result.get("ok"):
@@ -998,6 +1075,9 @@ def _record_recommendation(path: str, turn: int, obs: dict, action: dict, result
         "focused_wall": obs.get("focused_wall", ""),
         "action": action.get("action", ""),
         "reason": action.get("reason", ""),
+        "planning_style": action.get("planning_style", ""),
+        "planning_reason": action.get("planning_reason", ""),
+        "plan": action.get("plan", []),
         "playtest_note": note,
         "recommendation": recommendation,
         "category": action.get("recommendation_category", "other") or "other",

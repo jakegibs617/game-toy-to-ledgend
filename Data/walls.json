@@ -44,6 +44,7 @@
   {
     "wallId": "wall_landmark_01",
     "heavenSpot": true,
+    "wallCategory": "respected_piece",
     "name": "Landmark: Mill Gate",
     "districtId": "district_mill_yard",
     "position": [16, 3, -7.8],
@@ -58,6 +59,7 @@
   },
   {
     "wallId": "wall_corner_01",
+    "wallCategory": "community_wall",
     "name": "Corner Store Side",
     "districtId": "district_mill_yard",
     "position": [-18, 1.6, 7.8],
@@ -71,6 +73,7 @@
   },
   {
     "wallId": "wall_bodega_01",
+    "wallCategory": "community_wall",
     "name": "Bodega Front",
     "districtId": "district_mill_yard",
     "position": [9, 1.6, 7.8],
@@ -84,6 +87,7 @@
   },
   {
     "wallId": "wall_alley_n_01",
+    "wallCategory": "open_wall",
     "name": "North Alley East",
     "districtId": "district_mill_yard",
     "position": [3.8, 1.5, -14],
@@ -98,6 +102,7 @@
   },
   {
     "wallId": "wall_alley_n_02",
+    "wallCategory": "open_wall",
     "name": "North Alley West",
     "districtId": "district_mill_yard",
     "position": [-4.8, 1.5, -13],
@@ -125,6 +130,7 @@
   },
   {
     "wallId": "wall_lot_01",
+    "wallCategory": "open_wall",
     "name": "Abandoned Lot",
     "districtId": "district_mill_yard",
     "position": [-2, 1.5, 24],
@@ -140,6 +146,7 @@
   {
     "wallId": "wall_roof_mill_01",
     "heavenSpot": true,
+    "wallCategory": "danger_wall",
     "name": "Mill West Rooftop",
     "districtId": "district_mill_yard",
     "position": [-14, 10.8, -8.2],
@@ -224,6 +231,7 @@
   },
   {
     "wallId": "wall_canal_06",
+    "wallCategory": "respected_piece",
     "name": "Landmark: Grain Silo",
     "districtId": "district_canal_side",
     "position": [118, 3.2, 7.8],
@@ -267,6 +275,7 @@
   {
     "wallId": "wall_rooftop_row_01",
     "heavenSpot": true,
+    "wallCategory": "danger_wall",
     "name": "Rooftop Row West Parapet",
     "districtId": "district_rooftop_row",
     "position": [166, 19.2, -16.9],
@@ -282,6 +291,7 @@
   {
     "wallId": "wall_rooftop_row_02",
     "heavenSpot": true,
+    "wallCategory": "danger_wall",
     "name": "Rooftop Row Center Parapet",
     "districtId": "district_rooftop_row",
     "position": [181, 19.2, -16.9],
@@ -297,6 +307,7 @@
   {
     "wallId": "wall_rooftop_row_03",
     "heavenSpot": true,
+    "wallCategory": "danger_wall",
     "name": "Rooftop Row East Billboard",
     "districtId": "district_rooftop_row",
     "position": [198, 20.1, 0],
@@ -312,6 +323,7 @@
   {
     "wallId": "wall_rooftop_row_04",
     "heavenSpot": true,
+    "wallCategory": "respected_piece",
     "name": "Landmark: Skyline Crown",
     "districtId": "district_rooftop_row",
     "position": [181, 20.2, 16.9],
@@ -326,6 +338,7 @@
   },
   {
     "wallId": "wall_rooftop_row_05",
+    "wallCategory": "danger_wall",
     "name": "Windbreak Utility Shed",
     "districtId": "district_rooftop_row",
     "position": [164, 19.5, 7.5],

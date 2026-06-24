@@ -208,17 +208,21 @@ func respond(wall_id: String, crew_id: String) -> void:
 	var current: Dictionary = state.get("currentGraffiti") if state.get("currentGraffiti") != null else {}
 	var type_label := String(
 		WallManager.styles.get(String(current.get("type", "tag")), {}).get("label", "work"))
-	var wall_name := String(WallManager.wall_def(wall_id).get("name", wall_id))
+	var def := WallManager.wall_def(wall_id)
+	var wall_name := String(def.get("name", wall_id))
+	var weight := int(def.get("visibility", 1))
 	var who := "%s (%s)" % [String(crew.get("leaderAlias", "?")), String(crew.get("name", crew_id))]
 	# Weak work in respected territory gets the "TOY" treatment
 	# (Plan.md section 13); stronger work gets covered instead.
 	if String(current.get("type", "tag")) == "tag" or GameState.rank in ["Toy", "Rookie"]:
 		WallManager.cross_out_wall(wall_id, crew, "TOY")
-		rival_event.emit('%s wrote "TOY" over your %s on %s!' % [who, type_label, wall_name], wall_id)
+		rival_event.emit('%s wrote "TOY" over your %s on %s! (-%d influence)' % [
+			who, type_label, wall_name, weight], wall_id)
 		_open_wall_duel(wall_id, crew, "cross_out")
 	else:
 		WallManager.apply_rival_graffiti(wall_id, crew, _response_type_for(crew, wall_id))
-		rival_event.emit("%s covered your %s on %s." % [who, type_label, wall_name], wall_id)
+		rival_event.emit("%s covered your %s on %s. (-%d influence)" % [
+			who, type_label, wall_name, weight], wall_id)
 		_open_wall_duel(wall_id, crew, "cover")
 
 func _open_wall_duel(wall_id: String, crew: Dictionary, pressure: String) -> void:
@@ -254,9 +258,11 @@ func _resolve_wall_duel_if_answered(wall_id: String, graffiti: Dictionary) -> bo
 	CrewManager.note_role_helped("hype", 2)
 	CrewManager.note_role_helped("battle_specialist", 4)
 	CrewManager.adjust_morale(7, "duel won")
-	var wall_name := String(WallManager.wall_def(wall_id).get("name", wall_id))
-	rival_event.emit("Wall duel won: %s is yours again. +%d rep, +%d crew rep." % [
-		wall_name, rep_bonus, crew_rep_bonus], wall_id)
+	var won_def := WallManager.wall_def(wall_id)
+	var wall_name := String(won_def.get("name", wall_id))
+	var wall_weight := int(won_def.get("visibility", 1))
+	rival_event.emit("Wall duel won: %s is yours again. +%d rep, +%d crew rep (+%d influence back)." % [
+		wall_name, rep_bonus, crew_rep_bonus, wall_weight], wall_id)
 	# Answering a callout is the retaliation beat; do not immediately
 	# queue a second response from the same paint stroke.
 	return true
