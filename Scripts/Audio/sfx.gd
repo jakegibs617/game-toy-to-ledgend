@@ -1,5 +1,5 @@
 extends Node
-## Placeholder SFX (Plan.md sections 28 and 49): every sound is
+## Placeholder SFX (GDD sections 28 and 49): every sound is
 ## synthesized into a small PCM buffer at startup so the prototype has
 ## audio feedback before any real assets exist. Autoloaded as Sfx
 ## (after the gameplay managers, whose signals it listens to).

@@ -1,5 +1,5 @@
 extends Node
-## Mission chains (Plan.md sections 15, 16, and 35 — Milestone 7;
+## Mission chains (GDD sections 15, 16, and 35 — Milestone 7;
 ## multi-chain since Milestone 18). Loads Data/missions.json: an array
 ## of chains, each a linear run of missions with sequential objectives.
 ## Chains activate in order — the next one starts when the previous is

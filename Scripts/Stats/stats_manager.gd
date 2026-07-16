@@ -1,12 +1,12 @@
 extends Node
-## Player progression depth (Milestone 17 — Plan.md §5, §6, §7).
+## Player progression depth (Milestone 17 — GDD §5, §6, §7).
 ## Owns the 3-stat subset (Style/Stealth/Hustle) that improves through
 ## use, and the perk system (one choice per rank-up, two perks per §7
 ## tree). Other managers ask this one for multipliers; XP flows in via
 ## the managers' signals, so nothing here polls. Autoloaded as
 ## StatsManager (after the systems it listens to, before SaveManager).
 ##
-## XP sources (Plan.md §6 "improve through use"):
+## XP sources (GDD §6 "improve through use"):
 ##   Style   — every player paint, by the work's paint cost
 ##   Stealth — paints nobody witnessed (+5), chases escaped (+8)
 ##   Hustle  — shop purchases (+5), delivery runs (+10)

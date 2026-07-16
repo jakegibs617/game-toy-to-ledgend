@@ -1,8 +1,8 @@
 extends StaticBody3D
-## Climb zone (Milestone 19, Plan_v2.md §4): a drainpipe/ladder spot at
+## Climb zone (Milestone 19, ROADMAP.md §4): a drainpipe/ladder spot at
 ## the foot of a building. E attempts the climb — make it and you're on
 ## the roof (where the roller spots from Milestone 16 live); slip and
-## you take the caught-equivalent fine (Plan_v2.md: the risk shifts
+## you take the caught-equivalent fine (ROADMAP.md: the risk shifts
 ## from patrols to the climb itself — security won't follow you up).
 ## `resolve(success)` is split from the interact() roll so the smoke
 ## test can drive both outcomes deterministically.
@@ -151,7 +151,7 @@ func _apply_summit() -> void:
 	GameState.player_event.emit(_success_message(target_district))
 
 func _apply_fall() -> void:
-	# The caught-equivalent fine (Plan_v2.md Milestone 19): the street saw
+	# The caught-equivalent fine (ROADMAP.md Milestone 19): the street saw
 	# you eat it.
 	var penalty := mini(int(def.get("fallRepPenalty", 20)), GameState.reputation)
 	if penalty > 0:

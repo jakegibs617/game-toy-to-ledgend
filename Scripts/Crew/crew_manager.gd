@@ -1,5 +1,5 @@
 extends Node
-## Crew recruitment (Plan.md section 14, Milestone 5). Loads
+## Crew recruitment (GDD §14, Milestone 5). Loads
 ## Data/npc_data.json, spawns recruitable NPCs, and runs each member's
 ## recruitment as a small stage machine:
 ##   not_met -> mission_active -> item_recovered -> recruited

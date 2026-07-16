@@ -1,7 +1,7 @@
 # Architecture Reference
 
 How Toy to Legend's code is actually organized, for anyone (human or
-agent) starting a work session. Design rationale lives in Plan.md
+agent) starting a work session. Design rationale lives in GDD
 (§N references); current feature list lives in README.md.
 
 ## Boot flow
@@ -24,7 +24,7 @@ district; it has no `districts.json.travel` gate, so `ClimbZone`
 `targetDistrictId` transitions are the unlock path.
 
 `district.gd` also contains the smoke test (`SMOKE_TEST=1` env var):
-per-system `_smoke_*()` functions (Plan_v2.md §3.3), each documenting
+per-system `_smoke_*()` functions (ROADMAP.md §3.3), each documenting
 the world state it assumes, run in sequence by `_run_smoke_test` —
 they drive every system headlessly and quit. Every milestone adds or
 extends a section.
@@ -112,7 +112,7 @@ through `paint_wall` / `paint_freehand` / `apply_rival_graffiti` /
 Other cross-system signals follow the same pattern: managers emit,
 HUD and Sfx listen. The HUD never owns game state.
 
-## Wall state (the world's memory, Plan.md §9)
+## Wall state (the world's memory, GDD §9)
 
 `WallManager.wall_states[wall_id]`:
 
@@ -136,10 +136,10 @@ purpose — save/load round-trips `wall_states` wholesale.
 Rep formula (`_reputation_for`): base × visibility mult × risk mult ×
 heat mult (× freehand style mult × buff retaliation bonus).
 
-## Data files (`/Data`, all JSON — Plan.md agent rule 3)
+## Data files (`/Data`, all JSON — GDD agent rule 3)
 
 Every manager loads through `Scripts/Data/data_loader.gd`
-(`load_json` + `require_fields`, Plan_v2.md §3.6): missing required
+(`load_json` + `require_fields`, ROADMAP.md §3.6): missing required
 fields `push_error` at startup, and the smoke test asserts
 `DataLoader.error_count == 0` — shipped data must validate clean.
 
@@ -184,7 +184,7 @@ Modal conventions:
   world input, slots 4-6 choose the difficulty preset,
   `GameState.choose_alias` stores the name, and `MissionManager.notify_alias_chosen`
   advances the first mission.
-* **Modal registry** (Plan_v2.md §3.1): `Hud._register_modals` lists
+* **Modal registry** (ROADMAP.md §3.1): `Hud._register_modals` lists
   every modal — alias, freehand, dialogue, shop, blackbook, map — in input
   priority order with `is_open`/`close`/`input` callables. The first
   open modal owns input; every opener routes through
@@ -216,4 +216,4 @@ SAVE_VERSION whenever a section's shape changes.**
   PR (RNG paths), plus one windowed boot: `godot --path . --quit-after 300`.
 * `Scenes/Test_GraffitiWall.tscn` — single-wall sandbox (agent rule 9).
 * Every milestone adds assertions for its system; keep new checks
-  self-contained about the state they assume (see Plan_v2.md §3.3).
+  self-contained about the state they assume (see ROADMAP.md §3.3).

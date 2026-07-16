@@ -1,5 +1,5 @@
 extends StaticBody3D
-## Travel point between districts (Milestone 18, Plan_v2.md §4): a
+## Travel point between districts (Milestone 18, ROADMAP.md §4): a
 ## footbridge gate the player interacts with (E) to cross to the other
 ## block. Teleports the player to the target district's arrival spot
 ## and updates GameState.current_district_id — which is what flips

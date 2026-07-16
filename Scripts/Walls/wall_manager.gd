@@ -1,7 +1,7 @@
 extends Node
 ## Loads wall definitions and graffiti styles from /Data, spawns
 ## PaintableWall nodes, applies graffiti, and tracks every wall's state
-## in memory (the in-memory persistence required by Plan.md section 47).
+## in memory (the in-memory persistence required by GDD §47).
 ## Autoloaded as WallManager.
 
 signal wall_painted(wall_id: String, graffiti: Dictionary)
@@ -12,11 +12,11 @@ const WALLS_PATH := "res://Data/walls.json"
 const STYLES_PATH := "res://Data/graffiti_styles.json"
 const DataLoader := preload("res://Scripts/Data/data_loader.gd")
 const GraffitiFonts := preload("res://Scripts/Walls/graffiti_font_library.gd")
-## Plan.md section 15 "Cleanup Retaliation": repainting a wall the city
+## GDD §15 "Cleanup Retaliation": repainting a wall the city
 ## buffed pays extra — taking the spot back is part of the fantasy.
 const BUFF_RETALIATION_BONUS := 1.25
-## Walls remember (Plan.md section 9) — but not forever. History is
-## deep-copied on every quick_save, so it stays bounded (Plan_v2.md §3.5).
+## Walls remember (GDD §9) — but not forever. History is
+## deep-copied on every quick_save, so it stays bounded (ROADMAP.md §3.5).
 const MAX_WALL_HISTORY := 20
 ## Crew-backed work (requiresCrew styles — murals) builds standing with
 ## your own people: the counterweight the gallery trade (Milestone 21)
@@ -92,9 +92,9 @@ func paint_wall(wall: PaintableWall, type: String) -> Dictionary:
 	_commit_player_graffiti(wall, start["state"], graffiti)
 	return {"ok": true, "rep": start["rep"], "graffiti": graffiti}
 
-## Freehand spray painting (Plan.md section 10 "Later Advanced System"):
+## Freehand spray painting (GDD §10 "Later Advanced System"):
 ## commits a player-drawn image as a piece. The hand-made work earns a
-## style multiplier (Plan.md section 11) from canvas coverage and the
+## style multiplier (GDD §11) from canvas coverage and the
 ## number of colors used — a lazy scribble pays less than a full burner.
 func paint_freehand(wall: PaintableWall, image: Image,
 		colors_used: int, coverage: float) -> Dictionary:
@@ -146,9 +146,9 @@ func apply_crew_graffiti(wall_id: String, member: Dictionary, type := "throwup")
 	wall_painted.emit(wall_id, graffiti)
 	return {"ok": true, "graffiti": graffiti}
 
-## The shared head of every player paint path (Plan_v2.md §3.4): unlock
+## The shared head of every player paint path (ROADMAP.md §3.4): unlock
 ## check, paint spend, and the rep payout including the buff-retaliation
-## bonus. A perk that discounts paint or boosts retaliation pay (Plan.md
+## bonus. A perk that discounts paint or boosts retaliation pay (GDD
 ## section 7) now has exactly one place to hook.
 ## Returns {ok: false, reason} or {ok: true, style, state, rep}.
 func _begin_player_paint(wall: PaintableWall, type: String,
@@ -188,7 +188,7 @@ func heaven_spot_exposure_bonus(def: Dictionary, style_id: String) -> float:
 func freehand_style_multiplier(colors_used: int, coverage: float) -> float:
 	return clampf(0.5 + coverage * 1.2 + 0.15 * (colors_used - 1), 0.5, 2.0)
 
-## Surface rules (Plan.md §8/§9, Milestone 16): a style with a
+## Surface rules (GDD §8/§9, Milestone 16): a style with a
 ## "surfaces" list only goes on those surface types — rollers need a
 ## rooftop parapet. Applies to everyone, rivals included.
 func surface_block_reason(type: String, def: Dictionary) -> String:
@@ -244,11 +244,11 @@ func _player_graffiti(def: Dictionary, type: String, style: Dictionary, rep: int
 	_next_graffiti_id += 1
 	return graffiti
 
-## Walls remember (Plan.md section 9) — but only the metadata. Stored
+## Walls remember (GDD §9) — but only the metadata. Stored
 ## freehand images are dropped from history so wall_states (deep-copied
 ## and JSON-written on every quick_save) doesn't grow by a full PNG
 ## each time a wall is repainted, and the array itself is capped at
-## MAX_WALL_HISTORY entries, oldest first (Plan_v2.md §3.5).
+## MAX_WALL_HISTORY entries, oldest first (ROADMAP.md §3.5).
 func _archive_current(state: Dictionary) -> void:
 	if state["currentGraffiti"] == null:
 		return
@@ -273,7 +273,7 @@ func _commit_player_graffiti(wall: PaintableWall, state: Dictionary, graffiti: D
 	wall.show_graffiti(graffiti, true)
 	wall_painted.emit(String(graffiti["wallId"]), graffiti)
 
-## A rival crew paints over whatever is on the wall (Plan.md section 13
+## A rival crew paints over whatever is on the wall (GDD §13
 ## "cover weak graffiti" / initial territory claims).
 func apply_rival_graffiti(wall_id: String, crew: Dictionary, type: String) -> Dictionary:
 	var style: Dictionary = styles.get(type, {})
@@ -304,7 +304,7 @@ func apply_rival_graffiti(wall_id: String, crew: Dictionary, type: String) -> Di
 	return graffiti
 
 ## A rival crew defaces the current graffiti without covering it
-## (Plan.md section 13 "TOY" mechanic). The graffiti stays visible but
+## (GDD §13 "TOY" mechanic). The graffiti stays visible but
 ## crossed out; the wall keeps its owner so the insult stings.
 func cross_out_wall(wall_id: String, crew: Dictionary, text := "TOY") -> void:
 	var state: Dictionary = wall_states[wall_id]
@@ -320,7 +320,7 @@ func cross_out_wall(wall_id: String, crew: Dictionary, text := "TOY") -> void:
 		wall_nodes[wall_id].show_cross_out(state["crossOut"])
 	wall_crossed_out.emit(wall_id)
 
-## City cleanup paints over whatever is on the wall (Plan.md sections
+## City cleanup paints over whatever is on the wall (GDD sections
 ## 18 and 33). The work moves into history — walls remember — and the
 ## wall shows mismatched gray roller patches until someone repaints.
 func buff_wall(wall_id: String) -> bool:
@@ -363,10 +363,10 @@ func _refresh_wall_visuals() -> void:
 		if state.has("crossOut"):
 			wall.show_cross_out(state["crossOut"])
 
-## Plan.md section 11: base value scaled by visibility and risk
+## GDD §11: base value scaled by visibility and risk
 ## multipliers, the current heat level — risky painting while the city
-## is watching pays more (Plan.md section 12) — and the writer's Style
-## stat + perks (Milestone 17, Plan.md section 6).
+## is watching pays more (GDD §12) — and the writer's Style
+## stat + perks (Milestone 17, GDD §6).
 func _reputation_for(style: Dictionary, def: Dictionary) -> int:
 	var base := float(style.get("baseValue", 10))
 	var visibility_mult := 1.0 + 0.2 * float(def.get("visibility", 1))

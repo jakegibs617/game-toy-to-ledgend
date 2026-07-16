@@ -1,5 +1,5 @@
 extends RefCounted
-## Shared UI builders (Plan_v2.md §3.2): the outlined label and the
+## Shared UI builders (ROADMAP.md §3.2): the outlined label and the
 ## accent-bordered dark panel every HUD piece uses. One recipe so the
 ## margins can't drift between panels again.
 ## Preload this script (CLAUDE.md headless class-cache rule):

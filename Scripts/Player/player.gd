@@ -221,7 +221,7 @@ func _try_build_static_visual(path: String) -> bool:
 	_visual_root = model
 	return true
 
-## Profiling readout for PlaytestMetrics (Plan_v3.md Milestone 31): which
+## Profiling readout for PlaytestMetrics (ROADMAP.md Milestone 31): which
 ## character model set loaded and how many clips it carries. "animated" is
 ## the full rooster action set, "static" the single-mesh GLB fallback, and
 ## "capsule" the placeholder used when no model imports at all.

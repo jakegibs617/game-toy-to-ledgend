@@ -1,5 +1,5 @@
 extends RefCounted
-## Shared JSON loading and startup validation (Plan_v2.md §3.6).
+## Shared JSON loading and startup validation (ROADMAP.md §3.6).
 ## Every manager loads its /Data file through load_json and checks
 ## required fields with require_fields, so a typo'd entry fails loudly
 ## at boot instead of silently defaulting into a 4×3 gray box.

@@ -1,5 +1,5 @@
 extends Node
-## Supply economy (Plan.md section 21; "supply inventory" from the
+## Supply economy (GDD §21; "supply inventory" from the
 ## section 36 Should-Have list). Cash comes from mission payouts and
 ## Lupe's repeatable delivery runs; it buys paint packs, caps that cut
 ## the paint cost of bigger work, and rare fill colors — all data-driven
@@ -25,7 +25,7 @@ const SHOP_CLOSE_DISTANCE := 6.0
 var catalog: Array = []
 var delivery: Dictionary = {}
 var owned: Dictionary = {}  # itemId -> true for one-time upgrades
-## Equipped paint tools (Plan.md §21: "caps modify spray behaviour"). The
+## Equipped paint tools (GDD §21: "caps modify spray behaviour"). The
 ## stock cap is always owned; bought caps/tools trade paint cost, rep, heat,
 ## and gear suspicion against each other. One tool is equipped at a time and
 ## drives the next paint.
@@ -148,7 +148,7 @@ func item_price(def: Dictionary) -> int:
 		* CrewManager.shop_price_multiplier()))
 
 ## Effective paint cost of a graffiti style with the equipped tool applied
-## (Plan.md section 21: caps modify spray behavior). Never below 1 — paint
+## (GDD §21: caps modify spray behavior). Never below 1 — paint
 ## stays a real constraint even with a fat cap.
 func paint_cost(style: Dictionary) -> int:
 	return maxi(1, int(style.get("paintCost", 1)) + cap_paint_delta(style))
@@ -219,7 +219,7 @@ func cycle_cap(step: int) -> void:
 	var next := wrapi(current + step, 0, owned_order.size())
 	equip_cap(String(owned_order[next]))
 
-## Lupe's repeatable errand (Plan.md section 15 "Supply Run"): carry a
+## Lupe's repeatable errand (GDD §15 "Supply Run"): carry a
 ## package to a drop spot for cash. One package at a time; drops rotate.
 func start_delivery() -> bool:
 	var drops: Array = delivery.get("drops", [])

@@ -1,5 +1,5 @@
 extends Node3D
-## Graybox prototype district (Plan.md "First Agent Task"): ground,
+## Graybox prototype district (GDD "First Agent Task"): ground,
 ## placeholder buildings, lighting, JSON-driven paintable walls,
 ## player, and HUD. Set SMOKE_TEST=1 to run a headless self-check.
 
@@ -61,7 +61,7 @@ func _ready() -> void:
 	if OS.get_environment("SMOKE_TEST") == "1":
 		_run_smoke_test.call_deferred()
 	elif OS.get_environment("RUNTIME_BUDGET") == "1":
-		# Plan_v3.md Milestone 31: dump the runtime budget once the world is
+		# ROADMAP.md Milestone 31: dump the runtime budget once the world is
 		# fully built (deferred so spawns/HUD settle first). Dormant unless
 		# the env var is set, so normal play pays nothing.
 		_print_runtime_budget.call_deferred()
@@ -86,7 +86,7 @@ func _register_rival_tagger() -> void:
 			tagger.begin(wall, crew, on_arrive))
 
 ## Milestone 8 lighting pass: dusk, because the story opens at night
-## (Plan.md section 40) — low warm sun, cool fill, fog, glow, and
+## (GDD §40) — low warm sun, cool fill, fog, glow, and
 ## street lamps so graffiti pops against the darkening block.
 func _build_environment() -> void:
 	var sun := DirectionalLight3D.new()
@@ -173,7 +173,7 @@ func _build_buildings() -> void:
 	_add_box(Vector3(12, 5, 14), Vector3(16, 10, 12), Color("#7c7368"),
 		"BodegaBlock", _wall_material(Color("#7c7368"), 0.78, 0.92))
 
-## Canal Side graybox (Milestone 18, Plan.md §45): a second block east
+## Canal Side graybox (Milestone 18, GDD §45): a second block east
 ## across the water — ground, the canal itself, a footbridge walkway,
 ## and the buildings the canal walls hang on.
 func _build_canal_side() -> void:
@@ -485,7 +485,7 @@ func _solid_material(color: Color, emission := false, roughness := 0.7) -> Stand
 	_material_cache[key] = mat
 	return mat
 
-## Headless self-check, split per system (Plan_v2.md §3.3): each
+## Headless self-check, split per system (ROADMAP.md §7): each
 ## _smoke_* function documents the state it assumes and asserts one
 ## system's behavior. The sequence matters — later sections build on
 ## the world the earlier ones left behind — but each function is
@@ -540,7 +540,7 @@ func _smoke_player() -> Player:
 func _first_wall_id() -> String:
 	return String(WallManager.wall_defs[0]["wallId"])
 
-## Plan_v2.md §3.6: every manager validates its /Data file at autoload
+## ROADMAP.md §7: every manager validates its /Data file at autoload
 ## time; shipped data must produce zero validation errors.
 func _smoke_data_validation() -> void:
 	assert(DataLoader.error_count == 0)
@@ -633,7 +633,7 @@ func _smoke_walls_and_rivals() -> void:
 	RivalManager.active_wall_duels.erase(first_id)
 	print("SMOKE: rival event = %s" % events[0][0])
 
-## Plan_v4 candidate 3: new-game difficulty/accessibility presets stay
+## ROADMAP.md candidate 3: new-game difficulty/accessibility presets stay
 ## data-driven and default to Standard so the v3 target route is unchanged.
 func _smoke_difficulty_presets() -> void:
 	assert(GameState.selected_difficulty_preset == "standard")
@@ -793,7 +793,7 @@ func _smoke_missions() -> void:
 	assert(MissionManager.current_mission()["missionId"] == "m4_find_a_lookout")
 
 ## Assumes: mission 4 just started and one retaliation (the first
-## wall's) is pending. Recruits Mina "Moth" (Milestone 5, Plan.md
+## wall's) is pending. Recruits Mina "Moth" (Milestone 5, GDD
 ## section 14) and checks her lookout bonus dampens rival responses
 ## and warns when a new retaliation is queued.
 func _smoke_crew() -> void:
@@ -926,7 +926,7 @@ func _smoke_crew() -> void:
 	assert(morale_events.any(func(m: String) -> bool: return m.begins_with("Crew morale")))
 	CrewManager.adjust_morale(-9999)  # clamps at the floor, never negative
 	assert(CrewManager.team_morale == 0)
-	# Plan_v4 morale events: high morale grants one crew favour; low morale
+	# ROADMAP.md morale events: high morale grants one crew favour; low morale
 	# makes one recruited member go quiet until the crew steadies.
 	CrewManager._quiet_member_id = ""
 	CrewManager.team_morale = 73
@@ -1037,7 +1037,7 @@ func _smoke_territory() -> void:
 	print("SMOKE: mission chain complete")
 
 ## Assumes: the mission chain's painting built heat. Heat raises the
-## rep payout (Plan.md section 12); city cleanup buffs a wall into
+## rep payout (GDD §12); city cleanup buffs a wall into
 ## history (section 33) and repainting it pays the retaliation bonus
 ## (section 15); heat decays on the simulation tick.
 func _smoke_heat_and_cleanup() -> void:
@@ -1061,7 +1061,7 @@ func _smoke_heat_and_cleanup() -> void:
 	assert(buff_state["history"][-1]["isBuffed"])
 	assert(cleanup_walls == [buff_id])
 	assert(TerritoryManager.influence(district_id).has("city"))
-	# Cleanup retaliation (Plan.md section 15): repainting a buffed wall
+	# Cleanup retaliation (GDD §15): repainting a buffed wall
 	# pays a bonus over the plain value.
 	var plain_rep: int = WallManager._reputation_for(
 		WallManager.styles["tag"], WallManager.wall_def(buff_id))
@@ -1077,7 +1077,7 @@ func _smoke_heat_and_cleanup() -> void:
 		heat_before_tick, HeatManager.heat])
 
 ## Assumes: a recruited lookout and moderate heat. Patrol presence
-## follows the heat level (Milestone 10, Plan.md sections 12/18/25):
+## follows the heat level (Milestone 10, GDD sections 12/18/25):
 ## lookout callouts, line-of-sight spotting, chases, and the catch.
 func _smoke_patrols() -> void:
 	var player := _smoke_player()
@@ -1090,7 +1090,7 @@ func _smoke_patrols() -> void:
 	assert(HeatManager.level_name() == "Blazing")
 	assert(PatrolManager.guard_count() == 3)
 	# A recruited lookout calls out patrols near the paint spot
-	# (Plan.md section 14: warns player of cops) when nobody saw it land.
+	# (GDD §14: warns player of cops) when nobody saw it land.
 	var guard: PatrolGuard = PatrolManager.guards()[0]
 	var has_guard_model := guard.get_node_or_null("SecurityBullModel") != null
 	var has_guard_capsule := guard.get_node_or_null("CapsuleFallback") != null
@@ -1257,7 +1257,7 @@ func _smoke_supplies() -> void:
 	GameState.paint = paint_before_flask
 	StatsManager.load_state(stats_before_flask)
 	CrewManager.load_state(crew_before_flask)
-	# Cap inventory (Plan.md §21): the stock cap is the no-trade-off default,
+	# Cap inventory (GDD §21): the stock cap is the no-trade-off default,
 	# and buying a cap adds it to the kit and equips it. The fat cap is wide
 	# coverage — 1 less paint — but loud, so it adds gear suspicion.
 	assert(SupplyManager.equipped_cap == "stock")
@@ -1367,7 +1367,7 @@ func _smoke_supplies() -> void:
 	print("SMOKE: shop OK — cash $%d, palette %d colors" % [
 		GameState.cash, GameState.fill_palette().size()])
 
-	# Delivery run: repeatable income that draws heat (Plan.md section
+	# Delivery run: repeatable income that draws heat (GDD section
 	# 15 "Supply Run" / section 12 heat sources).
 	assert(SupplyManager.start_delivery())
 	assert(not SupplyManager.start_delivery())  # one package at a time
@@ -1537,7 +1537,7 @@ func _smoke_freehand() -> void:
 		String(fh_state["currentGraffiti"]["image"]))) == OK)
 	assert(decoded.get_width() == canvas.get_width())
 	# Repainting archives the freehand work without its image payload —
-	# walls remember (Plan.md section 9), saves don't bloat.
+	# walls remember (GDD §9), saves don't bloat.
 	var result: Dictionary = WallManager.paint_wall(WallManager.wall_nodes["wall_bodega_01"], "tag")
 	assert(result["ok"])
 	assert(fh_state["history"][-1].get("freehand", false))
@@ -1547,7 +1547,7 @@ func _smoke_freehand() -> void:
 
 ## Assumes: the mission chain is done (m5 unlocked roller/mural), Moth
 ## is recruited, the stencil kit is not yet bought, and cash covers it.
-## Milestone 16 (Plan.md §8/§9): stencil gates behind Lupe's kit,
+## Milestone 16 (GDD §8/§9): stencil gates behind Lupe's kit,
 ## rollers only go on rooftop surfaces, murals need crew present and
 ## expose the writer to patrols for longer, and rivals fall back to a
 ## throw-up where surface rules block their signature type.
@@ -1686,7 +1686,7 @@ func _smoke_rival_graffiti_variety() -> void:
 
 ## Assumes: a whole run of painting/deliveries behind us (stats earned
 ## XP through use) and four rank-ups (Toy → Block King). Milestone 17
-## (Plan.md §5/§6/§7/§11): stats level by doing and change the math,
+## (GDD §5/§6/§7/§11): stats level by doing and change the math,
 ## perks spend rank-up points (max two per tree), standing work pays
 ## over time while crossed-out work doesn't, unattended districts cool,
 ## and the save schema bumps to v2 with migration.
@@ -2036,7 +2036,7 @@ func _smoke_nightclub() -> void:
 
 ## Assumes: the mill chain is done (canal chain waits on its trigger),
 ## the player stands in Mill Yard, and earlier sections left paint and
-## cash to spare. Milestone 18 (Plan.md §45, §12): cross the
+## cash to spare. Milestone 18 (GDD §45, §12): cross the
 ## footbridge, run the Canal Side chain (m6–m8) against Ghost Line
 ## territory, prove heat is per district and cools faster in the block
 ## you left, and round-trip the v3 save with v2 migration.
@@ -2300,7 +2300,7 @@ func _smoke_rooftop_row() -> void:
 ## Assumes: rank is Known+ (mill chain), the canal chain is done (the
 ## gallery chain activated on its rank trigger), the piece can is
 ## unlocked, and at least two fill colors are owned. Milestone 21
-## (Plan.md §18, §43): Vesper buys freehand canvases — the style
+## (GDD §18, §43): Vesper buys freehand canvases — the style
 ## multiplier is the judge's score, a sale pays cash + public rep and
 ## costs crew rep, and weak work is refused.
 func _smoke_gallery() -> void:
@@ -2409,7 +2409,7 @@ func _smoke_gallery() -> void:
 	assert(migrated["game"].has("nightlife_best"))
 	print("SMOKE: gallery — refusal, sale (score x%.2f), crew rep split, v8 save" % score)
 
-## Assumes: nothing beyond a paintable wall. Plan_v2.md §3.5: wall
+## Assumes: nothing beyond a paintable wall. ROADMAP.md §7: wall
 ## history is capped — repainting past the cap drops the oldest
 ## entries instead of growing the save forever.
 func _smoke_history_cap() -> void:
@@ -2553,7 +2553,7 @@ func _smoke_scripted_cross_out() -> void:
 	RivalManager.set_tagger_spawner(Callable())  # restore headless default
 	print("SMOKE: scripted cross-out — visible tagger + skips repainted work")
 
-## Plan_v3.md Milestone 27: the smoke path doubles as a repeatable
+## ROADMAP.md Milestone 27: the smoke path doubles as a repeatable
 ## baseline capture. The recorder is passive in normal play; this
 ## asserts that enabling it records the main beats and exposes the
 ## balance knobs reviewers need for the next tuning PR.
@@ -2594,7 +2594,7 @@ func _smoke_playtest_metrics() -> void:
 	print("SMOKE: balance snapshot — %s" % PlaytestMetrics.balance_summary_text())
 	print("SMOKE: balance regression — %s" % PlaytestMetrics.balance_regression_summary_text())
 
-## Plan_v3.md Milestone 31: the runtime budget snapshot reads the live
+## ROADMAP.md Milestone 31: the runtime budget snapshot reads the live
 ## city — node/mesh/wall/material counts, character-visual import status,
 ## and a frame readout. Asserts the snapshot is well-formed and tracks
 ## what the managers actually spawned; the over-budget detector is

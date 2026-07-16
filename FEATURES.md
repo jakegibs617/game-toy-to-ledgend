@@ -3,9 +3,9 @@
 One place that merges the four planning sources into a single feature
 ledger with implementation status. It does **not** replace them:
 
-* **[Plan.md](Plan.md)** — original v1 design doc (cite as `§N`).
-* **[Plan_v2.md](Plan_v2.md)** — v2 roadmap, milestones 15–26 (shipped).
-* **[Plan_v3.md](Plan_v3.md)** — v3 roadmap, milestones 27–34 (in progress).
+* **[GDD](docs/design/GDD.md)** — original v1 design doc (cite as `§N`).
+* **[ROADMAP.md](ROADMAP.md)** — v2 roadmap, milestones 15–26 (shipped).
+* **[ROADMAP.md](ROADMAP.md)** — v3 roadmap, milestones 27–34 (in progress).
 * **[Product_reqs.md](Product_reqs.md)** — loose follow-up requests
   (ladder, idle anims, tag fonts/styles, gear suspicion, stickers,
   drips, dance/DJ).
@@ -30,7 +30,7 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 
 ## 1. Milestone ledger
 
-### v1 — Vertical slice (Plan.md, Milestones 1–14)
+### v1 — Vertical slice (GDD, Milestones 1–14)
 
 | # | Milestone | Status |
 |---|---|---|
@@ -39,7 +39,7 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 | 9–13 | Should-Have: heat, patrols, supply economy, dialogue, blackbook, map | ✅ |
 | 14 | Freehand spray painting (first Could-Have) | ✅ |
 
-### v2 — Playable demo (Plan_v2.md, Milestones 15–26)
+### v2 — Playable demo (ROADMAP.md, Milestones 15–26)
 
 | # | Milestone | Status |
 |---|---|---|
@@ -56,7 +56,7 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 | 25 | Ambient NPC life: waypoint locals, crowd reactions, guard climb | ✅ |
 | 26 | Rooftop Row — climb-only third district | ✅ |
 
-### v3 — Playtest-ready slice (Plan_v3.md, Milestones 27–34)
+### v3 — Playtest-ready slice (ROADMAP.md, Milestones 27–34)
 
 | # | Milestone | Status |
 |---|---|---|
@@ -73,7 +73,7 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 
 ## 2. Feature catalog by system
 
-### Core loop & progression (Plan.md §4, §5)
+### Core loop & progression (GDD §4, §5)
 * ✅ Explore → paint → rep → heat/rival response → upgrade → claim loop.
 * ✅ Reputation ranks (Toy → Legend) with rank-gated unlocks.
 * ✅ XP separate from rep for Style/Stealth/Hustle (raise by doing).
@@ -83,7 +83,7 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 * 🟡 Perks: one choice per rank-up, ~2 per tree — a chooser, **not** the
   full §7 tree editor.
 
-### Graffiti types & surface rules (Plan.md §8, §9)
+### Graffiti types & surface rules (GDD §8, §9)
 * ✅ Tag, throw-up, piece, stencil, roller/blockbuster, mural — all with
   per-type `baseValue`/`paintCost`/`heatValue` in `graffiti_styles.json`.
 * ✅ Surface rules: roller is `rooftop`-only; mural `requiresCrew` + long
@@ -113,19 +113,19 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
   attention (M16) *and* pays a rep bonus on `heavenSpot` walls
   (`WallManager.heaven_spot_exposure_bonus` × `GraffitiFonts.style_exposure`).
 
-### Walls & world memory (Plan.md §9, §31)
+### Walls & world memory (GDD §9, §31)
 * ✅ Wall state machine (blank/player/rival/crossed-out/buffed) with
   history, capped at 20 entries, JSON-serializable.
 * ✅ All paint routed through `WallManager` (`wall_painted` hub).
 * ✅ Wall properties: visibility, risk, surfaceType, owner crew.
 
-### Reputation, heat & territory (Plan.md §11, §12, §24)
+### Reputation, heat & territory (GDD §11, §12, §24)
 * ✅ Rep formula: base × visibility × risk × heat (× freehand style mult).
 * ✅ Rep decay: unattended districts cool; buffed/crossed work stops paying.
 * ✅ Per-district heat, levels, patrol scaling, city cleanup buffing.
 * ✅ Territory influence shares, claim thresholds, district_claimed.
 
-### Rival crews (Plan.md §13)
+### Rival crews (GDD §13)
 * ✅ Three crews (Buff Kings, Ghost Line, Chrome Saints) with territory,
   cross-outs, retaliation queue, the **TOY** mechanic.
 * ✅ 30-second retaliation floor + visible `RivalTagger` run-up
@@ -139,7 +139,7 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
   forfeit on a deadline, so ignoring a duel costs the wall.
 * ❌ Rival alliances / recruiting rivals / deeper challenge duel ladders.
 
-### Crew (Plan.md §14)
+### Crew (GDD §14)
 * ✅ Moth (lookout), Caps (filler), Metro (getaway), Stash (supply runner),
   Echo (hype), Fix (fixer), Clash (battle specialist) with recruitment
   mini-chains and passive role bonuses.
@@ -151,19 +151,19 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
   shared wins/losses (recruits, loyalty milestones, duel wins/losses, getting
   caught) that gently sharpens or dulls every role bonus; neutral at default.
 
-### Missions (Plan.md §15, §16)
+### Missions (GDD §15, §16)
 * ✅ Data-driven mission chains (`missions.json`), triggered in order
   (e.g. enter_district), with animated mission actors and cross-outs.
 * ✅ Mill Yard core chain, Canal Side chain, Rooftop Row chain.
 * ❌ Larger branching quest trees (deferred).
 
-### Districts & world (Plan.md §17, §45)
+### Districts & world (GDD §17, §45)
 * ✅ Three runtime-built districts: Mill Yard, Canal Side, Rooftop Row.
 * ✅ Procedural street detail, surface-type materials, train siding.
 * 🔒 Fourth+ districts (Downtown, Train Yard proper, Gallery Quarter,
   Substation) deferred until after v3 candidate.
 
-### Economy & supplies (Plan.md §21)
+### Economy & supplies (GDD §21)
 * ✅ Cash + paint resources; Lupe's shop; paint discounts; delivery runs;
   rare colors; fat cap upgrade; stencil kit.
 * ✅ Gallery cash + train pass-through rep as alternate income.
@@ -172,7 +172,7 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
   gear suspicion. Cycle with `K`; shown in the wall prompt.
 * 🟡 Mops/markers/rollers/gloves/masks not modeled.
 
-### Blackbook, map & safehouse (Plan.md §22, §23, §24)
+### Blackbook, map & safehouse (GDD §22, §23, §24)
 * ✅ Blackbook (alias, rank, crew, styles, missions, rivals, service log)
   + tag-style practice page.
 * ✅ District map panel; safehouse mission/crew-board zone.
@@ -180,13 +180,13 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
   upkeep clocks, cools the current block, restores paint, and saves rest count.
 * ❌ Sketch editor, room customization, outfit change.
 
-### NPCs, dialogue & ambient life (Plan.md §25, §26, §44)
+### NPCs, dialogue & ambient life (GDD §25, §26, §44)
 * ✅ Civilians/writers/security/cleanup; choice-based dialogue with
   rank/recruit checks.
 * ✅ Ambient locals (waypoint loops, crowd reaction rep, heat scatter).
 * 🟡 Many imported NPC walk/run clips still unused beyond ambient locals.
 
-### Player presentation & animation (Plan.md §28, §40; Product_reqs.md)
+### Player presentation & animation (GDD §28, §40; Product_reqs.md)
 * ✅ Kronako neon rooster action set: idle/walk/backpedal/run/jump/ladder.
 * ✅ **Interactive ladder climb** (Product_reqs): real ladder geometry,
   ride by hand, reversible up/down, summit finish clip.
@@ -194,11 +194,11 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
   clips per settle, holds the stance for the idle.
 * 🟡 Vault/turn-variant/sprint-stop clips imported but not triggered.
 
-### Audio (Plan.md §28)
+### Audio (GDD §28)
 * ✅ Synthesized SFX, low music bed, per-district ambience (Sfx autoload,
   self-disables headless).
 
-### Save/load (Plan.md §32)
+### Save/load (GDD §32)
 * ✅ Versioned save (`SAVE_VERSION`, currently v10) with per-version
   migration; wall_states round-trip wholesale.
 
@@ -210,7 +210,7 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
   both via a one-time dialogue lesson (`unlockTypes` dialogue effect).
 * ✅ **Gear suspicion:** the paste bucket adds bulk; stickers stay flat.
 
-### Battles & nightlife (Plan.md §19, §20; Product_reqs.md)
+### Battles & nightlife (GDD §19, §20; Product_reqs.md)
 * 🟡 Graffiti battles, dance battles, rap battles — M32 paper cut completed;
   no separate v3 minigame. Post-candidate direction is rival wall duels, not
   duplicate dance/rap systems.
@@ -255,13 +255,13 @@ Status as of 2026-06-13, on branch `feature/random-idle-animations`
 * _All Product_reqs.md items are now implemented._ (Drip removal across all
   types shipped with the tag-style pass.)
 
-**Designed in Plan.md, deferred:**
+**Designed in GDD, deferred:**
 * Full §6 stat set (Nerve, Speed, Influence, Technique) and full §7 perk
   trees.
 * Morale paths; deeper rival duel ladders and alliances.
 * Safehouse depth (sketch editor, outfit, room).
 * Additional districts (Downtown, Train Yard, Gallery Quarter, Substation).
 
-**🔒 Do Not Build Yet (Plan.md §36 / Plan_v3 §7):** full city, multiplayer,
+**🔒 Do Not Build Yet (GDD §36 / Plan_v3 §7):** full city, multiplayer,
 complex combat, procedural world gen, advanced layered editor, full faction
 diplomacy, large quest trees, character creator, vehicles, online sharing.

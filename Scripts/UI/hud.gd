@@ -58,7 +58,7 @@ var _freehand_wall: PaintableWall = null
 var _freehand_gallery := false
 var _focused: Node3D = null
 var _rank_index := 0
-## The modal registry (Plan_v2.md §3.1): one entry per modal, in input
+## The modal registry (ROADMAP.md §3.1): one entry per modal, in input
 ## priority order. The first open modal owns input; opening any modal
 ## closes the rest, so two can never fight over the number keys.
 var _modals: Array[Dictionary] = []
@@ -267,7 +267,7 @@ func bind_player(player: Player) -> void:
 	player.freehand_requested.connect(_on_freehand_requested)
 	_map_panel.bind_player(player)
 
-## The modal registry (Plan_v2.md §3.1). Each entry: is_open/close
+## The modal registry (ROADMAP.md §3.1). Each entry: is_open/close
 ## callables plus an input handler (returns true when consumed); modals
 ## the HUD opens itself (blackbook, map) also carry an open callable.
 ## Shop, dialogue, and freehand open through their own flows.
@@ -745,17 +745,17 @@ func _on_heat_level_changed(level: String, rising: bool) -> void:
 	else:
 		_show_message("Cooling off — heat is down to %s." % level, 3.0)
 
-## City cleanup just erased somebody's work (Plan.md section 33).
+## City cleanup just erased somebody's work (GDD §33).
 func _on_cleanup_event(message: String, _wall_id: String) -> void:
 	_show_message(message, 5.0)
 	_refresh_prompt()
 
-## Security activity: lookout warnings, sightings, chases (Plan.md
+## Security activity: lookout warnings, sightings, chases (GDD
 ## section 25).
 func _on_patrol_event(message: String) -> void:
 	_show_message(message, 4.0)
 
-## Rival notifications linger longer — they matter (Plan.md section 13).
+## Rival notifications linger longer — they matter (GDD §13).
 func _on_rival_event(message: String, _wall_id: String) -> void:
 	_show_message(message, 5.0)
 	_refresh_prompt()

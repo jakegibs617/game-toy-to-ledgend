@@ -1,7 +1,7 @@
 extends Node
 ## Global player state: alias, reputation, rank, and paint supply.
 ## Autoloaded as GameState. Also registers the prototype input map at
-## runtime so project.godot stays minimal (see Plan.md section 37).
+## runtime so project.godot stays minimal (see GDD §37).
 
 signal reputation_changed(new_rep: int, gained: int)
 ## Milestone 21 (§11 public/crew split, minimal form): standing with
@@ -384,7 +384,7 @@ func gear_suspicion_multiplier() -> float:
 		multiplier += float(WallManager.styles.get("wheatpaste", {}).get("gearSuspicion", 0.0))
 	var font_style := GraffitiFonts.style_def(selected_tag_font_style())
 	multiplier += float(font_style.get("gearSuspicion", 0.0))
-	# A bulky or showy spray cap adds bulk too (Plan.md §21 cap trade-offs).
+	# A bulky or showy spray cap adds bulk too (GDD §21 cap trade-offs).
 	multiplier += SupplyManager.cap_suspicion()
 	return multiplier
 
@@ -408,7 +408,7 @@ func cycle_fill_color() -> void:
 func fill_palette() -> Array:
 	return FILL_COLORS + extra_fill_colors
 
-## A rare color from the supply shop (Plan.md section 21) joins the
+## A rare color from the supply shop (GDD §21) joins the
 ## palette and is selected immediately — you just paid for it.
 func add_fill_color(color_name: String, hex: String) -> void:
 	extra_fill_colors.append({"name": color_name, "hex": hex})

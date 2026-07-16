@@ -1,5 +1,5 @@
 extends Node
-## District territory scoring (Plan.md sections 24 and 35, Milestone 6).
+## District territory scoring (GDD sections 24 and 35, Milestone 6).
 ## Loads Data/districts.json. Each wall contributes its visibility as
 ## weight toward whoever owns it; blank walls keep their weight
 ## unclaimed, so taking a block means actually covering it. Crossing
@@ -14,7 +14,7 @@ const DISTRICTS_PATH := "res://Data/districts.json"
 const DataLoader := preload("res://Scripts/Data/data_loader.gd")
 ## Disrespected (crossed-out) work holds only half its weight.
 const CROSSED_OUT_FACTOR := 0.5
-## Reputation decay tick (Milestone 17, Plan.md section 11 "visibility
+## Reputation decay tick (Milestone 17, GDD §11 "visibility
 ## over time"): every compressed in-game "day", standing work pays and
 ## unattended districts cool.
 const DECAY_TICK_SECONDS := 36.0
@@ -86,7 +86,7 @@ func owner_label(owner: String) -> String:
 	if owner == "player":
 		return "You"
 	if owner == "city":
-		return "City"  # cleanup pressure (Plan.md section 24)
+		return "City"  # cleanup pressure (GDD §24)
 	return String(RivalManager.crews.get(owner, {}).get("tag", owner))
 
 ## One footer line for the map: shares by owner, then claim status.
@@ -107,7 +107,7 @@ func summary_text(district_id: String) -> String:
 
 ## Visibility weight of the player's work that still pays: owned walls
 ## whose graffiti stands clean. Crossed-out and buffed work stops
-## paying (Plan.md section 11) — buffed walls belong to the city again,
+## paying (GDD §11) — buffed walls belong to the city again,
 ## crossed-out ones are excluded here.
 func standing_player_weight(district_id: String) -> float:
 	var weight := 0.0

@@ -1,5 +1,5 @@
 extends PanelContainer
-## Freehand spray painting canvas (Plan.md section 10 "Later Advanced
+## Freehand spray painting canvas (GDD §10 "Later Advanced
 ## System", first Could-Have from section 36). Opened by Hud when the
 ## player presses F at a paintable wall: hold LMB to spray, C cycles
 ## the fill color, Enter/E commits the piece, Esc bails.

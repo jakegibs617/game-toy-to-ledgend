@@ -1,9 +1,9 @@
 extends Node
-## RPG-style choice dialogue (Plan.md section 26; "dialogue" from the
+## RPG-style choice dialogue (GDD §26; "dialogue" from the
 ## section 36 Should-Have list). Trees live in Data/dialogue.json:
 ## nodes with speaker/text and numbered choices that branch ("next"),
 ## run an action ("end" / "open_shop" / "start_delivery"), gate behind
-## requirement checks (e.g. minRank — Plan.md section 26 "Dialogue
+## requirement checks (e.g. minRank — GDD §26 "Dialogue
 ## Checks"), and pay one-time effects ("once" flags). The HUD renders
 ## the active node and feeds choices back here. Autoloaded as
 ## DialogueManager.
@@ -143,7 +143,7 @@ func _enter_node(node_id: String) -> void:
 			flags[once] = true
 	dialogue_changed.emit()
 
-## Plan.md section 26 "Dialogue Checks": requirements a choice can gate
+## GDD §26 "Dialogue Checks": requirements a choice can gate
 ## behind. minRank compares ladder positions via GameState.rank_index.
 func _is_locked(choice: Dictionary) -> bool:
 	var req: Dictionary = choice.get("requires", {})

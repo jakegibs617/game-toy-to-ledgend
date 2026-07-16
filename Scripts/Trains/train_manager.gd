@@ -1,5 +1,5 @@
 extends Node
-## Milestone 20 train painting (Plan_v2.md): stopped cars can be
+## Milestone 20 train painting (ROADMAP.md): stopped cars can be
 ## painted during a short yard window, then earn visibility-over-time
 ## rep each time they pass through the known districts.
 

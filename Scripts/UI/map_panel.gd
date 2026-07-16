@@ -1,6 +1,6 @@
 class_name MapPanel
 extends PanelContainer
-## City map (Plan.md section 24, Milestone 6; multi-district since
+## City map (GDD §24, Milestone 6; multi-district since
 ## Milestone 18). Toggled with M from the HUD. Draws every paintable
 ## wall top-down — line length is wall width, thickness is visibility,
 ## color is current owner — plus crew NPC locations and the player.

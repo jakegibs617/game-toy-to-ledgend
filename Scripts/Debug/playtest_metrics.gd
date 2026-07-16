@@ -1,5 +1,5 @@
 extends Node
-## Optional playtest instrumentation for Plan_v3.md Milestone 27.
+## Optional playtest instrumentation for ROADMAP.md Milestone 27.
 ## It listens to existing system signals but records nothing until a
 ## capture is explicitly started, so normal play and saves stay clean.
 
@@ -153,7 +153,7 @@ func balance_regression_summary_text() -> String:
 		(report["failures"] as Array).size(),
 	]
 
-## Plan_v3.md Milestone 31: documented desktop budgets for the prototype.
+## ROADMAP.md Milestone 31: documented desktop budgets for the prototype.
 ## These are soft ceilings — `runtime_budget_snapshot` flags anything over
 ## so we notice runtime waste before adding another district or crowd
 ## system, not hard limits that fail the build.
@@ -164,7 +164,7 @@ const RUNTIME_BUDGETS := {
 	"materialCacheSize": 64,  # district street/material cache entries
 }
 
-## Plan_v3.md Milestone 31 profiling pass. Returns a JSON-serializable
+## ROADMAP.md Milestone 31 profiling pass. Returns a JSON-serializable
 ## picture of what the running city costs: node counts, spawned
 ## wall/train/prop counts, material cache size, character-visual import
 ## status, and a frame snapshot where the renderer is live. `root` is the

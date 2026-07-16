@@ -1,12 +1,20 @@
 # Toy to Legend — Prototype
 
-Open-world graffiti RPG prototype. Original design in [Plan.md](Plan.md);
-current roadmap in [Plan_v3.md](Plan_v3.md); completed v2 roadmap in
-[Plan_v2.md](Plan_v2.md); system map in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md);
-v3 balance targets in [docs/BALANCE_TARGETS.md](docs/BALANCE_TARGETS.md);
-agent/dev workflow in [CLAUDE.md](CLAUDE.md).
+Graffiti RPG prototype. The plan — vision, current milestones, process —
+is [ROADMAP.md](ROADMAP.md). The archived v1 design doc is
+[docs/design/GDD.md](docs/design/GDD.md); system map in
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); balance targets in
+[docs/BALANCE_TARGETS.md](docs/BALANCE_TARGETS.md); agent/dev workflow in
+[CLAUDE.md](CLAUDE.md).
 
-Engine: **Godot 4.6** (chosen per Plan.md §29 — open source, text-based scenes/scripts, headless CLI testing).
+> **This README describes the prototype as built through Milestone 32.** A
+> July 2026 design review retired the open-world framing and found the core
+> verb needs rebuilding — see [ROADMAP.md](ROADMAP.md) §1. Systems listed
+> below as complete are accurate, but several (crew morale, loyalty,
+> deliveries, the nightclub, territory percentages) are **scheduled for
+> removal at M40**.
+
+Engine: **Godot 4.6** (chosen per GDD §29 — open source, text-based scenes/scripts, headless CLI testing).
 
 ## Running
 
@@ -19,7 +27,7 @@ Open the project in Godot 4.6+ and press Play, or from the terminal:
 Scenes:
 
 - `Scenes/PrototypeDistrict.tscn` — main scene: graybox Mill Yard district.
-- `Scenes/Test_GraffitiWall.tscn` — single test wall in an empty room (Plan.md agent rule 9).
+- `Scenes/Test_GraffitiWall.tscn` — single test wall in an empty room (GDD agent rule 9).
 
 Headless smoke test (per-system `_smoke_*()` checks in
 `Scripts/district.gd` drive the full system chain and print `SMOKE: OK`):
@@ -142,7 +150,7 @@ gameplay trigger yet. If Godot asset import has not run once (opening the editor
 `Godot --headless --path . --import`), the game falls back to the
 static rooster GLB, then the old debug capsule.
 
-## Systems implemented (First Agent Task, Plan.md §47)
+## Systems implemented (First Agent Task, GDD §47)
 
 - **GameState** (autoload, `Scripts/Data/game_state.gd`) — alias, reputation,
   rank progression (Toy → Block King), paint supply, selected graffiti type.
@@ -150,7 +158,7 @@ static rooster GLB, then the old debug capsule.
 - **WallManager** (autoload, `Scripts/Walls/wall_manager.gd`) — loads
   `Data/walls.json` and `Data/graffiti_styles.json`, spawns walls, applies
   graffiti, computes reputation (base × visibility × risk multipliers,
-  Plan.md §11), and keeps every wall's state + graffiti history in memory.
+  GDD §11), and keeps every wall's state + graffiti history in memory.
   Wall state survives scene reloads within a session. Milestone 16 adds
   the full §8 type set — stencil (cheap/fast, needs Lupe's kit), roller
   (rooftop surfaces only) and mural (needs crew present; long exposure
@@ -205,7 +213,7 @@ static rooster GLB, then the old debug capsule.
   Milestone 4) — loads `Data/crews.json` (The Buff Kings, Ghost Line,
   Chrome Saints). Crews claim their home walls at session start. When
   the player paints in crew territory or over crew work, a retaliation
-  is queued and resolved on a 12-second simulation tick (Plan.md §33),
+  is queued and resolved on a 12-second simulation tick (GDD §33),
   no sooner than 30 seconds after the player paints: tags or low-rank
   work get **"TOY"** crossed out, stronger work gets covered by the
   crew's own graffiti. That response now opens a lightweight **rival wall
@@ -235,7 +243,7 @@ static rooster GLB, then the old debug capsule.
   Crew page and the safehouse crew board track their status and loyalty.
 - **TerritoryManager** (autoload, `Scripts/Territory/territory_manager.gd`,
   Milestone 6) — loads `Data/districts.json` and scores district
-  influence (Plan.md §24): every wall contributes its visibility as
+  influence (GDD §24): every wall contributes its visibility as
   weight toward its current owner; blank walls stay unclaimed and
   crossed-out work counts half. Reaching the district's claim
   threshold (Mill Yard: 50%) once grants a one-time rep bonus and a
@@ -246,7 +254,7 @@ static rooster GLB, then the old debug capsule.
   red X = crossed out), crew NPC locations, the player marker, and an
   influence summary footer.
 - **HeatManager** (autoload, `Scripts/Heat/heat_manager.gd`) — heat
-  system + City Cleanup faction (Plan.md §12, §18, §33). Painting
+  system + City Cleanup faction (GDD §12, §18, §33). Painting
   builds heat (style `heatValue` × wall risk); heat raises rep payouts
   for risky work (×1 to ×1.5) but speeds up cleanup sweeps that buff
   painted walls back to gray (per-wall `cleanupChance`, one wall max
@@ -255,7 +263,7 @@ static rooster GLB, then the old debug capsule.
   cleanup-retaliation bonus. Heat decays while laying low. The HUD
   heat readout escalates Cold → Low → Watched → Hot → Blazing.
 - **PatrolManager** (autoload, `Scripts/Patrols/patrol_manager.gd`) —
-  security patrols (Plan.md §12, §18, §25). Guards walk fixed routes
+  security patrols (GDD §12, §18, §25). Guards walk fixed routes
   from `Data/patrols.json` (street sweep, north alley, bodega side) and
   the patrol count follows the heat level — more heat, more guards. A
   guard that sees you painting spikes heat and gives chase; getting
@@ -264,7 +272,7 @@ static rooster GLB, then the old debug capsule.
   With Moth recruited, she calls out patrols near your painting spot.
   Guards show as orange dots on the district map.
 - **SupplyManager** (autoload, `Scripts/Supplies/supply_manager.gd`) —
-  supply economy (Plan.md §21). Cash arrives with mission payouts and
+  supply economy (GDD §21). Cash arrives with mission payouts and
   buys from Lupe's catalog (`Data/supplies.json`): paint packs, a one-shot
   pocket paint flask, a fat
   cap that cuts the paint cost of throw-ups and pieces by 1, detail caps,
@@ -275,14 +283,14 @@ static rooster GLB, then the old debug capsule.
   repeatable delivery runs: carry a package to a rotating drop spot
   for $25 — but the handoff draws heat.
 - **BlackbookPanel** (`Scripts/UI/blackbook_panel.gd`, Milestone 13) —
-  the blackbook (Plan.md §23) on Tab: four pages flipped with the
+  the blackbook (GDD §23) on Tab: four pages flipped with the
   number keys. Writer (alias, rank, wallet, heat, district influence,
   mission notes), Styles (unlocked graffiti types with live paint
   costs, fill palette), Crew (recruitment status — replaces the old
   standalone crew menu), and The City (rival crews with attitude and
   walls held, plus your presence on the block).
 - **DialogueManager** (autoload, `Scripts/Dialogue/dialogue_manager.gd`) —
-  RPG-style choice dialogue (Plan.md §26), data-driven from
+  RPG-style choice dialogue (GDD §26), data-driven from
   `Data/dialogue.json`. Number keys pick choices; choices can branch,
   end, open Lupe's shop, or start a delivery, and can gate behind
   checks (Prime's lesson needs rank Known+). One-time rewards are
@@ -292,7 +300,7 @@ static rooster GLB, then the old debug capsule.
   recruited.
 - **MissionManager** (`Scripts/Missions/mission_manager.gd`,
   Milestone 7) — loads `Data/missions.json` and runs the five-mission
-  vertical slice from Plan.md §16: First Mark, Don't Be a Toy, Get
+  vertical slice from GDD §16: First Mark, Don't Be a Toy, Get
   Supplies, Find a Lookout, and Claim the Block. Mission-only actors
   include the safehouse zone and Lupe; HUD objective text updates as
   each objective advances. Mission rewards unlock throw-ups, pieces,
@@ -306,7 +314,7 @@ static rooster GLB, then the old debug capsule.
   mirrors to `user://toy_to_legend_save.backup.json`, and load falls back to
   that backup if the primary save is unreadable or from a newer prototype.
 - **FreehandPanel** (`Scripts/UI/freehand_panel.gd`, Milestone 14) —
-  freehand spray painting (Plan.md §10 "Later Advanced System", first
+  freehand spray painting (GDD §10 "Later Advanced System", first
   §36 Could-Have). F at a wall opens a canvas sized to the wall face;
   hold LMB to spray (speckled spray-can stamps), C cycles the fill
   palette, E/Enter commits, Esc bails. The committed image is a piece:
@@ -322,13 +330,13 @@ static rooster GLB, then the old debug capsule.
   blackbook's City page logs painted cars and pass counts, and train
   state persists in save v4.
 - **GalleryManager** (`Scripts/Gallery/gallery_manager.gd`,
-  Milestone 21) — gallery commissions (Plan.md §18, §43) from
+  Milestone 21) — gallery commissions (GDD §18, §43) from
   `Data/gallery.json`. Once you're Known, Vesper the gallery scout
   appears by the Canal Side dry dock: take a commission and the
   freehand canvas opens with no wall behind it. The freehand style
   multiplier is the judge's score — weak canvases get refused (paint
   spent, nothing paid); accepted ones pay cash (scaled by Hustle) and
-  public rep but cost **crew rep**, the public/crew split from Plan.md
+  public rep but cost **crew rep**, the public/crew split from GDD
   §11 in minimal form. Crew rep shows in the HUD and blackbook, builds
   through recruiting and crew-backed murals, and goes negative when
   the street decides you sold out. Sales persist in save v5.
@@ -337,9 +345,9 @@ train, and gallery content is data-driven from `/Data` (agent rule 3).
 Generated world props share cached materials where their look matches,
 keeping the two-district demo cheaper to render as more detail is added.
 
-## Not built yet (by design — Plan.md §47)
+## Not built yet (by design — GDD §47)
 
-All Plan.md §35 milestones are in, and the §36 "Should-Have" list is
+All GDD §35 milestones are in, and the §36 "Should-Have" list is
 complete: Heat/City Cleanup, security patrols, supply economy,
 dialogue, and the blackbook UI. From the §36 "Could-Have" list,
 freehand spray painting is in (Milestone 14), rooftop climbing is in
@@ -356,4 +364,4 @@ Row is in (Milestone 26) with climb-only entry, rooftop walls, a
 mission chain, patrol route, and train visibility; what remains is the
 rest of that list
 (battles, procedural graffiti, deeper crowd simulation) — deliberately out of
-prototype scope per Plan.md §47.
+prototype scope per GDD §47.

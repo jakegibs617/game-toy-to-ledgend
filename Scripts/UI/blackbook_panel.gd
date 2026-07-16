@@ -1,6 +1,6 @@
 class_name BlackbookPanel
 extends PanelContainer
-## The blackbook (Plan.md section 23, Milestone 13): the writer's
+## The blackbook (GDD §23, Milestone 13): the writer's
 ## journal on Tab. Four pages cycled with the number keys — Writer
 ## (alias/rank/wallet/heat/territory/mission notes), Styles (unlocked
 ## graffiti types and the fill palette), Crew (recruitment status —

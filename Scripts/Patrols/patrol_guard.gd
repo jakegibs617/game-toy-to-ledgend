@@ -1,6 +1,6 @@
 class_name PatrolGuard
 extends CharacterBody3D
-## Security patrol NPC (Plan.md sections 12, 18, 25). Walks a fixed
+## Security patrol NPC (GDD sections 12, 18, 25). Walks a fixed
 ## waypoint route back and forth; when PatrolManager decides a guard
 ## witnessed the player painting, it gives chase. Catching the player
 ## hands the incident back to PatrolManager.

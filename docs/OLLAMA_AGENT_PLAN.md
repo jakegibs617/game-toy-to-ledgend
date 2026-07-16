@@ -2,7 +2,7 @@
 
 Plan for letting a **local Ollama model pilot _Toy to Legend_** — observe the
 game the way a player does, decide an action, and have that action replayed
-through the game's real input chain. Sibling doc to `Plan_v3.md`; follows the
+through the game's real input chain. Sibling doc to `ROADMAP.md`; follows the
 same PR/review/smoke-test process.
 
 ## Goal

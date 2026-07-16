@@ -1,5 +1,5 @@
 extends PanelContainer
-## Perk chooser (Milestone 17, Plan.md §7): P opens it; rank-ups grant
+## Perk chooser (Milestone 17, GDD §7): P opens it; rank-ups grant
 ## the points. One option per tree at a time (max two perks per tree by
 ## §7), so the choices always fit the number-key slots. Text builds
 ## purely from StatsManager — the smoke test reads it off-tree.

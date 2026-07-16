@@ -63,7 +63,7 @@ limit.
   ~3660 nodes). This is acceptable for the prototype but is the first
   place to look (mesh instancing / MultiMesh) if a fourth district pushes
   `meshInstances` over budget. No bottleneck is measured today, so per
-  Plan_v3.md §3.4 no renderer change is made now.
+  ROADMAP.md §7 no renderer change is made now.
 * The Milestone 24 material cache keeps street/building materials shared
   (~43 entries); the budget guards against a regression that starts
   minting per-node materials again.

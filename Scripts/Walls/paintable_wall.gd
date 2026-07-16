@@ -295,7 +295,7 @@ func show_cross_out(cross: Dictionary) -> void:
 	holder.add_child(bar)
 
 ## City cleanup buffed this wall: mismatched roller patches in
-## off-tones of the wall color where the work used to be (Plan.md
+## off-tones of the wall color where the work used to be (GDD
 ## section 27 "buff marks"). Cleared when show_graffiti repaints.
 func show_buff() -> void:
 	clear_graffiti()

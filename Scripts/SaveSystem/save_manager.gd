@@ -128,7 +128,7 @@ func _read_save_file(path: String, user_message := true) -> Dictionary:
 	return {"ok": true, "data": data}
 
 ## Upgrades an older save to the current schema, one version step at a
-## time (Plan_v2.md §3.7). When SAVE_VERSION bumps to N, add an
+## time (ROADMAP.md §3.7). When SAVE_VERSION bumps to N, add an
 ## `if version < N:` block here that reshapes the N-1 sections.
 func _migrate(data: Dictionary) -> Dictionary:
 	var version := int(data.get("version", 1))

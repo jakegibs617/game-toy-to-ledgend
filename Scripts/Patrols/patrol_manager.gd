@@ -1,5 +1,5 @@
 extends Node
-## Security patrols (Plan.md sections 12, 18, 25). Spawns guards onto
+## Security patrols (GDD sections 12, 18, 25). Spawns guards onto
 ## fixed routes from Data/patrols.json; higher heat fields more patrols.
 ## A guard that sees the player painting spikes heat and gives chase
 ## (section 25: security interrupts painting and increases heat).
@@ -58,7 +58,7 @@ func guard_count() -> int:
 func guards() -> Array[PatrolGuard]:
 	return _guards
 
-## Plan.md section 12: higher heat causes more patrols.
+## GDD §12: higher heat causes more patrols.
 func guards_for_level(level: String) -> int:
 	var per_level: Dictionary = config.get("guardsPerLevel", {})
 	var base := int(per_level.get(level, 1))
@@ -137,7 +137,7 @@ func _spotted(guard: PatrolGuard) -> void:
 	patrol_event.emit("SPOTTED — security saw you painting. Run!")
 
 ## Nobody saw the paint land, but a recruited lookout calls out close
-## patrols (Plan.md section 14: warns player of cops).
+## patrols (GDD §14: warns player of cops).
 func _maybe_lookout_warning() -> void:
 	var lookout := CrewManager.first_with_role("lookout")
 	if lookout.is_empty():

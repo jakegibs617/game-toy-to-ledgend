@@ -1,5 +1,5 @@
 extends Node
-## Gallery commissions (Milestone 21 — Plan.md §18, §43). Vesper the
+## Gallery commissions (Milestone 21 — GDD §18, §43). Vesper the
 ## gallery contact buys freehand canvases once the writer is Known:
 ## the Milestone 14 canvas becomes the gameplay, and the freehand
 ## style multiplier becomes the judge's score. An accepted canvas pays
@@ -66,7 +66,7 @@ func cancel_commission() -> void:
 	commission_active = false
 	gallery_event.emit("You leave the canvas blank. Vesper shrugs.")
 
-## The judge's score IS the freehand style multiplier (Plan_v2.md
+## The judge's score IS the freehand style multiplier (ROADMAP.md
 ## Milestone 21). Accepted work pays cash (scaled by Hustle like other
 ## income) plus public rep and costs crew rep; weak work is refused —
 ## paint spent, nothing paid, no crew rep lost (you didn't sell out).

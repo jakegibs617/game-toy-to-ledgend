@@ -70,6 +70,8 @@ stays clear of the HUD, and smoke stays `SMOKE: OK` ×3.
 - Smoke before PR: `SMOKE_TEST=1 godot --headless --path .` (run 3x, expect
   `SMOKE: OK`). Update `CHANGELOG.md` (and `agent/README.md` if behavior changes)
   in the same PR.
-- Pre-existing dirty files (`FEATURES.md`, `Plan_v3.md`, untracked `Plan_v4.md`,
-  `agent/__pycache__`) are from a separate Codex loop — leave them out of harness
-  PRs.
+- Pre-existing dirty files (`FEATURES.md`, `CHANGELOG.md`, `agent/__pycache__`,
+  untracked `Scripts/AI/`) are from a separate Codex loop — leave them out of
+  harness PRs. Note `Scripts/AI/goal_stack.gd` + the `ambient_npc.gd` refactor
+  currently break the ambient-NPC smoke assertion (`district.gd:2436`);
+  ROADMAP.md M35 resolves it.

@@ -1,5 +1,5 @@
 extends Node
-## Rival crew simulation (Plan.md sections 13 and 33). Loads
+## Rival crew simulation (GDD sections 13 and 33). Loads
 ## Data/crews.json, claims each crew's home walls at session start, and
 ## retaliates when the player paints in crew territory or covers crew
 ## work: weak graffiti gets "TOY" crossed out, stronger work gets
@@ -9,7 +9,7 @@ signal rival_event(message: String, wall_id: String)
 
 const CREWS_PATH := "res://Data/crews.json"
 const DataLoader := preload("res://Scripts/Data/data_loader.gd")
-## One simulation tick = one "in-game hour" (Plan.md section 33).
+## One simulation tick = one "in-game hour" (GDD §33).
 const TICK_SECONDS := 12.0
 ## A retaliation can never land sooner than this after the player paints
 ## (Product_reqs.md): rivals do not teleport their TOY over a fresh tag.
@@ -53,7 +53,7 @@ func _ready() -> void:
 	add_child(timer)
 
 ## Paints each crew's home territory once per session so rival
-## ownership is visible from the start (Plan.md section 13).
+## ownership is visible from the start (GDD §13).
 func claim_initial_territory() -> void:
 	if _claimed_initial:
 		return
@@ -85,7 +85,7 @@ func _on_wall_painted(wall_id: String, graffiti: Dictionary) -> void:
 		"ticks": 1 + _rng.randi_range(0, 1),
 		"readyAt": Time.get_ticks_msec() + MIN_RESPONSE_DELAY_MS,
 	})
-	# A recruited lookout spots the trouble coming (Plan.md section 14).
+	# A recruited lookout spots the trouble coming (GDD §14).
 	var lookout := CrewManager.first_with_role("lookout")
 	if not lookout.is_empty():
 		CrewManager.note_role_helped("lookout", 2)
@@ -211,7 +211,7 @@ func respond(wall_id: String, crew_id: String) -> void:
 	var wall_name := String(WallManager.wall_def(wall_id).get("name", wall_id))
 	var who := "%s (%s)" % [String(crew.get("leaderAlias", "?")), String(crew.get("name", crew_id))]
 	# Weak work in respected territory gets the "TOY" treatment
-	# (Plan.md section 13); stronger work gets covered instead.
+	# (GDD §13); stronger work gets covered instead.
 	if String(current.get("type", "tag")) == "tag" or GameState.rank in ["Toy", "Rookie"]:
 		WallManager.cross_out_wall(wall_id, crew, "TOY")
 		rival_event.emit('%s wrote "TOY" over your %s on %s!' % [who, type_label, wall_name], wall_id)

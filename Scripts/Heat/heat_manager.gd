@@ -1,5 +1,5 @@
 extends Node
-## Heat system (Plan.md section 12) plus the City Cleanup faction
+## Heat system (GDD §12) plus the City Cleanup faction
 ## (sections 18 and 33). Painting builds heat — more for bigger work on
 ## riskier walls — which raises reputation rewards for risky actions
 ## but also speeds up cleanup sweeps that buff painted walls back to
@@ -16,10 +16,10 @@ signal cleanup_event(message: String, wall_id: String)
 ## One simulation tick = one "in-game hour" (matches RivalManager).
 const TICK_SECONDS := 12.0
 ## Cleanup sweeps run every N ticks — a compressed "in-game day"
-## (Plan.md section 33) so buffing shows up within a play session.
+## (GDD §33) so buffing shows up within a play session.
 const CLEANUP_PERIOD_TICKS := 6
 const DECAY_PER_TICK := 2.0
-## Unattended blocks cool faster (Plan.md section 12, Milestone 18).
+## Unattended blocks cool faster (GDD §12, Milestone 18).
 const ABSENT_DECAY_MULT := 2.0
 const MAX_HEAT := 100.0
 const GraffitiFonts := preload("res://Scripts/Walls/graffiti_font_library.gd")
@@ -68,7 +68,7 @@ func level_name(district_id := "") -> String:
 			result = String(level["name"])
 	return result
 
-## Plan.md section 12: higher heat means greater reputation reward for
+## GDD §12: higher heat means greater reputation reward for
 ## risky actions. Tops out at 1.5x when the district's heat is maxed.
 func rep_multiplier(district_id := "") -> float:
 	var value := heat_in(district_id) if district_id != "" else heat
@@ -144,7 +144,7 @@ func _on_tick() -> void:
 		_run_cleanup_sweep()
 
 ## City cleanup pass: each painted wall rolls against its cleanupChance,
-## inflated by its own district's heat for the player's work (Plan.md
+## inflated by its own district's heat for the player's work (GDD
 ## section 12: higher heat, faster cleanup response). At most one wall
 ## is buffed per sweep so the city never wipes the whole map at once.
 func _run_cleanup_sweep() -> void:

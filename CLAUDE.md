@@ -6,11 +6,16 @@ wiring to edit).
 
 ## Read first
 
+* **ROADMAP.md** — the single living plan: vision, the current milestones (M35+), and the PR/review process. **Start here.**
 * **docs/ARCHITECTURE.md** — system map, signal flow, data schemas. Read before touching code.
-* **Plan_v3.md** — current roadmap (milestones 27+) and PR/review process.
-* **Plan_v2.md** — completed v2 roadmap (milestones 15-26) and engineering history.
-* **Plan.md** — the v1 design doc; cite sections as `Plan.md §N` in comments, as the codebase does.
+* **docs/design/GDD.md** — the v1 design doc, archived. Cite sections as `GDD §N` in comments, as the codebase does. Historical reference — where it and ROADMAP.md disagree, **ROADMAP.md wins**.
+* **Product_reqs.md** — the owner's raw requests; graffiti-culture source of truth.
 * **CHANGELOG.md** — what each milestone shipped; add an entry per milestone.
+
+> ROADMAP.md replaced `Plan.md` / `Plan_v2.md` / `Plan_v3.md` / `Plan_v4.md`
+> on 2026-07-15. A July 2026 design review found the core verb (painting)
+> is a keypress with no skill or failure in it; M35+ rebuild it. Read
+> ROADMAP.md §1 before planning any work.
 
 ## Commands
 
@@ -40,7 +45,7 @@ PR.
 * **Paint only through WallManager** (`paint_wall`, `paint_freehand`,
   `apply_rival_graffiti`, `buff_wall`) — the whole game hangs off its
   `wall_painted` signal. Never mutate `wall_states` directly.
-* **Everything is data-driven** from `/Data/*.json` (Plan.md agent
+* **Everything is data-driven** from `/Data/*.json` (GDD agent
   rule 3). New content = new JSON entries first, code second.
 * **Keep modal models testable off-tree:** UI panels separate their
   state/logic from UI nodes so the headless smoke test can drive them

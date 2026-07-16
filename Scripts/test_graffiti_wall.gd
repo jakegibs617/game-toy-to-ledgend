@@ -1,5 +1,5 @@
 extends Node3D
-## Test scene (Plan.md agent rule 9): a single paintable wall in an
+## Test scene (GDD agent rule 9): a single paintable wall in an
 ## empty room, for exercising graffiti placement in isolation.
 
 const TEST_WALL := {
